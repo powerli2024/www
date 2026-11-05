@@ -528,7 +528,7 @@ figure.tree .tnote { font-size: .8rem; color: var(--muted); margin: .3rem 0 0; }
 .op-tag { font-size: .7rem; color: var(--ok); font-weight: 700; margin-left: auto; padding-left: .5rem; white-space: nowrap; }
 .op-tag.wrong { color: var(--bad); }
 .q-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .6rem; }
-.q-actions button { min-height: 40px; font-size: .84rem; }
+.q-actions button { min-height: 44px; font-size: .84rem; }
 .fb {
   margin-top: .6rem;
   padding: .55rem .7rem;
@@ -636,3 +636,29 @@ tr.row-hl td { font-weight: 600; }
   a { color: #000; text-decoration: none; }
   .chips a { border: 0; padding: 0; }
 }
+
+
+/* ===== 优化补丁（可维护区）：可读性 / 触控 / 窄屏表格 ===== */
+/* 注释类小字原 12.48px，提到 14px；来源行同步放大 */
+.tnote, .sec-src, .glossary dt { font-size: 14px !important; line-height: 1.65 !important; }
+
+/* 正文行宽收敛到约 70 字符（原 857px、约 112 字符/行） */
+.chain li, .lede, .note, .sources li { max-width: 72ch; }
+
+/* 目录项触控目标 ≥44px（原 226 个不足 44px 的链接主要来自目录） */
+.toc a, .toc button, .side a, .top button, .menu-btn { min-height: 44px; }
+.toc a { display: flex; align-items: center; }
+.menu-btn { min-width: 44px; }
+
+/* 窄屏表格自身滚动，避免撑破页面 */
+@media (max-width: 720px) {
+  table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+@media (hover: none) { .toc a, .top button { min-height: 44px; } }
+
+
+
+/* 来源小字原 12.16px / 12.48px，统一到 14px */
+.sec-meta, .tnote, .sec-src { font-size: 14px !important; line-height: 1.6 !important; }
+/* 章节小标题与正文对比度检查用的浅色底，保持原样 */
+
