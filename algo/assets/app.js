@@ -1,0 +1,115 @@
+/* Offline application. No fetch, analytics, CDN or remote storage. */
+(()=>{
+'use strict';
+const data=window.COURSE_DATA, main=document.getElementById('main'), nav=document.getElementById('nav');
+const $=(q,root=document)=>root.querySelector(q), $$=(q,root=document)=>[...root.querySelectorAll(q)];
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const KEY='algorithm-thinking-lab-v1';
+let store={version:1,notes:{},records:{},visited:{},predictions:{}}, storageOK=true, timer=null, route={}, player=null, toastTimer;
+try{const saved=localStorage.getItem(KEY);if(saved){const parsed=JSON.parse(saved);if(parsed.version===1)store={...store,...parsed};}}catch{storageOK=false;}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(store));storageOK=true;}catch{storageOK=false;toast('浏览器未允许保存，请导出记录备份。');}};
+const toast=text=>{clearTimeout(toastTimer);$('#toast').textContent=text;$('#toast').hidden=false;toastTimer=setTimeout(()=>$('#toast').hidden=true,4000);};
+const stop=()=>{if(timer)clearInterval(timer);timer=null;const b=$('#play');if(b)b.textContent='▶ 播放';};
+const items=[...data.lessons,...data.documents];
+const sets=x=>Array.isArray(x)?x:x==null?[]:[x];
+let graphID=0;
+const v={esc,array(values,opt={}){return `<div class="array-viz" role="img" aria-label="数组状态：${esc(values.join('，'))}">${values.length?values.map((val,i)=>`<div class="array-cell ${sets(opt.active).includes(i)?'active':sets(opt.selected).includes(i)?'selected':sets(opt.rejected).includes(i)?'rejected':''}">${esc(val)}<small>${esc(opt.labels?.[i]??i)}</small></div>`).join(''):'<span class="muted">∅ 空</span>'}</div>`;},
+table(headers,rows,opt={}){return `<div class="viz-table"><table><thead><tr>${headers.map(h=>`<th scope="col">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map((row,r)=>`<tr>${row.map((cell,c)=>`<td class="${opt.active?.[0]===r&&opt.active?.[1]===c?'active':(opt.highlights||[]).some(p=>p[0]===r&&p[1]===c)?'selected':''}">${esc(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;},
+graph({nodes,edges,directed=false}){const id='arrow-'+(++graphID),map=new Map(nodes.map(n=>[String(n.id),n]));return `<svg class="graph-viz" viewBox="0 0 600 300" role="img" aria-label="图的当前状态；具体距离和选边见下方说明"><defs><marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="context-stroke"/></marker></defs>${edges.map(e=>{const a=map.get(String(e.u)),b=map.get(String(e.v));if(!a||!b)return '';const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len,x1=a.x+ux*24,y1=a.y+uy*24,x2=b.x-ux*27,y2=b.y-uy*27,curve=edges.some(z=>String(z.u)===String(e.v)&&String(z.v)===String(e.u))?22:0,mx=(a.x+b.x)/2-uy*curve,my=(a.y+b.y)/2+ux*curve,tx=.36*x1+.48*mx+.16*x2,ty=.36*y1+.48*my+.16*y2;return `<path class="edge ${esc(e.state||'')}" d="M${x1},${y1} Q${mx},${my} ${x2},${y2}" ${directed?'marker-end="url(#'+id+')"':''}/>${e.label!=null?`<text class="edge-label" x="${tx-uy*9}" y="${ty+ux*9-5}" text-anchor="middle">${esc(e.label)}</text>`:''}`;}).join('')}${nodes.map(n=>`<g><circle class="node ${esc(n.state||'')}" cx="${n.x}" cy="${n.y}" r="23"/><text class="node-text ${esc(n.state||'')}" x="${n.x}" y="${n.y+6}" text-anchor="middle">${esc(n.label??n.id)}</text>${n.tag!=null?`<text class="tag" x="${n.x}" y="${n.y+43}" text-anchor="middle">${esc(n.tag)}</text>`:''}</g>`).join('')}</svg>`;}};
+window.AlgoViz=v;
+function learningStatus(id){const records=store.records[id]||[],good=records.filter(r=>r.independent&&r.score>=8&&r.evidence?.trim());for(let i=0;i<good.length;i++)for(let j=i+1;j<good.length;j++)if(good[i].task.trim()!==good[j].task.trim()&&Math.abs(good[i].time-good[j].time)>=48*3600000)return {short:'已延迟复测 · 自评',text:'已记录两道不同题目、独立作答且 ≥8 分，其中相隔至少 48 小时。这是你的自评记录；仍需用新题检验迁移。'};if(good.length)return {short:'待延迟复测',text:'已记录一次独立作答 ≥8 分。请在至少 48 小时后换一道不同题目闭卷重做，再记录证据。'};return {short:store.visited[id]?'学习中':'未开始',text:'完成阅读或动画不自动算掌握。请留下自己的推导，再用新题和延迟复测检验。'};}
+function renderNav(query=''){
+ const q=query.trim().toLowerCase();
+ const matches=q?items.filter(x=>(x.title+' '+x.searchText).toLowerCase().includes(q)):items;
+ $('#search-status').textContent=q?`${matches.length} 项内容包含“${query}”`:'';
+ nav.innerHTML=`<a class="nav-link ${route.type==='home'?'active':''}" href="#home"><span class="nav-num">⌂</span>学习地图</a>`;
+ let group='';
+ for(const lesson of data.lessons.filter(x=>matches.includes(x))){if(lesson.group!==group){group=lesson.group;nav.insertAdjacentHTML('beforeend',`<div class="nav-label">${esc(group)}</div>`);}nav.insertAdjacentHTML('beforeend',`<a class="nav-link ${route.id===lesson.id&&route.type==='lesson'?'active':''}" href="#lesson/${lesson.id}"><span class="nav-num">${lesson.id}</span><span>${esc(lesson.title)}</span>${store.visited[lesson.id]?'<span class="dot" title="曾打开，不表示掌握"></span>':''}</a>`);}
+ const docs=data.documents.filter(x=>matches.includes(x));if(docs.length)nav.insertAdjacentHTML('beforeend','<div class="nav-label">学习工具与原始依据</div>');
+ for(const doc of docs)nav.insertAdjacentHTML('beforeend',`<a class="nav-link ${route.id===doc.id?'active':''}" href="#doc/${doc.id}"><span class="nav-num">·</span>${esc(doc.title)}</a>`);
+ if(!matches.length)nav.insertAdjacentHTML('beforeend','<p class="empty">试试“状态”“负环”或“规约”。</p>');
+}
+function home(){
+ const visited=data.lessons.filter(x=>store.visited[x.id]);const resume=visited.sort((a,b)=>store.visited[b.id]-store.visited[a.id])[0];
+ main.innerHTML=`<section class="hero"><div><div class="eyebrow">ALGORITHM THINKING LAB / 算法设计与分析</div><h1>把算法看懂，<br>把思路<em>想明白。</em></h1><p class="hero-desc">从一个朴素办法出发，发现结构，推导算法。<br>用可操作的过程连接直觉与证明，让每一步都有理由。</p><div class="hero-actions"><a class="button" href="#lesson/${resume?.id||'01'}/lab">${resume?'继续上次学习':'进入第一课实验'} <span>↗</span></a><a class="button secondary" href="#doc/diagnosis">先做起点诊断</a></div><div class="hero-caption"><span>15 节完整课程</span><span>逐步实验 · 数学推导</span><span>离线使用 · 本机记录</span></div></div><a href="#lesson/01/lab" class="hero-art" aria-label="打开最大子数组交互实验"><div class="art-head"><span>EXPERIMENT 01</span><span>非空 · 连续</span></div><div class="art-label">先想一想：最大的连续区间在哪里？</div><div class="hero-array">${[-2,4,-1,3,-5].map((x,i)=>`<span class="${i>=1&&i<=3?'picked':''}">${x}<small>${i}</small></span>`).join('')}</div><div class="art-result"><span>必须在这里结束<br>与全局最好，分别记录。</span><strong>Σ = 6</strong></div><div class="art-proof"><b>继续接上，还是重新开始？</b><br>让状态回答这两个问题，枚举就能变成线性扫描。</div></a></section>
+ <section class="learning-loop" aria-label="学习方法">${[['01','先做一个小例子','写下朴素方法和预测，暴露真正不清楚的一步。'],['02','观察状态如何变化','逐步执行，定位变量、依赖与关键分支。'],['03','解释为什么成立','用不变量、分类或交换论证连接直觉与证明。'],['04','换条件，再独立做','收起答案，做变式；48 小时后重新检验。']].map(([n,t,d])=>`<div class="loop-item"><span>${n} /</span><h3>${t}</h3><p>${d}</p></div>`).join('')}</section>
+ <div class="section-title"><h2>沿着问题，建立算法思维</h2><p>按理解程度推进，不按考试倒计时赶课</p></div><div id="course-map"></div>
+ <div class="route-tip">考试是底线，独立思考是目标。旧大纲与 2024 样卷用于训练；当前年份的范围和评分，仍需依据教师通知。<a href="#doc/sources">查看材料依据 →</a></div>
+ <div class="section-title"><h2>把尝试留下来</h2><p>提示依赖、错误与修改理由，比浏览次数更有用</p></div><div class="doc-links">${data.documents.map(x=>`<a href="#doc/${x.id}">${esc(x.title)} ↗</a>`).join('')}</div>`;
+ const groups=[...new Set(data.lessons.map(x=>x.group))];$('#course-map').innerHTML=groups.map((g,i)=>`<section class="course-group"><h3 class="group-title">0${i+1} / ${esc(g)}</h3><div class="course-grid">${data.lessons.filter(x=>x.group===g).map(x=>`<a class="course-card" href="#lesson/${x.id}"><div class="card-top"><span class="card-num">${x.id}</span><span>${learningStatus(x.id).short}</span></div><h3>${esc(x.title)}</h3><p>${esc(x.subtitle)}</p><span class="card-arrow">↗</span></a>`).join('')}</div></section>`).join('');
+}
+function concept(lesson){return `<section class="concept-panel"><div class="eyebrow">先抓住这一个概念</div><h2>${esc(lesson.focus)}</h2><div class="formula-box">${lesson.formulaHTML}</div><p class="conditions"><b>适用条件与边界：</b>${esc(lesson.conditions)}</p><div class="symbols">${lesson.symbols.map(([n,d])=>`<div class="symbol"><b>${esc(n)}</b>${esc(d)}</div>`).join('')}</div><div class="proof-cue"><div class="cue"><strong>证明从这里开始</strong>${esc(lesson.proof)}</div><div class="cue warning"><strong>最容易误用的地方</strong>${esc(lesson.trap)}</div></div></section>`;}
+function article(entry){
+ $('#lesson-body').innerHTML=`<div class="source-row"><span>完整讲义 · 保留原推导与练习</span><a href="${entry.source}" target="_blank" rel="noopener">打开原 Markdown ↗</a><button class="text-btn" id="print-page">打印当前阅读页</button></div><div class="read-layout"><article class="reading" id="reading">${entry.html}</article><nav class="toc" aria-label="本页目录"><b>本页路线</b><div id="toc-list"></div></nav></div>`;
+ const reading=$('#reading');
+ for(const table of $$('table',reading)){const wrap=document.createElement('div');wrap.className='table-scroll';table.before(wrap);wrap.append(table);}
+ // Fold authored hint/answer sections, preserving full source content.
+ const h2s=$$('h2',reading);
+ for(const heading of h2s){const t=heading.textContent;if(/提示区|后置参考|参考.*答案|参考.*解|手推参考|参考过程|诊断参考|答案区|分层提示/.test(t)){
+  const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='尝试后再展开：'+t;heading.before(details);details.append(summary);let next=heading.nextSibling;details.append(heading);while(next&&!(next.nodeType===1&&next.tagName==='H2')){const after=next.nextSibling;details.append(next);next=after;}
+ }}
+ const headings=$$('h2,h3',reading);headings.forEach((h,i)=>h.id='section-'+i);
+ $('#toc-list').innerHTML=headings.filter(h=>h.tagName==='H2').map(h=>`<a href="#${entry.type}/${entry.id}" data-heading="${h.id}">${esc(h.textContent)}</a>`).join('');
+ $$('[data-heading]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();const target=document.getElementById(a.dataset.heading);const fold=target.closest('details');if(fold)fold.open=true;target.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});}));
+ $('#print-page').onclick=()=>window.print();
+}
+function lessonPage(lesson,tab){
+ store.visited[lesson.id]=Date.now();save();
+ main.innerHTML=`<section class="lesson-heading"><div class="lesson-meta"><span class="num">LESSON ${lesson.id}</span><span class="chip">${esc(lesson.tag)}</span></div><h1>${esc(lesson.title)}</h1><p>${esc(lesson.subtitle)}</p><div class="prereq">先修：${esc(lesson.prereq)} <span aria-hidden="true">　·　</span> 可以分次完成，先推导再看答案</div></section><div class="lesson-tabs" role="tablist" aria-label="学习方式">${[['read','理解与推导'],['lab','动态实验'],['practice','练习与复测']].map(([id,label])=>`<button role="tab" aria-selected="${tab===id}" data-tab="${id}">${label}</button>`).join('')}</div><div id="lesson-body" role="tabpanel"></div><div class="lesson-bottom">${Number(lesson.id)>1?`<a href="#lesson/${String(Number(lesson.id)-1).padStart(2,'0')}">← 上一课</a>`:'<a href="#doc/diagnosis">← 回到起点诊断</a>'}${Number(lesson.id)<15?`<a href="#lesson/${String(Number(lesson.id)+1).padStart(2,'0')}">下一课：${esc(data.lessons[Number(lesson.id)].title)} →</a>`:'<a href="#home">回到学习地图 →</a>'}</div>`;
+ $$('[data-tab]').forEach(b=>b.onclick=()=>location.hash=`lesson/${lesson.id}/${b.dataset.tab}`);
+ if(tab==='lab') mountLab(lesson); else if(tab==='practice')practice(lesson); else {article(lesson);$('#lesson-body').insertAdjacentHTML('afterbegin',concept(lesson));}
+}
+function mountLab(lesson){
+ const def=window.AlgoLabs?.[lesson.id];
+ if(!def){$('#lesson-body').innerHTML='<p class="empty">实验模块未载入，请确认 assets 文件夹完整。讲义阅读不受影响。</p>';return;}
+ $('#lesson-body').innerHTML=`<div class="lab-intro"><div><div class="eyebrow">暂停，是思考的一部分</div><h2>${esc(def.title)}</h2><p>${esc(def.subtitle)}</p></div><span class="chip">每一步都有理由</span></div><p class="conditions">${esc(def.concept||lesson.focus)}</p><div class="lab-legend"><span><i class="active"></i>当前处理／比较</span><span><i class="selected"></i>已选／已确定</span><span><i class="rejected"></i>排除／不采用</span><span>颜色同时配有文字状态</span></div><section class="experiment" aria-label="算法逐步实验"><div class="lab-config"><span class="case-label">改变输入，观察变化</span><label><select id="preset" aria-label="选择实验输入">${def.presets.map((p,i)=>`<option value="${i}">${esc(p.name)}</option>`).join('')}</select></label><span class="muted">先预测，再走一步</span></div><div class="lab-stage"><div class="scene-col"><div class="frame-heading"><strong id="frame-title"></strong><span id="frame-kind">状态快照</span></div><div class="scene" id="scene" tabindex="0" aria-label="可滚动的算法状态图"></div><div class="metrics" id="metrics"></div></div><aside class="code-col" aria-label="对应伪代码"><div class="code-label">PSEUDOCODE / 当前执行位置</div><ol class="lab-code">${def.code.map((s,i)=>`<li data-line="${i+1}">${esc(s)}</li>`).join('')}</ol></aside></div><div class="lab-controls"><input class="range" id="timeline" type="range" min="0" value="0" aria-label="实验步骤进度"><button id="reset" title="回到初始状态">↺ 重置</button><button id="prev" aria-label="上一步">← 上一步</button><button id="play" class="play">▶ 播放</button><button id="next" aria-label="下一步">下一步 →</button><span id="frame-count" class="frame-count"></span><label class="speed-label">速度 <select id="speed" aria-label="动画播放速度"><option value="1800">慢速</option><option value="1000" selected>正常</option><option value="500">快速</option></select></label></div></section><div id="prediction"></div><div class="explanation"><div><h3>这一步为什么这样做</h3><div id="reason"></div></div><div class="invariant"><h3>始终保持的事实 / 不变量</h3><div id="invariant"></div></div></div><div class="route-tip">观察完这一步，用自己的话说出它的理由。一次正确选择不等于掌握整个算法。<a href="#lesson/${lesson.id}/practice">去记录你的解释 →</a></div>`;
+ player={lesson,def,preset:0,index:0,frames:[],answers:{}};
+ function rebuild(){stop();player.preset=Number($('#preset').value);player.index=0;player.answers={};player.frames=def.build(structuredClone(def.presets[player.preset].data));if(!Array.isArray(player.frames)||!player.frames.length)throw Error('实验没有产生状态');$('#timeline').max=player.frames.length-1;drawFrame();}
+ $('#preset').onchange=rebuild;
+ $('#reset').onclick=()=>{stop();player.index=0;player.answers={};drawFrame();};
+ $('#prev').onclick=()=>{stop();if(player.index>0)player.index--;drawFrame();};
+ $('#next').onclick=()=>{stop();advance();};
+ $('#timeline').oninput=()=>{stop();player.index=Number($('#timeline').value);drawFrame();};
+ $('#speed').onchange=()=>{if(timer){stop();play();}};
+ $('#play').onclick=()=>timer?stop():play();
+ function play(){if(blocked()){toast('先做出预测，或展开这一步的解析。');return;}if(player.index===player.frames.length-1){player.index=0;drawFrame();}$('#play').textContent='Ⅱ 暂停';timer=setInterval(()=>{advance();if(blocked()||player.index===player.frames.length-1)stop();},Number($('#speed').value));}
+ function blocked(){return !!player.frames[player.index].question&&!player.answers[player.index];}
+ function advance(){if(blocked()){toast('停一下：先预测下一步，再继续。');return;}if(player.index<player.frames.length-1)player.index++;drawFrame();}
+ function drawFrame(){
+ const f=player.frames[player.index];$('#frame-title').textContent=f.title;$('#scene').innerHTML=def.render(f,v);$('#scene').classList.remove('changed');void $('#scene').offsetWidth;$('#scene').classList.add('changed');
+ $('#reason').textContent=f.reason;$('#invariant').textContent=f.invariant;$('#metrics').innerHTML=Object.entries(f.metrics||{}).map(([k,val])=>`<div class="metric">${esc(k)}<b>${esc(typeof val==='object'?JSON.stringify(val):val)}</b></div>`).join('');
+ $$('.lab-code li').forEach(li=>li.classList.toggle('current',(f.lines||[]).includes(Number(li.dataset.line))));
+ $('#frame-count').textContent=`${player.index+1} / ${player.frames.length}`;$('#timeline').value=player.index;$('#prev').disabled=player.index===0;$('#next').disabled=player.index===player.frames.length-1;$('#frame-kind').textContent=f.question?'预测停顿':'状态快照';
+ const q=f.question;const answer=player.answers[player.index];
+ if(!q){$('#prediction').innerHTML='';return;}
+ $('#prediction').innerHTML=`<section class="prediction"><div class="eyebrow">先别急着看下一步</div><h3>${esc(q.prompt)}</h3><div class="options">${q.options.map((s,i)=>`<button class="option ${answer?.choice===i?'chosen':''} ${answer&&i===q.correct?'correct':''}" data-choice="${i}" ${answer?'disabled':''}>${String.fromCharCode(65+i)}. ${esc(s)}</button>`).join('')}</div>${answer?`<div class="feedback"><b>${answer.choice===q.correct?'预测正确。':answer.choice===-1?'已展开解析；这次不计独立作答。':'这次预测不同。'}</b> ${esc(q.explain)}</div>`:'<button class="text-btn" id="reveal-prediction">暂时不会，先看解析</button>'}</section>`;
+ $$('[data-choice]').forEach(b=>b.onclick=()=>answerQuestion(Number(b.dataset.choice)));
+ if($('#reveal-prediction'))$('#reveal-prediction').onclick=()=>answerQuestion(-1);
+ function answerQuestion(choice){player.answers[player.index]={choice};const key=`${lesson.id}:${player.preset}:${player.index}`;if(!store.predictions[key]){store.predictions[key]={choice,correct:choice===q.correct,withoutReveal:choice>=0,independence:"not-assessed",time:Date.now()};save();}drawFrame();}
+ }
+ rebuild();
+}
+function practice(lesson){
+ const id=lesson.id;
+ $('#lesson-body').innerHTML=`<div class="status-banner">${esc(learningStatus(id).text)}</div><div class="practice-grid"><section class="practice-card"><div class="eyebrow">闭上讲义，试着解释</div><h2>两问，检查关键概念</h2>${lesson.questions.map(([q,a],i)=>`<p><b>${i+1}. ${esc(q)}</b></p><details><summary>完成尝试后查看参考</summary><p>${esc(a)}</p></details>`).join('')}<p class="quiet-note">完整的迁移题、分层提示和延迟验收在本课讲义后半部分。这里的两问用于定位概念缺口，看过解析后请换题检验。</p><a class="button secondary" href="#lesson/${id}/read">回到本课完整练习 ↗</a></section><section class="journal-card"><div class="eyebrow">保留第一版思路</div><h2>我的推导与卡点</h2><label class="field">题意 → 朴素方法 → 发现结构 → 算法<textarea id="notes" placeholder="先写想到哪里，再写卡在哪里。可以记下一个反例，或仍说不清的状态含义。">${esc(store.notes[id]||'')}</textarea></label><p class="quiet-note" id="save-note">${storageOK?'输入后自动保存在当前浏览器。建议定期导出备份。':'当前浏览器不支持持久保存，请使用导出记录。'}</p><p class="quiet-note">换浏览器、清除网站数据或移动到新的访问地址时，记录可能不会共享。先导出，再导入。</p></section></div><section class="journal-card"><div class="eyebrow">用证据判断进度</div><h2>记录一次独立验收</h2><p class="quiet-note">建议按建模 2 分、推导 3 分、正确性 2 分、复杂度 1 分、变式 2 分自评。分数用于学习诊断，不代表教师评分。</p><form id="assessment"><div class="practice-grid"><label class="field">题目或变式名称<input name="task" required maxlength="120" placeholder="例如：全负数组的最大子数组，第二次闭卷"></label><label class="field">自评分（0—10）<input name="score" type="number" min="0" max="10" step="1" value="0" required></label></div><label class="field">留下可检查的证据<textarea name="evidence" required maxlength="15000" placeholder="写出状态、关键推导、证明，或第一次出错的原因。"></textarea></label><label class="checkline"><input name="independent" type="checkbox">这道题没有查看本题答案或提示，我独立写出了推导与解释。</label><button class="primary" type="submit">保存这次验收</button></form><div id="records"></div></section>`;
+ $('#notes').oninput=()=>{store.notes[id]=$('#notes').value;save();$('#save-note').textContent=storageOK?'已保存到当前浏览器。':'保存不可用，请导出记录。';};
+ $('#assessment').onsubmit=e=>{e.preventDefault();const form=new FormData(e.target),score=Number(form.get('score')),task=String(form.get('task')).trim(),evidence=String(form.get('evidence')).trim();if(!task||!evidence||!Number.isInteger(score)||score<0||score>10)return;store.records[id]??=[];store.records[id].push({task,score,evidence,independent:form.get('independent')==='on',time:Date.now()});save();toast('已保存。本课进度依据你的作答记录更新。');practice(lesson);};
+ $('#records').innerHTML=(store.records[id]||[]).slice().reverse().map(r=>`<div class="record"><strong>${esc(r.task)} · ${r.score}/10</strong><span class="chip">${r.independent?'独立作答 · 自报':'使用提示／参考'}</span><p>${esc(r.evidence)}</p><span class="date">${new Date(r.time).toLocaleString('zh-CN')}</span></div>`).join('');
+}
+function render(){stop();player=null;const [type='home',id='',rawTab='read']=location.hash.replace(/^#/,'').split('/');route={type,id,tab:['read','lab','practice'].includes(rawTab)?rawTab:'read'};document.body.classList.remove('nav-open');$('#menu-toggle').setAttribute('aria-expanded','false');
+ if(type==='lesson'){const lesson=data.lessons.find(x=>x.id===id);if(lesson){document.title=`${lesson.title} · 算法思考实验室`;lessonPage(lesson,route.tab);}else home();}
+ else if(type==='doc'){const doc=data.documents.find(x=>x.id===id);if(doc){document.title=`${doc.title} · 算法思考实验室`;main.innerHTML=`<div class="eyebrow">学习工具 / 原始材料</div><h1 class="doc-heading">${esc(doc.title)}</h1><div id="lesson-body"></div>`;article(doc);}else home();}
+ else {route.type='home';document.title='算法 · 思考实验室';home();}
+ renderNav($('#search').value);window.scrollTo({top:0,behavior:'instant'});
+}
+$('#search').addEventListener('input',e=>renderNav(e.target.value));
+$('.skip-link').onclick=e=>{e.preventDefault();main.focus();main.scrollIntoView({block:'start'});};
+$('#menu-toggle').onclick=()=>{const opened=document.body.classList.toggle('nav-open');$('#menu-toggle').setAttribute('aria-expanded',String(opened));};
+main.addEventListener('click',()=>{document.body.classList.remove('nav-open');$('#menu-toggle').setAttribute('aria-expanded','false');});
+$('#focus-toggle').onclick=()=>{const focus=document.body.classList.toggle('focus-mode');$('#focus-toggle').textContent=focus?'显示导航':'专注阅读';$('#focus-toggle').setAttribute('aria-pressed',String(focus));};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.body.classList.remove('nav-open');$('#menu-toggle').setAttribute('aria-expanded','false');stop();}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
+$('#export').onclick=()=>{const blob=new Blob([JSON.stringify({...store,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='算法学习记录-'+new Date().toLocaleDateString('sv-SE')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('记录已导出，请保存到你自己的备份位置。');};
+$('#import').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>5*1024*1024)throw Error('文件过大');const s=JSON.parse(await file.text());if(s.version!==1||!s.notes||!s.records)throw Error('不是本学习网页的导出记录');for(const l of data.lessons){if(typeof s.notes[l.id]==='string')store.notes[l.id]=store.notes[l.id]?store.notes[l.id]+'\n\n【导入记录】\n'+s.notes[l.id]:s.notes[l.id];if(Array.isArray(s.records[l.id])){store.records[l.id]??=[];for(const r of s.records[l.id])if(typeof r.task==='string'&&typeof r.evidence==='string'&&Number.isFinite(r.time)&&Number.isInteger(r.score)&&r.score>=0&&r.score<=10&&!store.records[l.id].some(x=>x.time===r.time&&x.task===r.task))store.records[l.id].push({task:r.task,evidence:r.evidence,time:r.time,score:r.score,independent:r.independent===true});}if(Number.isFinite(s.visited?.[l.id]))store.visited[l.id]=Math.max(store.visited[l.id]||0,s.visited[l.id]);}save();render();toast('已合并导入记录，原有验收记录保留。');}catch(err){toast('导入失败：'+err.message);}e.target.value='';};
+window.addEventListener('hashchange',render);render();
+})();

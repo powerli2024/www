@@ -1,0 +1,126 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>公平对照：把搜索预算与选择规则写进实验</title><link rel="stylesheet" href="../assets/reader.css"></head><body class="static-reader"><main><p><a href="../index.html#week-19">返回交互课程</a></p><div class="eyebrow">第19周 / 静态讲义</div><h1>公平对照：把搜索预算与选择规则写进实验</h1><section class="lesson-section" id="w19-section-1"><h2><span class="section-number">01</span>公平比较首先回答：你想比较什么</h2><p>比较“方法在给定搜索预算内能做到什么”和比较“同一学习率下谁更好”是不同问题。两种方法的可训练空间与有效更新尺度不同，共用一个学习率可能恰好适合其中一个。主线采用前者：固定基础检查点、训练数据、最大更新步数和预测token预算，各方法在相同候选数内选择自己的配置。</p>
+<p>候选是一次完整的可执行配置。全量微调用6档学习率；LoRA选r=2、8，每档秩各3档学习率，共6个候选。不要把“每种秩各6次”算成LoRA只搜6次；额外改变alpha、插入层或偏置策略也增加配置维度。开发选择前列出全部ID，失败运行也保留，不能只展示成功的那几次。</p>
+<p>不适配基线没有训练学习率，所以不需要为了凑数量重复搜索。它仍须在相同A/B开发数据上评价，作为(收益0，遗忘0)的参考。第19周只做小型开发试验：相同基础检查点和配对批次顺序能减少无关差异，但不能消除全部随机性。正式重复留到第22周。</p>
+<p>训练token数必须数真正参与损失的token。如果padding没有计分，不能按张量总长度夸大预算；梯度累积时多个微批共同构成一次参数更新，更新步数相同不一定token相同。保持这些预算后仍要测时间与峰值资源，因为冻结参数和额外低秩分支改变了计算。</p>
+<aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>六组预算怎样公平分配</h3><ol><li><p>全量配置F1–F6对应6个学习率。</p>
+</li><li><p>LoRA配置L1–L3为r=2的3档学习率，L4–L6为r=8的3档。</p>
+</li><li><p>12组都训练48000个被计分token。若F2失败，记录失败；不能悄悄给F2额外3次机会。</p>
+</li></ol><div class="worked-result"><p>公平是事先限定同类机会，并报告实际成本；不是所有超参数取相同数值。</p>
+</div></aside></section><section class="lesson-section" id="w19-section-2"><h2><span class="section-number">02</span>把偏好写成能执行的选择规则</h2><p>只有B损失最小这一条规则，会允许模型用大量旧域退化换取一点新域进步。这里使用一个明确的教学选择规则：旧域遗忘不超过0.2，再选择B开发损失最小的候选；并列时按候选ID排序。0.2不是普遍合理的阈值，真实项目需在看最终测试前说明为何选择它，也可改成预先固定的其他规则。</p>
+<p>若没有候选满足约束，应报告本预算下无可行配置，而不是偷偷把0.2改成0.3。你可以开启有记录的新开发版本扩大预算，但必须在最终测试之前完成，并保留旧结果。主结果比较各方法经同一规则选出的配置，秩2与秩8分项结果另放附表，避免只保留对自己有利的一项。</p>
+<p>同时观察所有候选的收益—遗忘散点。有些点被另一个点同时在两个目标上超过，属于可支配候选；未被支配的点形成取舍边界。边界本身不是唯一赢家，因为使用者对遗忘的容忍不同。选择规则把偏好说清，散点图把被选结论以外的信息保留下来。</p>
+<div class="formula"><button class="formula-zoom" type="button" title="放大公式" aria-label="放大公式：先筛选遗忘约束，再在可行候选中最小化B开发损失。"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIKICAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4KPHN2ZyB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgd2lkdGg9IjI2OXB0IiBoZWlnaHQ9IjM0cHQiIHZpZXdCb3g9IjAgMCAyNjkgMzQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmVyc2lvbj0iMS4xIj4KIDxtZXRhZGF0YT4KICA8cmRmOlJERiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOmNjPSJodHRwOi8vY3JlYXRpdmVjb21tb25zLm9yZy9ucyMiIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+CiAgIDxjYzpXb3JrPgogICAgPGRjOnR5cGUgcmRmOnJlc291cmNlPSJodHRwOi8vcHVybC5vcmcvZGMvZGNtaXR5cGUvU3RpbGxJbWFnZSIvPgogICAgPGRjOmRhdGU+MjAyNi0xMC0yM1QxOToyMDo1Ny45MzA3OTc8L2RjOmRhdGU+CiAgICA8ZGM6Zm9ybWF0PmltYWdlL3N2Zyt4bWw8L2RjOmZvcm1hdD4KICAgIDxkYzpjcmVhdG9yPgogICAgIDxjYzpBZ2VudD4KICAgICAgPGRjOnRpdGxlPk1hdHBsb3RsaWIgdjMuMTAuMywgaHR0cHM6Ly9tYXRwbG90bGliLm9yZy88L2RjOnRpdGxlPgogICAgIDwvY2M6QWdlbnQ+CiAgICA8L2RjOmNyZWF0b3I+CiAgIDwvY2M6V29yaz4KICA8L3JkZjpSREY+CiA8L21ldGFkYXRhPgogPGRlZnM+CiAgPHN0eWxlIHR5cGU9InRleHQvY3NzIj4qe3N0cm9rZS1saW5lam9pbjogcm91bmQ7IHN0cm9rZS1saW5lY2FwOiBidXR0fTwvc3R5bGU+CiA8L2RlZnM+CiA8ZyBpZD0iZmlndXJlXzEiPgogIDxnIGlkPSJwYXRjaF8xIj4KICAgPHBhdGggZD0iTSAwIDM0IApMIDI2OSAzNCAKTCAyNjkgMCAKTCAwIDAgCnoKIiBzdHlsZT0iZmlsbDogI2ZmZmZmZiIvPgogIDwvZz4KICA8ZyBpZD0idGV4dF8xIj4KICAgPCEtLSAkRl9BXGxlcSBcdGF1LFxxcXVhZCBjXio9XHVuZGVyc2V0e2N9e1xtYXRocm17YXJnbWlufX1cIExfQihjKSQgLS0+CiAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgMTgpIHNjYWxlKDAuMTkgLTAuMTkpIj4KICAgIDxkZWZzPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zLU9ibGlxdWUtNDYiIGQ9Ik0gMTA4MSA0NjY2IApMIDM3NTYgNDY2NiAKTCAzNjUzIDQxMzQgCkwgMTYwNiA0MTM0IApMIDEzMzggMjc1OSAKTCAzMTg4IDI3NTkgCkwgMzA4NCAyMjI4IApMIDEyMzQgMjIyOCAKTCA4MDAgMCAKTCAxNzIgMCAKTCAxMDgxIDQ2NjYgCnoKIiB0cmFuc2Zvcm09InNjYWxlKDAuMDE1NjI1KSIvPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zLU9ibGlxdWUtNDEiIGQ9Ik0gMjM1NiA0NjY2IApMIDMwNzIgNDY2NiAKTCAzOTM4IDAgCkwgMzI3OCAwIApMIDMwODQgMTE5NyAKTCA5ODQgMTE5NyAKTCAzMjUgMCAKTCAtMzQxIDAgCkwgMjM1NiA0NjY2IAp6Ck0gMjU4NCA0MDQ0IApMIDEyNzUgMTcyMiAKTCAyOTg4IDE3MjIgCkwgMjU4NCA0MDQ0IAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy0yMjY0IiBkPSJNIDQ2ODQgMzE3NSAKTCAxNjg0IDIzMDkgCkwgNDY4NCAxNDUzIApMIDQ2ODQgODk3IApMIDY3OCAyMDQ3IApMIDY3OCAyNTc4IApMIDQ2ODQgMzcyNSAKTCA0Njg0IDMxNzUgCnoKTSA2NzggNTMxIApMIDQ2ODQgNTMxIApMIDQ2ODQgMCAKTCA2NzggMCAKTCA2NzggNTMxIAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy1PYmxpcXVlLTNjNCIgZD0iTSAyMTAzIDYzOCAKUSAyMTg4IDQ4OCAyNTI1IDQ4OCAKTCAyODAwIDQ4OCAKTCAyNzA2IDAgCkwgMjM2MyAwIApRIDE4MDAgMCAxNjAwIDMwMCAKUSAxNDAzIDYwNiAxNTM0IDEyNjkgCkwgMTg1NiAyOTI1IApMIDU0MSAyOTI1IApMIDY1MyAzNTAwIApMIDM4ODEgMzUwMCAKTCAzNzY5IDI5MjUgCkwgMjQ0NCAyOTI1IApMIDIxMTMgMTIzNCAKUSAyMDI1IDc4MSAyMTAzIDYzOCAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtMmMiIGQ9Ik0gNzUwIDc5NCAKTCAxNDA5IDc5NCAKTCAxNDA5IDI1NiAKTCA4OTcgLTc0NCAKTCA0OTQgLTc0NCAKTCA3NTAgMjU2IApMIDc1MCA3OTQgCnoKIiB0cmFuc2Zvcm09InNjYWxlKDAuMDE1NjI1KSIvPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zLU9ibGlxdWUtNjMiIGQ9Ik0gMzQzMSAzMzY2IApMIDMzMTYgMjc5NyAKUSAzMTA5IDI5NDcgMjg3NiAzMDIyIApRIDI2NDQgMzA5NyAyMzk0IDMwOTcgClEgMjExOSAzMDk3IDE4NzAgMzAwMCAKUSAxNjIyIDI5MDMgMTQ1MyAyNzI1IApRIDExODQgMjQ1MyAxMDM3IDIwODcgClEgODkxIDE3MjIgODkxIDEzMzEgClEgODkxIDg1OSAxMTI3IDYyOCAKUSAxMzYzIDM5NyAxODQ0IDM5NyAKUSAyMDgxIDM5NyAyMzQ4IDQ2OSAKUSAyNjE2IDU0MSAyOTA2IDY4NCAKTCAyNzk3IDExNiAKUSAyNTQ3IDEzIDIyODMgLTM5IApRIDIwMTkgLTkxIDE3NDEgLTkxIApRIDEwNDQgLTkxIDY2OSAyNTcgClEgMjk0IDYwNiAyOTQgMTI1MyAKUSAyOTQgMTc5NyA0ODkgMjI1NSAKUSA2ODQgMjcxMyAxMDY5IDMwNzggClEgMTMzMSAzMzI4IDE2ODQgMzQ1NiAKUSAyMDM4IDM1ODQgMjQ1NiAzNTg0IApRIDI3MDAgMzU4NCAyOTQwIDM1MjkgClEgMzE4MSAzNDc1IDM0MzEgMzM2NiAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtMmEiIGQ9Ik0gMzAwOSAzODk3IApMIDE4ODggMzI5MSAKTCAzMDA5IDI2ODEgCkwgMjgyOCAyMzc1IApMIDE3NzggMzAwOSAKTCAxNzc4IDE4MzEgCkwgMTQyMiAxODMxIApMIDE0MjIgMzAwOSAKTCAzNzIgMjM3NSAKTCAxOTEgMjY4MSAKTCAxMzEzIDMyOTEgCkwgMTkxIDM4OTcgCkwgMzcyIDQyMDYgCkwgMTQyMiAzNTcyIApMIDE0MjIgNDc1MCAKTCAxNzc4IDQ3NTAgCkwgMTc3OCAzNTcyIApMIDI4MjggNDIwNiAKTCAzMDA5IDM4OTcgCnoKIiB0cmFuc2Zvcm09InNjYWxlKDAuMDE1NjI1KSIvPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zLTNkIiBkPSJNIDY3OCAyOTA2IApMIDQ2ODQgMjkwNiAKTCA0Njg0IDIzODEgCkwgNjc4IDIzODEgCkwgNjc4IDI5MDYgCnoKTSA2NzggMTYzMSAKTCA0Njg0IDE2MzEgCkwgNDY4NCAxMTAwIApMIDY3OCAxMTAwIApMIDY3OCAxNjMxIAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy02MSIgZD0iTSAyMTk0IDE3NTkgClEgMTQ5NyAxNzU5IDEyMjggMTYwMCAKUSA5NTkgMTQ0MSA5NTkgMTA1NiAKUSA5NTkgNzUwIDExNjEgNTcwIApRIDEzNjMgMzkxIDE3MDkgMzkxIApRIDIxODggMzkxIDI0NzcgNzMwIApRIDI3NjYgMTA2OSAyNzY2IDE2MzEgCkwgMjc2NiAxNzU5IApMIDIxOTQgMTc1OSAKegpNIDMzNDEgMTk5NyAKTCAzMzQxIDAgCkwgMjc2NiAwIApMIDI3NjYgNTMxIApRIDI1NjkgMjEzIDIyNzUgNjEgClEgMTk4MSAtOTEgMTU1NiAtOTEgClEgMTAxOSAtOTEgNzAxIDIxMSAKUSAzODQgNTEzIDM4NCAxMDE5IApRIDM4NCAxNjA5IDc3OSAxOTA5IApRIDExNzUgMjIwOSAxOTU5IDIyMDkgCkwgMjc2NiAyMjA5IApMIDI3NjYgMjI2NiAKUSAyNzY2IDI2NjMgMjUwNSAyODgwIApRIDIyNDQgMzA5NyAxNzcyIDMwOTcgClEgMTQ3MiAzMDk3IDExODcgMzAyNSAKUSA5MDMgMjk1MyA2NDEgMjgwOSAKTCA2NDEgMzM0MSAKUSA5NTYgMzQ2MyAxMjUzIDM1MjMgClEgMTU1MCAzNTg0IDE4MzEgMzU4NCAKUSAyNTkxIDM1ODQgMjk2NiAzMTkwIApRIDMzNDEgMjc5NyAzMzQxIDE5OTcgCnoKIiB0cmFuc2Zvcm09InNjYWxlKDAuMDE1NjI1KSIvPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zLTcyIiBkPSJNIDI2MzEgMjk2MyAKUSAyNTM0IDMwMTkgMjQyMCAzMDQ1IApRIDIzMDYgMzA3MiAyMTY5IDMwNzIgClEgMTY4MSAzMDcyIDE0MjAgMjc1NSAKUSAxMTU5IDI0MzggMTE1OSAxODQ0IApMIDExNTkgMCAKTCA1ODEgMCAKTCA1ODEgMzUwMCAKTCAxMTU5IDM1MDAgCkwgMTE1OSAyOTU2IApRIDEzNDEgMzI3NSAxNjMxIDM0MjkgClEgMTkyMiAzNTg0IDIzMzggMzU4NCAKUSAyMzk3IDM1ODQgMjQ2OSAzNTc2IApRIDI1NDEgMzU2OSAyNjI4IDM1NTMgCkwgMjYzMSAyOTYzIAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy02NyIgZD0iTSAyOTA2IDE3OTEgClEgMjkwNiAyNDE2IDI2NDggMjc1OSAKUSAyMzkxIDMxMDMgMTkyNSAzMTAzIApRIDE0NjMgMzEwMyAxMjA1IDI3NTkgClEgOTQ3IDI0MTYgOTQ3IDE3OTEgClEgOTQ3IDExNjkgMTIwNSA4MjUgClEgMTQ2MyA0ODEgMTkyNSA0ODEgClEgMjM5MSA0ODEgMjY0OCA4MjUgClEgMjkwNiAxMTY5IDI5MDYgMTc5MSAKegpNIDM0ODEgNDM0IApRIDM0ODEgLTQ1OSAzMDg0IC04OTUgClEgMjY4OCAtMTMzMSAxODY5IC0xMzMxIApRIDE1NjYgLTEzMzEgMTI5NyAtMTI4NiAKUSAxMDI4IC0xMjQxIDc3NSAtMTE0NyAKTCA3NzUgLTU4OCAKUSAxMDI4IC03MjUgMTI3NSAtNzkwIApRIDE1MjIgLTg1NiAxNzc4IC04NTYgClEgMjM0NCAtODU2IDI2MjUgLTU2MSAKUSAyOTA2IC0yNjYgMjkwNiAzMzEgCkwgMjkwNiA2MTYgClEgMjcyOCAzMDYgMjQ1MCAxNTMgClEgMjE3MiAwIDE3ODQgMCAKUSAxMTQxIDAgNzQ3IDQ5MCAKUSAzNTMgOTgxIDM1MyAxNzkxIApRIDM1MyAyNjAzIDc0NyAzMDkzIApRIDExNDEgMzU4NCAxNzg0IDM1ODQgClEgMjE3MiAzNTg0IDI0NTAgMzQzMSAKUSAyNzI4IDMyNzggMjkwNiAyOTY5IApMIDI5MDYgMzUwMCAKTCAzNDgxIDM1MDAgCkwgMzQ4MSA0MzQgCnoKIiB0cmFuc2Zvcm09InNjYWxlKDAuMDE1NjI1KSIvPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zLTZkIiBkPSJNIDMzMjggMjgyOCAKUSAzNTQ0IDMyMTYgMzg0NCAzNDAwIApRIDQxNDQgMzU4NCA0NTUwIDM1ODQgClEgNTA5NyAzNTg0IDUzOTQgMzIwMSAKUSA1NjkxIDI4MTkgNTY5MSAyMTEzIApMIDU2OTEgMCAKTCA1MTEzIDAgCkwgNTExMyAyMDk0IApRIDUxMTMgMjU5NyA0OTM0IDI4NDAgClEgNDc1NiAzMDg0IDQzOTEgMzA4NCAKUSAzOTQ0IDMwODQgMzY4NCAyNzg3IApRIDM0MjUgMjQ5MSAzNDI1IDE5NzggCkwgMzQyNSAwIApMIDI4NDcgMCAKTCAyODQ3IDIwOTQgClEgMjg0NyAyNjAwIDI2NjkgMjg0MiAKUSAyNDkxIDMwODQgMjExOSAzMDg0IApRIDE2NzggMzA4NCAxNDE4IDI3ODYgClEgMTE1OSAyNDg4IDExNTkgMTk3OCAKTCAxMTU5IDAgCkwgNTgxIDAgCkwgNTgxIDM1MDAgCkwgMTE1OSAzNTAwIApMIDExNTkgMjk1NiAKUSAxMzU2IDMyNzggMTYzMSAzNDMxIApRIDE5MDYgMzU4NCAyMjg0IDM1ODQgClEgMjY2NiAzNTg0IDI5MzMgMzM5MCAKUSAzMjAwIDMxOTcgMzMyOCAyODI4IAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy02OSIgZD0iTSA2MDMgMzUwMCAKTCAxMTc4IDM1MDAgCkwgMTE3OCAwIApMIDYwMyAwIApMIDYwMyAzNTAwIAp6Ck0gNjAzIDQ4NjMgCkwgMTE3OCA0ODYzIApMIDExNzggNDEzNCAKTCA2MDMgNDEzNCAKTCA2MDMgNDg2MyAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtNmUiIGQ9Ik0gMzUxMyAyMTEzIApMIDM1MTMgMCAKTCAyOTM4IDAgCkwgMjkzOCAyMDk0IApRIDI5MzggMjU5MSAyNzQ0IDI4MzcgClEgMjU1MCAzMDg0IDIxNjMgMzA4NCAKUSAxNjk3IDMwODQgMTQyOCAyNzg3IApRIDExNTkgMjQ5MSAxMTU5IDE5NzggCkwgMTE1OSAwIApMIDU4MSAwIApMIDU4MSAzNTAwIApMIDExNTkgMzUwMCAKTCAxMTU5IDI5NTYgClEgMTM2NiAzMjcyIDE2NDUgMzQyOCAKUSAxOTI1IDM1ODQgMjI5MSAzNTg0IApRIDI4OTQgMzU4NCAzMjAzIDMyMTEgClEgMzUxMyAyODM4IDM1MTMgMjExMyAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtT2JsaXF1ZS00YyIgZD0iTSAxMDc1IDQ2NjYgCkwgMTcwOSA0NjY2IApMIDkwOSA1MjUgCkwgMzE4MSA1MjUgCkwgMzA3OCAwIApMIDE3MiAwIApMIDEwNzUgNDY2NiAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtT2JsaXF1ZS00MiIgZD0iTSAxMDgxIDQ2NjYgCkwgMjY5NCA0NjY2IApRIDMzNTAgNDY2NiAzNjc1IDQ0MjIgClEgNDAwMCA0MTc4IDQwMDAgMzY4OCAKUSA0MDAwIDMyMzggMzcyMCAyOTExIApRIDM0NDEgMjU4NCAyOTg4IDI1MTYgClEgMzM3NSAyNDI4IDM1NjkgMjE4MSAKUSAzNzYzIDE5MzQgMzc2MyAxNTIyIApRIDM3NjMgODE5IDMyNDIgNDA5IApRIDI3MjIgMCAxODE5IDAgCkwgMTcyIDAgCkwgMTA4MSA0NjY2IAp6Ck0gMTIzNCAyMjI4IApMIDkwMyA1MTkgCkwgMTkxOSA1MTkgClEgMjQ5MSA1MTkgMjgwMCA3ODEgClEgMzEwOSAxMDQ0IDMxMDkgMTUyMiAKUSAzMTA5IDE4OTEgMjkwNCAyMDU5IApRIDI3MDAgMjIyOCAyMjQ3IDIyMjggCkwgMTIzNCAyMjI4IAp6Ck0gMTYwNiA0MTQ3IApMIDEzMzEgMjc0MSAKTCAyMjcyIDI3NDEgClEgMjc3NSAyNzQxIDMwNTggMjk1OSAKUSAzMzQxIDMxNzggMzM0MSAzNTY2IApRIDMzNDEgMzg2OSAzMTUwIDQwMDggClEgMjk1OSA0MTQ3IDI1NDEgNDE0NyAKTCAxNjA2IDQxNDcgCnoKIiB0cmFuc2Zvcm09InNjYWxlKDAuMDE1NjI1KSIvPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zLTI4IiBkPSJNIDE5ODQgNDg1NiAKUSAxNTY2IDQxMzggMTM2MiAzNDM0IApRIDExNTkgMjczMSAxMTU5IDIwMDkgClEgMTE1OSAxMjg4IDEzNjQgNTgwIApRIDE1NjkgLTEyOCAxOTg0IC04NDQgCkwgMTQ4NCAtODQ0IApRIDEwMTYgLTEwOSA3ODMgNjAwIApRIDU1MCAxMzA5IDU1MCAyMDA5IApRIDU1MCAyNzA2IDc4MSAzNDEyIApRIDEwMTMgNDExOSAxNDg0IDQ4NTYgCkwgMTk4NCA0ODU2IAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy0yOSIgZD0iTSA1MTMgNDg1NiAKTCAxMDEzIDQ4NTYgClEgMTQ4MSA0MTE5IDE3MTQgMzQxMiAKUSAxOTQ3IDI3MDYgMTk0NyAyMDA5IApRIDE5NDcgMTMwOSAxNzE0IDYwMCAKUSAxNDgxIC0xMDkgMTAxMyAtODQ0IApMIDUxMyAtODQ0IApRIDkyOCAtMTI4IDExMzMgNTgwIApRIDEzMzggMTI4OCAxMzM4IDIwMDkgClEgMTMzOCAyNzMxIDExMzMgMzQzNCAKUSA5MjggNDEzOCA1MTMgNDg1NiAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICA8L2RlZnM+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLU9ibGlxdWUtNDYiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgMC43NjU2MjUpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLU9ibGlxdWUtNDEiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDU3LjUxOTUzMSAtMTUuNjQwNjI1KSBzY2FsZSgwLjcpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLTIyNjQiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDEyNy42MjIwNyAwLjc2NTYyNSkiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtT2JsaXF1ZS0zYzQiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIzMC44OTM1NTUgMC43NjU2MjUpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLTJjIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyOTEuMDk4NjMzIDAuNzY1NjI1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy1PYmxpcXVlLTYzIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg1MzcuMTkyMzgzIDAuNzY1NjI1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy0yYSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNjEwLjQ2MDQ0MyAzOS4wNDY4NzUpIHNjYWxlKDAuNykiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtM2QiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDY4MS4zMTQ5MzUgMC43NjU2MjUpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLTYxIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg3ODQuNTg2NDE5IDAuNzY1NjI1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy03MiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoODQ1Ljg2NTcxNiAwLjc2NTYyNSkiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtNjciIHRyYW5zZm9ybT0idHJhbnNsYXRlKDg4Ni45Nzg5OTcgMC43NjU2MjUpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLTZkIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg5NTAuNDU1NTYgMC43NjU2MjUpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLTY5IiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMDQ3Ljg2NzY2OSAwLjc2NTYyNSkiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtNmUiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDEwNzUuNjUwODcyIDAuNzY1NjI1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy1PYmxpcXVlLTYzIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg5NDIuNTg2NDE5IC03Ny45ODEyNSkgc2NhbGUoMC43KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy1PYmxpcXVlLTRjIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMTcxLjUwMDE1NyAwLjc2NTYyNSkiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtT2JsaXF1ZS00MiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTIyNy4yMTMwNDggLTE1LjY0MDYyNSkgc2NhbGUoMC43KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy0yOCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTI3Ny45Njk4ODQgMC43NjU2MjUpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLU9ibGlxdWUtNjMiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDEzMTYuOTgzNTU2IDAuNzY1NjI1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy0yOSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTM3MS45NjQwMjQgMC43NjU2MjUpIi8+CiAgIDwvZz4KICA8L2c+CiA8L2c+Cjwvc3ZnPgo=" width="382" alt="先筛选遗忘约束，再在可行候选中最小化B开发损失。" loading="lazy"></button><span class="zoom-hint" aria-hidden="true">点击放大</span></div><p>先筛选遗忘约束，再在可行候选中最小化B开发损失。</p>
+<details open class="symbols"><summary>逐个认识符号</summary><ul><li><p>F_A：候选旧域遗忘</p>
+</li><li><p>tau：预先固定的容忍阈值，此教学例为0.2</p>
+</li><li><p>c：候选配置，c*：被选择的配置</p>
+</li><li><p>L_B(c)：该候选在B开发集的平均token交叉熵</p>
+</li></ul></details><aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>为什么不选B损失最低的F3</h3><ol><li><p>基础A损失0.4、B损失1.6。F3的A/B损失为0.62/0.90，遗忘0.22，超出0.2。</p>
+</li><li><p>F4为0.59/1.00，遗忘0.19、收益0.60，满足约束。</p>
+</li><li><p>LoRA的L5为0.50/1.10，遗忘0.10、收益0.50；L6虽B损失0.95，却遗忘0.24。</p>
+</li><li><p>按相同规则选择F4和L5。</p>
+</li></ol><div class="worked-result"><p>F4新域收益更大，L5旧域保留更好；当前数据并没有给出无条件的全局赢家。</p>
+</div></aside></section><section class="lesson-section" id="w19-section-3"><h2><span class="section-number">03</span>把失败变成能定位的问题，而不是抹掉的数据</h2><p>先对每种方法各跑一个50–200步试验，核对损失有限、参数确实更新、时间与显存可承受，再按冻结的候选清单运行。数值发散用nonfinite标记；超预算用timeout或OOM标记；程序异常保留日志。训练完成但性能差是有效负结果，不应和程序根本未执行混为一类。</p>
+<p>如果LoRA全部几乎没学习，先查零初始化路径、优化器集合和学习率范围，不能立即宣布论文错了。若只有高学习率失败，这可能就是敏感性的一部分。修实现错误会改变结果含义，应修复后对受影响的方法按同一协议重跑；不要把错误实现与修复实现混入一张主比较表。</p>
+<p>读2024论文时抽取“作者比较什么、哪些条件固定、如何选择超参数、学习与遗忘分别怎么量测”四格，不照搬结论。你的像素模型、颜色置换和小预算与论文领域适配不同，结果方向相同只说明一个相似现象；方向相反也未必反驳原论文。</p>
+<p>本周交付表至少包含候选ID、方法、秩、学习率、基础检查点ID、训练token、A/B开发损失、耗时、峰值资源、运行状态和选择理由。程序先用构造表验证筛选逻辑；真实结果填同一结构后再生成报告。</p>
+<aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>一个发散候选怎样进入报告</h3><ol><li><p>F6在第37步出现非有限损失，实际消耗17760个token。</p>
+</li><li><p>保留F6的候选配置、失败步、耗时和日志，不给它虚构“最终损失”。</p>
+</li><li><p>选择器排除无法得到有效开发损失的候选，并报告全量方法6次中1次失败。</p>
+</li></ol><div class="worked-result"><p>失败记录属于预算与稳定性证据，但不能用随便填的巨大数字伪装可比较损失。</p>
+</div></aside></section><h2>Python与C++机制示例</h2><p>下面的小程序验证关键机制；完整项目须按本周交付要求另行完成。</p><h3>Python</h3><pre><code>&quot;&quot;&quot;Synthetic development results; exercise a predeclared selection rule.&quot;&quot;&quot;
+# STEP 1
+base_a, base_b, forgetting_limit = 0.4, 1.6, 0.2
+# id, rank, learning rate, loss_A, loss_B, training tokens
+full = [(&quot;F1&quot;,0,.00001,.44,1.50,48000),(&quot;F2&quot;,0,.00003,.50,1.30,48000),
+        (&quot;F3&quot;,0,.0001,.62,.90,48000),(&quot;F4&quot;,0,.0003,.59,1.00,48000),
+        (&quot;F5&quot;,0,.001,.80,1.20,48000),(&quot;F6&quot;,0,.003,1.00,1.40,48000)]
+lora = [(&quot;L1&quot;,2,.0001,.41,1.55,48000),(&quot;L2&quot;,2,.001,.46,1.40,48000),
+        (&quot;L3&quot;,2,.01,.54,1.25,48000),(&quot;L4&quot;,8,.0001,.43,1.45,48000),
+        (&quot;L5&quot;,8,.001,.50,1.10,48000),(&quot;L6&quot;,8,.01,.64,.95,48000)]
+
+# STEP 2
+assert len(full) == len(lora) == 6
+assert len({r[5] for r in full + lora}) == 1
+def choose(rows):
+    eligible = [r for r in rows if r[3] - base_a &lt;= forgetting_limit + 1e-12]
+    assert eligible, &quot;No feasible candidate: report failure, do not change the rule.&quot;
+    return min(eligible, key=lambda r: (r[4], r[0]))
+
+# STEP 3
+best_full, best_lora = choose(full), choose(lora)
+assert best_full[0] == &quot;F4&quot; and best_lora[0] == &quot;L5&quot;
+assert min(full, key=lambda r:r[4])[0] == &quot;F3&quot;
+
+# STEP 4
+print(&quot;SYNTHETIC DEV TABLE; not a training result&quot;)
+print(&quot;candidate_counts=6,6 training_tokens_each=48000&quot;)
+for row in [best_full, best_lora]:
+    print(f&quot;selected={row[0]} rank={row[1]} gain={base_b-row[4]:.6f} forgetting={row[3]-base_a:.6f}&quot;)
+print(&quot;unconstrained_F3_rejected=PASS test_used=False&quot;)
+</code></pre><h3>C++</h3><pre><code>// Synthetic development results; exercise a predeclared selection rule.
+#include &lt;algorithm&gt;
+#include &lt;cassert&gt;
+#include &lt;iomanip&gt;
+#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+// STEP 1
+struct Row { std::string id; int rank; double lr, a, b; int tokens; };
+int main() {
+    const double base_a=.4, base_b=1.6, limit=.2;
+    const std::vector&lt;Row&gt; full{{&quot;F1&quot;,0,.00001,.44,1.50,48000},{&quot;F2&quot;,0,.00003,.50,1.30,48000},
+        {&quot;F3&quot;,0,.0001,.62,.90,48000},{&quot;F4&quot;,0,.0003,.59,1.00,48000},
+        {&quot;F5&quot;,0,.001,.80,1.20,48000},{&quot;F6&quot;,0,.003,1.00,1.40,48000}};
+    const std::vector&lt;Row&gt; lora{{&quot;L1&quot;,2,.0001,.41,1.55,48000},{&quot;L2&quot;,2,.001,.46,1.40,48000},
+        {&quot;L3&quot;,2,.01,.54,1.25,48000},{&quot;L4&quot;,8,.0001,.43,1.45,48000},
+        {&quot;L5&quot;,8,.001,.50,1.10,48000},{&quot;L6&quot;,8,.01,.64,.95,48000}};
+
+    // STEP 2
+    assert(full.size()==6 &amp;&amp; lora.size()==6);
+    for(const auto* rows:{&amp;full,&amp;lora}) for(const auto&amp; row:*rows) assert(row.tokens==48000);
+    auto choose=[&amp;](const std::vector&lt;Row&gt;&amp; rows) {
+        std::vector&lt;Row&gt; eligible;
+        for(const auto&amp; r:rows) if(r.a-base_a&lt;=limit+1e-12) eligible.push_back(r);
+        assert(!eligible.empty());
+        return *std::min_element(eligible.begin(),eligible.end(),[](const Row&amp; a,const Row&amp; b){
+            return a.b&lt;b.b || (a.b==b.b &amp;&amp; a.id&lt;b.id);
+        });
+    };
+
+    // STEP 3
+    const Row best_full=choose(full), best_lora=choose(lora);
+    assert(best_full.id==&quot;F4&quot; &amp;&amp; best_lora.id==&quot;L5&quot;);
+    assert(std::min_element(full.begin(),full.end(),[](const Row&amp; a,const Row&amp; b){return a.b&lt;b.b;})-&gt;id==&quot;F3&quot;);
+
+    // STEP 4
+    std::cout&lt;&lt;std::fixed&lt;&lt;std::setprecision(6);
+    std::cout&lt;&lt;&quot;SYNTHETIC DEV TABLE; not a training result\n&quot;;
+    std::cout&lt;&lt;&quot;candidate_counts=6,6 training_tokens_each=48000\n&quot;;
+    for(const auto&amp; r:{best_full,best_lora})
+        std::cout&lt;&lt;&quot;selected=&quot;&lt;&lt;r.id&lt;&lt;&quot; rank=&quot;&lt;&lt;r.rank&lt;&lt;&quot; gain=&quot;&lt;&lt;base_b-r.b&lt;&lt;&quot; forgetting=&quot;&lt;&lt;r.a-base_a&lt;&lt;&#x27;\n&#x27;;
+    std::cout&lt;&lt;&quot;unconstrained_F3_rejected=PASS test_used=False\n&quot;;
+}
+</code></pre><h3>逐步解释</h3><h4>构造候选表</h4><p>Python元组依次存ID、秩、学习率、A损失、B损失、token数；C++用Row字段使含义显式。输入是教学构造开发表，没有训练。</p>
+<p>自查：指出LoRA总候选数为何是6。</p><h4>筛选再排序</h4><p>先核对候选数和token预算，然后按遗忘阈值筛选。Python min(key=...)与C++ min_element比较器都按B损失、ID排序，确保并列规则固定。</p>
+<p>自查：把阈值改为0.05，预测哪些候选仍可行。</p><h4>验证有约束与无约束选择不同</h4><p>断言F4和L5被选，同时无约束B最小值是F3，说明选择规则真正生效。断言是针对该教学夹具的预期，不是现实模型必须选同一ID。</p>
+<p>自查：解释F3为什么不是程序漏选。</p><h4>同时输出两项差值</h4><p>对两种选择都打印收益和遗忘，不只输出胜负标签。test_used=False描述本程序只用了构造开发表；真实工程须依靠文件用途与记录保证。</p>
+<p>自查：依据输出给出带条件的比较句。</p><h3>参考输出</h3><pre>SYNTHETIC DEV TABLE; not a training result
+candidate_counts=6,6 training_tokens_each=48000
+selected=F4 rank=0 gain=0.600000 forgetting=0.190000
+selected=L5 rank=8 gain=0.500000 forgetting=0.100000
+unconstrained_F3_rejected=PASS test_used=False</pre><h2>练习与参考答案</h2><h3>练习1</h3><p>基础：LoRA有3档秩、每档4个学习率，而全量只有6个学习率，候选预算一样吗？</p>
+<p>提示：</p><p>把笛卡尔积展开。</p>
+<p>参考：</p><p>不一样：LoRA共12组，全量6组。可把LoRA缩至2×3或把全量增至12，但必须提前约定并记录成本；不适配基线无须凑数。</p>
+<h3>练习2</h3><p>实践：阈值改为0.05，手算程序选择。</p>
+<p>提示：</p><p>A基础0.4，因此候选A损失不得超过0.45。</p>
+<p>参考：</p><p>全量仅F1的0.44满足，B损失1.50；LoRA L1的0.41与L4的0.43满足，L4的B损失1.45更小。结果随使用偏好改变，不代表旧阈值计算错误。</p>
+<h3>练习3</h3><p>迁移：全量运行60秒、LoRA90秒，但LoRA可训练参数更少，矛盾吗？</p>
+<p>提示：</p><p>参数量不是所有计算成本。</p>
+<p>参考：</p><p>不矛盾。实现、矩阵规模、分支开销、内存访问和硬件利用率都可能影响时间。先确认同步计时、批大小、token数与设备一致，再报告实测；不能用理论参数比覆盖实际记录。</p>
+<h2>自测</h2><h3>1. 公平调参最接近哪种做法？</h3><ol type="A"><li>只报告最好一次</li><li>只给LoRA更多机会</li><li>两种方法固定同一学习率</li><li>相同总候选预算，各自选择合适配置</li></ol><p>参考：D</p><p>同一数值不一定等价机会，且隐藏搜索次数会改变比较含义。</p>
+<h3>2. F3的遗忘0.22，阈值0.2，应？</h3><ol type="A"><li>约束失败并排除选择</li><li>四舍五入成0.2强行通过</li><li>改阈值再隐藏修改</li><li>直接看测试集</li></ol><p>参考：A</p><p>约束应按预定精度执行；展示舍入不能改变选择逻辑。</p>
+<h3>3. 候选数相同能保证训练时间相同吗？</h3><ol type="A"><li>仅秩为2时</li><li>只要基础相同就能</li><li>不能，需实测</li><li>必然</li></ol><p>参考：C</p><p>预算控制与实际资源量是不同记录。</p>
+<h3>4. 一次种子LoRA更好可以说明？</h3><ol type="A"><li>所有颜色置换都更好</li><li>2024论文已被证明</li><li>LoRA普遍更好</li><li>该固定设定的一次观察</li></ol><p>参考：D</p><p>重复、任务变化和模型变化仍未覆盖。</p>
+<h2>开放讲解题</h2><h3>为什么需要不适配基线？</h3><p>它说明不花适配预算时的A/B水平，防止把本来就会的能力归功于微调，也给收益/遗忘差值提供同一参照。</p>
+<h3>怎样描述F4与L5而不硬选赢家？</h3><p>在构造开发表和遗忘≤0.2规则下，F4收益0.60、遗忘0.19；L5收益0.50、遗忘0.10。前者学习更多，后者旧域退化更少；实际项目需重复并报告资源。</p>
+<h2>交付物</h2><ul><li>12个候选的预先清单及一致的训练预算</li><li>完整开发结果表，含失败记录与选择规则</li><li>全部候选收益—遗忘图、选中配置与论文设置比较卡</li></ul><h2>验收标准</h2><ul><li>两种可训练方法候选总数相同，LoRA秩×学习率正确计数</li><li>无需查看测试集即可重现配置选择</li><li>失败和实际token成本未被静默删除</li></ul><h2>来源与延伸</h2><ul><li><a href="https://arxiv.org/abs/2405.09673">LoRA Learns Less and Forgets Less（TMLR 2024）</a> — 2026-10-23核对；只借用新域学习与域外保留的比较问题，不把像素实验称为论文复现。</li></ul></main></body></html>

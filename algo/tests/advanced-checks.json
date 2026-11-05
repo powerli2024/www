@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "scope": "finite independent-oracle and render-contract checks; not a proof or browser visual review",
+  "counts": {
+    "presets": 13,
+    "frames": 230,
+    "questions": 44,
+    "flow": 102,
+    "kmp": 948,
+    "reduction": 360,
+    "bit": 152,
+    "ski": 112,
+    "dp": 366
+  }
+}

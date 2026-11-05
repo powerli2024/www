@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f4ee">
+  <meta name="description" content="中文 Codeforces 算法图谱：32 个真正可回放的算法实验，从朴素推导、不变量与证明，到完整 C++17、反例与练习。">
+  <title>算法图谱 · Codeforces 交互学习</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23283630'/%3E%3Cpath d='M15 43V30h8v13m5 0V20h8v23m5 0V11h8v32' stroke='%23c9e6ad' stroke-width='4' fill='none'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="core.js"></script>
+  <script defer src="chapters-foundation.js"></script>
+  <script defer src="chapters-sequence.js"></script>
+  <script defer src="chapters-dp-graph.js"></script>
+  <script defer src="practice.js"></script>
+  <script defer src="verification.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到主内容</a>
+  <div id="menu-shade" class="menu-shade" hidden></div>
+  <aside id="sidebar" class="sidebar" aria-label="学习导航">
+    <a href="#home" class="brand" aria-label="算法图谱首页">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span>算法图谱<small>ALGORITHM ATLAS</small></span>
+    </a>
+    <div class="sidebar-search">
+      <label for="nav-search" class="sr-only">搜索章节</label>
+      <span aria-hidden="true">⌕</span><input id="nav-search" type="search" placeholder="搜索算法、思路…" autocomplete="off"><kbd aria-hidden="true">/</kbd>
+    </div>
+    <nav class="primary-nav" aria-label="总览">
+      <a href="#home" data-nav="home"><span aria-hidden="true">⌂</span>学习起点</a>
+      <a href="#catalog" data-nav="catalog"><span aria-hidden="true">▦</span>全部实验<span id="nav-total" class="nav-count"></span></a>
+      <a href="#paths" data-nav="paths"><span aria-hidden="true">↗</span>先修与学习路径</a>
+      <a href="#practice-road" data-nav="practice-road"><span aria-hidden="true">◇</span>真题迁移</a>
+    </nav>
+    <div class="nav-divider"><span>知识索引</span><button type="button" data-action="expand-index" aria-label="展开或收起全部知识索引">±</button></div>
+    <nav id="chapter-nav" class="chapter-nav" aria-label="算法章节"></nav>
+    <div class="sidebar-bottom">
+      <a href="#coverage">覆盖边界与验证 <span aria-hidden="true">↗</span></a>
+      <a href="#glossary">符号与约定 <span aria-hidden="true">↗</span></a>
+      <div class="local-progress"><span id="progress-label">自己的节奏，不设打卡表</span><div class="progress-track"><i id="progress-fill"></i></div><small id="progress-storage">学习记录只保存在这台浏览器</small></div>
+    </div>
+  </aside>
+  <div class="main-shell">
+    <header class="topbar">
+      <button id="menu-toggle" class="icon-button menu-toggle" type="button" aria-label="打开导航" aria-controls="sidebar" aria-expanded="false">☰</button>
+      <div class="topbar-breadcrumb"><span>CODEFORCES</span><span aria-hidden="true">/</span><span id="page-label">从理解开始</span></div>
+      <div class="topbar-right"><span class="edition">C++17 · 中文版</span><a href="#glossary" class="topbar-help" aria-label="查看符号与约定">?</a></div>
+    </header>
+    <main id="main-content" tabindex="-1"></main>
+    <footer class="site-footer"><span>算法图谱 <b>·</b> 想清楚，再写出来。</span><a href="#coverage">范围与验证说明</a><span>独立学习资料，非 Codeforces 官方网站</span></footer>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+  <noscript><div class="noscript">交互实验需要启用 JavaScript。离线版无需网络，但仍需浏览器允许脚本运行。</div></noscript>
+</body>
+</html>

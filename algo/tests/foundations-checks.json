@@ -1,0 +1,80 @@
+{
+  "status": "pass",
+  "scope": "有限输入穷举、独立结果 oracle、逐帧状态不变量、纯函数与转义；不替代数学证明",
+  "presets": [
+    {
+      "lesson": "01",
+      "name": "课文主例 · 中途保留负数",
+      "frames": 24,
+      "predictions": 3
+    },
+    {
+      "lesson": "01",
+      "name": "全负数 · 0 不是合法答案",
+      "frames": 15,
+      "predictions": 3
+    },
+    {
+      "lesson": "02",
+      "name": "负数仍然有序 · 找到一对",
+      "frames": 12,
+      "predictions": 2
+    },
+    {
+      "lesson": "02",
+      "name": "逐批排除 · 无解",
+      "frames": 19,
+      "predictions": 2
+    },
+    {
+      "lesson": "03",
+      "name": "课文无向图 · 一条环和一个孤立点",
+      "frames": 32,
+      "predictions": 2
+    },
+    {
+      "lesson": "03",
+      "name": "有向菱形 · 两条边都想发现 x",
+      "frames": 18,
+      "predictions": 2
+    },
+    {
+      "lesson": "04",
+      "name": "课文主例 · 左右各一对，跨半两对",
+      "frames": 23,
+      "predictions": 2
+    },
+    {
+      "lesson": "04",
+      "name": "重复数 · 相等不能计入",
+      "frames": 31,
+      "predictions": 2
+    },
+    {
+      "lesson": "05",
+      "name": "课文主例 · 最早开始会失手",
+      "frames": 28,
+      "predictions": 2
+    },
+    {
+      "lesson": "05",
+      "name": "短任务陷阱 · 中间一段挡住两段",
+      "frames": 20,
+      "predictions": 2
+    },
+    {
+      "lesson": "05",
+      "name": "看见交换 · 最优解首项也能替换",
+      "frames": 28,
+      "predictions": 2
+    }
+  ],
+  "cases": {
+    "maximum": 365,
+    "twoSum": 497,
+    "bfs": 130,
+    "inversions": 366,
+    "intervals": 131
+  },
+  "renderedFrames": 250
+}

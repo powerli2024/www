@@ -1,0 +1,156 @@
+[
+  {
+    "id": "01",
+    "type": "lesson",
+    "source": "03_第一课_算法思路如何产生.md",
+    "sha256": "28b402995b0c23a09817f39969bb6ee37f05d9ab7c03ff91fe12d9f23d3c2cc5",
+    "characters": 8309
+  },
+  {
+    "id": "02",
+    "type": "lesson",
+    "source": "课程\\02_渐进分析.md",
+    "sha256": "49376d0b5d8110fdd056901f1c748b240df53db0ee2b87340da0e9fcb61ba91d",
+    "characters": 4454
+  },
+  {
+    "id": "03",
+    "type": "lesson",
+    "source": "课程\\03_搜索与拓扑排序.md",
+    "sha256": "77b4ec012b8924eef8ce4d828c1e9df841c04b4c115f77ddd5ee4bb491f2dec8",
+    "characters": 4491
+  },
+  {
+    "id": "04",
+    "type": "lesson",
+    "source": "课程\\04_分治与递推.md",
+    "sha256": "fcc559eeffb2c4002d79f2be7bdc87822cff0aeabe47f3d8898cd8fe034e3975",
+    "characters": 4810
+  },
+  {
+    "id": "05",
+    "type": "lesson",
+    "source": "课程\\05_贪心与交换论证.md",
+    "sha256": "a30173d6a56c294e07ebd7f816c7c682e3dda8be55010421e356818b088ab58b",
+    "characters": 4958
+  },
+  {
+    "id": "06",
+    "type": "lesson",
+    "source": "课程\\06_动态规划_状态与背包.md",
+    "sha256": "157301f481d81da50c5688caacd20098ff0c3dabb179330d95bc525a535eec30",
+    "characters": 4680
+  },
+  {
+    "id": "07",
+    "type": "lesson",
+    "source": "课程\\07_动态规划_序列与区间.md",
+    "sha256": "f78e82cc59369d6fa6d04fa85196c442f07662d0bb7cf56dd1779ea50ca069c4",
+    "characters": 5224
+  },
+  {
+    "id": "08",
+    "type": "lesson",
+    "source": "课程\\08_并查集与最小生成树.md",
+    "sha256": "854bd461c14b8b59f609dc71ea1829a86d1817b863876c91953e2df54124fc00",
+    "characters": 5405
+  },
+  {
+    "id": "09",
+    "type": "lesson",
+    "source": "课程\\09_最短路.md",
+    "sha256": "568f9ad734a11d237c8552d41934a6e06736e577650a26d6c17e0ae14a174e1a",
+    "characters": 5104
+  },
+  {
+    "id": "10",
+    "type": "lesson",
+    "source": "课程\\10_网络流.md",
+    "sha256": "fcb56e520801cd3dcd4a2865acdb813043608d44508ca2e986ed9abdc8733a63",
+    "characters": 4616
+  },
+  {
+    "id": "11",
+    "type": "lesson",
+    "source": "课程\\11_KMP.md",
+    "sha256": "a97d75706f0fe249783cc9d76361c19f7c49016122b1a52c7e6bf555832f85fc",
+    "characters": 5084
+  },
+  {
+    "id": "12",
+    "type": "lesson",
+    "source": "课程\\12_复杂性与规约.md",
+    "sha256": "99421edb0e0a355c2083bb1eeb527a14cd2cf3ef05e289f7db875dc30d146295",
+    "characters": 4719
+  },
+  {
+    "id": "13",
+    "type": "lesson",
+    "source": "课程\\13_树状数组与线段树.md",
+    "sha256": "c72419a132a69dc1b1dd3c68436d5d8e5730daff5a31c9c0b4b43f28c60f0f45",
+    "characters": 5659
+  },
+  {
+    "id": "14",
+    "type": "lesson",
+    "source": "课程\\14_进阶算法_近似随机在线.md",
+    "sha256": "5d436843f024a2fc88307b984681ee280e52de24e7d368e6e717db1fe7d07ee2",
+    "characters": 5205
+  },
+  {
+    "id": "15",
+    "type": "lesson",
+    "source": "课程\\15_综合设计与考试表达.md",
+    "sha256": "680f87d8455669e9d9b85d9a3562fbb93f4ef70459f3e71a731c77c1d90eb649",
+    "characters": 6509
+  },
+  {
+    "id": "start",
+    "type": "doc",
+    "source": "00_从这里开始.md",
+    "sha256": "34f78bc929d646371fd7bdf04f3a6722258684955323a4e44f36abb03ee44ed9",
+    "characters": 1339
+  },
+  {
+    "id": "plan",
+    "type": "doc",
+    "source": "01_学习方案.md",
+    "sha256": "07483f3f689f49592d479dc319172176a2576797594529aa30a8eb1f5bb04dab",
+    "characters": 6794
+  },
+  {
+    "id": "diagnosis",
+    "type": "doc",
+    "source": "02_起点诊断与答案.md",
+    "sha256": "439f7bf0e0ae893f2dcb7bde26be31f80ff25352dd94cdfd9ffd4a408c1eb5a1",
+    "characters": 6397
+  },
+  {
+    "id": "training",
+    "type": "doc",
+    "source": "04_训练任务与验收.md",
+    "sha256": "013bff9e9a17d9e58eb0307c428b44c1f87bcf7569fb46075b8d8aabce37093d",
+    "characters": 5541
+  },
+  {
+    "id": "journal",
+    "type": "doc",
+    "source": "05_学习记录与辅导约定.md",
+    "sha256": "9e4f7fe4ab7bb95bea52fc700aea5c66d6ae7acc4e1381a7add660e117dcca6b",
+    "characters": 1803
+  },
+  {
+    "id": "sources",
+    "type": "doc",
+    "source": "06_课程材料与考试映射.md",
+    "sha256": "d21910e0e8699a7394417df9b40446addda2b9651d6c5ddaf9c4ea0ec513f108",
+    "characters": 8940
+  },
+  {
+    "id": "navigation",
+    "type": "doc",
+    "source": "07_后续课程导航.md",
+    "sha256": "da9f65f3afed6607ec18c554d7aeaf06fb24f09c7df7de979cf472cf2a5ed9e4",
+    "characters": 3073
+  }
+]

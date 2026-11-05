@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1c2827">
+  <meta name="description" content="沿着真实源码理解 yovoice：学习路线、生成链路、音色参考原理与可验证的工程优化。">
+  <title>yovoice 源码研习室 · 从声音到系统</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="lessons.js" defer></script>
+  <script src="optimizations.js" defer></script>
+  <script src="voice-data.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">跳到主要内容</a>
+  <aside class="sidebar">
+    <a class="brand" href="#overview" aria-label="yovoice 源码研习室首页"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 14v4m5-9v14m6-19v24m6-19v14m5-9v4"/></svg><span>yovoice<span class="brand-sub">SOURCE STUDY / 源码研习室</span></span></a>
+    <div class="side-rule"></div>
+    <span class="nav-caption">从声音到系统</span>
+    <nav aria-label="学习导航">
+      <a href="#overview" data-nav="overview"><span class="nav-no">00</span>学习总览<span class="nav-arrow">↗</span></a>
+      <a href="#learn" data-nav="learn"><span class="nav-no">01</span>六关学习路线<span class="nav-arrow">↗</span></a>
+      <a href="#trace" data-nav="trace"><span class="nav-no">02</span>一次生成的旅程<span class="nav-arrow">↗</span></a>
+      <a href="#voice" data-nav="voice"><span class="nav-no">03</span>音色参考实验室<span class="nav-arrow">↗</span></a>
+      <a href="#optimize" data-nav="optimize"><span class="nav-no">04</span>值得优化的地方<span class="nav-arrow">↗</span></a>
+      <a href="#evidence" data-nav="evidence"><span class="nav-no">05</span>证据与验收<span class="nav-arrow">↗</span></a>
+    </nav>
+    <div class="side-bottom">
+      <p class="nav-caption">你的学习进度 <strong id="side-count">0 / 6</strong></p>
+      <div class="progress-track"><div id="side-progress"></div></div>
+      <p class="side-note">读懂一条链路，再改动一处行为。<br>进度只保存在当前浏览器。</p>
+      <span class="edition">研究版 01 <span>2026.10.23</span></span>
+    </div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><span><span class="live-dot"></span>一份可以动手的源码地图</span><a class="version" href="https://github.com/leemysw/yovoice/tree/666c49687ede7721e1ebb34d9eb8bc8f8b2a52b4" target="_blank" rel="noopener">源码 0.3.1 <span>·</span> 666c496 ↗</a></header>
+    <main id="main" tabindex="-1"></main>
+    <footer><span>yovoice / 独立学习手册</span><span>源码事实 · 原理解释 · 实测结果，分别判断。</span><a href="#evidence">查看研究边界 ↗</a></footer>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <noscript><div class="noscript">请启用 JavaScript 以使用学习路线与交互图解。原始学习资料保存在同目录之外的学习包中。</div></noscript>
+</body>
+</html>

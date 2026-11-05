@@ -1,0 +1,377 @@
+[
+  {
+    "tex": "\\hat{\\mathbf{y}}=X\\mathbf{w}+b",
+    "width": 144.84,
+    "meaning": ""
+  },
+  {
+    "tex": "\\hat y_i=wx_i+b",
+    "width": 151.94,
+    "meaning": ""
+  },
+  {
+    "tex": "e_i=\\hat y_i-y_i",
+    "width": 134.9,
+    "meaning": ""
+  },
+  {
+    "tex": "L(w,b)=\\frac{1}{n}\\sum_{i=1}^{n}(wx_i+b-y_i)^2",
+    "width": 362.09999999999997,
+    "meaning": ""
+  },
+  {
+    "tex": "f(t)=t^2,\\qquad f'(t)=2t",
+    "width": 276.9,
+    "meaning": ""
+  },
+  {
+    "tex": "\\frac{\\partial e_i^2}{\\partial w}=2e_i\\,x_i",
+    "width": 134.9,
+    "meaning": ""
+  },
+  {
+    "tex": "\\frac{\\partial e_i^2}{\\partial b}=2e_i",
+    "width": 107.91999999999999,
+    "meaning": ""
+  },
+  {
+    "tex": "\\frac{\\partial L}{\\partial w}=\\frac{2}{n}\\sum_{i=1}^{n}e_i x_i",
+    "width": 163.29999999999998,
+    "meaning": ""
+  },
+  {
+    "tex": "\\frac{\\partial L}{\\partial b}=\\frac{2}{n}\\sum_{i=1}^{n}e_i",
+    "width": 137.73999999999998,
+    "meaning": ""
+  },
+  {
+    "tex": "\\frac{\\partial L}{\\partial w}\\approx\\frac{L(w+h,b)-L(w-h,b)}{2h}",
+    "width": 284.0,
+    "meaning": ""
+  },
+  {
+    "tex": "w_{t+1}=w_t-\\alpha\\frac{\\partial L}{\\partial w}(w_t,b_t)",
+    "width": 299.62,
+    "meaning": ""
+  },
+  {
+    "tex": "b_{t+1}=b_t-\\alpha\\frac{\\partial L}{\\partial b}(w_t,b_t)",
+    "width": 285.41999999999996,
+    "meaning": ""
+  },
+  {
+    "tex": "L(\\theta-\\alpha g)\\approx L(\\theta)-\\alpha\\|g\\|^2",
+    "width": 315.24,
+    "meaning": ""
+  },
+  {
+    "tex": "g_w=(-3)\\times1+(-5)\\times2=-13",
+    "width": 413.21999999999997,
+    "meaning": ""
+  },
+  {
+    "tex": "g_b=(-3)+(-5)=-8",
+    "width": 291.09999999999997,
+    "meaning": ""
+  },
+  {
+    "tex": "y=2x+1+\\varepsilon,\\qquad\\varepsilon\\sim\\mathcal{N}(0,0.3^2)",
+    "width": 428.84,
+    "meaning": ""
+  },
+  {
+    "tex": "\\hat y_i=\\sum_{j=1}^{d}x_{ij}w_j+b",
+    "width": 203.06,
+    "meaning": "一行特征与各自权重相乘求和，再加偏置。"
+  },
+  {
+    "tex": "L(\\theta)=\\frac{1}{n}\\sum_{i=1}^{n}(A_i\\theta-y_i)^2",
+    "width": 272.64,
+    "meaning": "A_i是第i行；损失对所有样本取平均。"
+  },
+  {
+    "tex": "\\nabla_{\\theta}L=\\frac{2}{n}A^T(A\\theta-y)",
+    "width": 232.88,
+    "meaning": "将逐个参数的偏导收集成一个向量。"
+  },
+  {
+    "tex": "z_{ij}=\\frac{x_{ij}-\\mu_j}{s_j}",
+    "width": 120.69999999999999,
+    "meaning": "使用训练统计量对各列做相同的线性变换。"
+  },
+  {
+    "tex": "z_i=\\sum_j w_jx_{ij}+b,\\qquad p_i=\\sigma(z_i)=\\frac{1}{1+e^{-z_i}}",
+    "width": 470.02,
+    "meaning": "线性分数经sigmoid变成正类概率估计。"
+  },
+  {
+    "tex": "\\ell(p,y)=-y\\log p-(1-y)\\log(1-p)",
+    "width": 464.34,
+    "meaning": "真实类别对应的概率越小，损失越大。"
+  },
+  {
+    "tex": "\\frac{d\\ell}{dz}=p-y,\\qquad \\frac{\\partial L}{\\partial w_j}=\\frac{1}{n}\\sum_i(p_i-y_i)x_{ij}",
+    "width": 424.58,
+    "meaning": "先求分数方向的导数，再沿线性分数传回权重。"
+  },
+  {
+    "tex": "p_{ik}=\\frac{e^{z_{ik}}}{\\sum_{c=1}^{K}e^{z_{ic}}}",
+    "width": 130.64,
+    "meaning": "同一个样本内，各类别的指数分数归一化。"
+  },
+  {
+    "tex": "\\ell_i=\\log\\left(\\sum_k e^{z_{ik}}\\right)-z_{i,y_i}",
+    "width": 272.64,
+    "meaning": "多分类交叉熵等于log-sum-exp减去真实类别分数。"
+  },
+  {
+    "tex": "\\frac{\\partial\\ell_i}{\\partial z_{ik}}=p_{ik}-Y_{ik}",
+    "width": 168.98,
+    "meaning": "对所有类别的梯度一起更新，而不只更新赢家。"
+  },
+  {
+    "tex": "P=\\frac{TP}{TP+FP},\\qquad R=\\frac{TP}{TP+FN}",
+    "width": 315.24,
+    "meaning": "精确率和召回率回答不同的问题。"
+  },
+  {
+    "tex": "F_1=\\frac{2TP}{2TP+FP+FN}",
+    "width": 194.54,
+    "meaning": "由混淆计数直接计算正类F1。"
+  },
+  {
+    "tex": "\\bar s=\\frac{1}{K}\\sum_{k=1}^{K}s_k",
+    "width": 134.9,
+    "meaning": "对K个验证折分数做平均。"
+  },
+  {
+    "tex": "E[(\\hat f(x)-y)^2]=\\mathrm{Bias}(x)^2+\\mathrm{Var}(\\hat f(x))+\\sigma^2",
+    "width": 522.56,
+    "meaning": "在平方损失及所述噪声假设下，对训练数据与新噪声取期望的分解。"
+  },
+  {
+    "tex": "J(w)=\\frac{1}{n}\\sum_i(wx_i-y_i)^2+\\lambda w^2",
+    "width": 343.64,
+    "meaning": "一维、零截距教学情形中的ridge目标。"
+  },
+  {
+    "tex": "w^*=\\frac{\\sum_i x_i y_i}{\\sum_i x_i^2+n\\lambda}",
+    "width": 161.88,
+    "meaning": "将导数设为0得到一维ridge解。"
+  },
+  {
+    "tex": "w^*=\\frac{\\mathrm{sign}(c)}{a}\\max(|c|-\\lambda/2,0)",
+    "width": 360.68,
+    "meaning": "本节一维L1二次目标的软阈值解。"
+  },
+  {
+    "tex": "y=\\sin(\\pi x)+0.3x+\\epsilon,\\qquad \\epsilon\\sim\\mathcal{N}(0,0.15^2)",
+    "width": 546.6999999999999,
+    "meaning": "合成任务的真实函数与独立加性噪声。"
+  },
+  {
+    "tex": "L_{smooth}=\\frac{2}{n}\\|A\\|_2^2,\\qquad \\eta=\\frac{0.8}{L_{smooth}}",
+    "width": 374.88,
+    "meaning": "此平均平方损失的训练Hessian最大特征值给出稳定步长的依据。"
+  },
+  {
+    "tex": "G(S)=1-\\sum_{k=1}^{K}p_k^2",
+    "width": 220.1,
+    "meaning": "节点S内类别越混合，不纯度通常越高。"
+  },
+  {
+    "tex": "G_{split}=\\frac{n_L}{n}G(S_L)+\\frac{n_R}{n}G(S_R)",
+    "width": 319.5,
+    "meaning": "左右子节点不纯度按样本数加权。"
+  },
+  {
+    "tex": "F_m(x)=F_{m-1}(x)+\\eta h_m(x)",
+    "width": 336.53999999999996,
+    "meaning": "把新弱模型的输出乘步长后加到已有组合。"
+  },
+  {
+    "tex": "k(x,x')=e^{-\\gamma\\|x-x'\\|^2}",
+    "width": 247.07999999999998,
+    "meaning": "RBF核把距离转成相似度；越远越小。"
+  },
+  {
+    "tex": "C=\\frac{1}{n}Z^TZ,\\qquad Cv=\\lambda v,\\qquad \\|v\\|=1",
+    "width": 444.46,
+    "meaning": "PCA方向是中心化协方差的单位特征向量，lambda表示该方向方差。"
+  },
+  {
+    "tex": "t_i=(x_i-\\mu)^Tv,\\qquad \\hat x_i=\\mu+t_iv",
+    "width": 377.71999999999997,
+    "meaning": "先投影到一维坐标，再沿原方向重建。"
+  },
+  {
+    "tex": "J=\\sum_{i=1}^{n}\\|x_i-\\mu_{c_i}\\|^2",
+    "width": 210.16,
+    "meaning": "每个样本到它所属簇中心的平方距离之和。"
+  },
+  {
+    "tex": "h_j=\\tanh(\\sum_{k=1}^{2}W_{jk}x_k+b_j),\\quad z=\\sum_{j=1}^{2}v_jh_j+c",
+    "width": 533.92,
+    "meaning": "先构造两个隐藏特征，再组合为一个分数。"
+  },
+  {
+    "tex": "L=\\frac{1}{2n}\\sum_i(z_i-y_i)^2",
+    "width": 210.16,
+    "meaning": "这里刻意采用带1/2的MSE，便于显示链式法则。"
+  },
+  {
+    "tex": "\\frac{\\partial L_i}{\\partial W_{jk}}=(z_i-y_i)v_j(1-h_j^2)x_k",
+    "width": 326.59999999999997,
+    "meaning": "四个因子分别对应误差、输出边、非线性导数、输入边。"
+  },
+  {
+    "tex": "g=\\nabla_\\theta L(\\theta;B),\\quad \\theta_{new}=\\theta-\\eta g",
+    "width": 380.56,
+    "meaning": "一批数据上求梯度，再按SGD规则更新参数。"
+  },
+  {
+    "tex": "H_{out}=\\left\\lfloor\\frac{H+2P-D(K-1)-1}{S}+1\\right\\rfloor",
+    "width": 357.84,
+    "meaning": "按单个空间维度计算输出长度。宽度同理。"
+  },
+  {
+    "tex": "\\frac{\\partial L}{\\partial k_{ab}}=\\frac{1}{4}\\sum_{i,j}o_{ij}x_{i+a,j+b}",
+    "width": 249.92,
+    "meaning": "本例四个输出以0为目标，使用一半MSE。共享核的梯度累加所有位置。"
+  },
+  {
+    "tex": "L_{log}=-\\frac{1}{n}\\sum_i[y_i\\log p_i+(1-y_i)\\log(1-p_i)]",
+    "width": 514.04,
+    "meaning": "二分类自然对数损失，越小越好。"
+  },
+  {
+    "tex": "B=\\frac{1}{n}\\sum_i(p_i-y_i)^2",
+    "width": 204.48,
+    "meaning": "本页的Brier定义是正类概率均方误差。"
+  },
+  {
+    "tex": "p_T=\\frac{1}{1+\\exp(-z/T)}",
+    "width": 194.54,
+    "meaning": "二分类温度缩放。正温度保留决策符号。"
+  },
+  {
+    "tex": "p(x_1,\\ldots,x_T)=p(x_1)\\prod_{t=2}^{T}p(x_t\\mid x_1,\\ldots,x_{t-1})",
+    "width": 522.56,
+    "meaning": "序列联合概率可分解为逐步条件概率。"
+  },
+  {
+    "tex": "L=-\\frac{1}{T-1}\\sum_{t=2}^{T}\\log p(x_t\\mid x_{<t})",
+    "width": 343.64,
+    "meaning": "本周不预测第一token，按其余位置平均自然对数损失。"
+  },
+  {
+    "tex": "p(c)=\\frac{N_c+\\alpha}{N+\\alpha V}",
+    "width": 153.35999999999999,
+    "meaning": "对训练目标计数加平滑，得到频率基线。"
+  },
+  {
+    "tex": "h_t=\\tanh(ah_{t-1}+e(x_t))",
+    "width": 313.82,
+    "meaning": "一维RNN的状态递推；真实RNN把数乘推广为矩阵乘。"
+  },
+  {
+    "tex": "A=\\mathrm{softmax}\\left(\\frac{QK^T}{\\sqrt{d_k}}+M\\right),\\quad O=AV",
+    "width": 423.15999999999997,
+    "meaning": "softmax沿键位置逐行执行。每个查询得到一个上下文加权和。"
+  },
+  {
+    "tex": "\\mathrm{LN}(x)_k=\\gamma_k\\frac{x_k-\\mu}{\\sqrt{\\sigma^2+\\epsilon}}+\\beta_k",
+    "width": 284.0,
+    "meaning": "在同一个token的隐藏特征维度计算归一化。"
+  },
+  {
+    "tex": "u=x+\\mathrm{Attention}(\\mathrm{LN}(x)),\\quad z=u+\\mathrm{FFN}(\\mathrm{LN}(u))",
+    "width": 602.0799999999999,
+    "meaning": "pre-norm层的两条残差路径。"
+  },
+  {
+    "tex": "\\frac{\\partial L}{\\partial W_{cd}}=\\frac{1}{n}\\sum_i(p_{ic}-\\mathbf{1}_{c=y_i})f_{id}",
+    "width": 305.3,
+    "meaning": "固定特征下训练输出头的梯度。"
+  },
+  {
+    "tex": "p_T(c)=\\frac{\\exp(z_c/T)}{\\sum_j\\exp(z_j/T)}",
+    "width": 201.64,
+    "meaning": "温度调整分数差异，得到下一token采样分布。"
+  },
+  {
+    "tex": "H(p)=-\\sum_c p(c)\\log p(c)",
+    "width": 291.09999999999997,
+    "meaning": "熵描述分布分散程度，单位为自然对数单位。"
+  },
+  {
+    "tex": "L=-\\frac{1}{N}\\sum_{i=1}^{N}\\log p_i",
+    "width": 197.38,
+    "meaning": "同一批被计分token的平均交叉熵。"
+  },
+  {
+    "tex": "G_B=L_B^{(0)}-L_B^{(1)},\\quad F_A=L_A^{(1)}-L_A^{(0)}",
+    "width": 414.64,
+    "meaning": "收益与遗忘分别计算，符号不能混用。"
+  },
+  {
+    "tex": "h=Wx+sBAx,\\quad s=\\frac{\\alpha}{r}",
+    "width": 296.78,
+    "meaning": "基础路径与低秩增量路径相加。"
+  },
+  {
+    "tex": "P_{\\mathrm{full}}=d_{\\mathrm{out}}d_{\\mathrm{in}},\\quad P_{\\mathrm{LoRA}}=r(d_{\\mathrm{in}}+d_{\\mathrm{out}})",
+    "width": 451.56,
+    "meaning": "比较该层可训练权重数量，不包含被冻结W的存储。"
+  },
+  {
+    "tex": "\\frac{\\partial L}{\\partial B_i}=s(h_i-y_i)(Ax),\\quad \\frac{\\partial L}{\\partial A_j}=s x_j\\sum_i B_i(h_i-y_i)",
+    "width": 521.14,
+    "meaning": "本例两个输出、平均平方损失的链式法则。"
+  },
+  {
+    "tex": "F_A\\leq \\tau,\\qquad c^*=\\underset{c}{\\mathrm{argmin}}\\ L_B(c)",
+    "width": 381.97999999999996,
+    "meaning": "先筛选遗忘约束，再在可行候选中最小化B开发损失。"
+  },
+  {
+    "tex": "C=\\sum_{i=1}^{n} t_i,\\quad A=\\frac{1}{n}\\sum_{i=1}^{n} z_i",
+    "width": 276.9,
+    "meaning": "将实际生成成本与正确率并列记录。"
+  },
+  {
+    "tex": "\\bar d=\\frac{1}{n}\\sum_{i=1}^{n}d_i,\\quad s_d=\\sqrt{\\frac{\\sum_{i=1}^{n}(d_i-\\bar d)^2}{n-1}}",
+    "width": 372.03999999999996,
+    "meaning": "先计算成对差，再汇总中心与样本波动。"
+  },
+  {
+    "tex": "L_{\\mathrm{token}}=\\frac{\\sum_j S_j}{\\sum_j N_j}",
+    "width": 142.0,
+    "meaning": "变长样本先累加损失总和，再按有效token总数平均。"
+  },
+  {
+    "tex": "\\hat y_i=wx_i+b,\\qquad r_i=\\hat y_i-y_i",
+    "width": 346.47999999999996,
+    "meaning": ""
+  },
+  {
+    "tex": "L(w,b)=\\frac{1}{n}\\sum_{i=1}^{n}r_i^2,\\qquad n=2",
+    "width": 337.96,
+    "meaning": ""
+  },
+  {
+    "tex": "\\frac{\\partial L}{\\partial w}=\\frac{2}{n}\\sum_{i=1}^{n}r_ix_i,\\qquad \\frac{\\partial L}{\\partial b}=\\frac{2}{n}\\sum_{i=1}^{n}r_i",
+    "width": 355.0,
+    "meaning": ""
+  },
+  {
+    "tex": "\\frac{\\partial L}{\\partial w}(0,0)=(-3)\\times1+(-5)\\times2=-13,\\qquad \\frac{\\partial L}{\\partial b}(0,0)=-3-5=-8",
+    "width": 833.54,
+    "meaning": ""
+  },
+  {
+    "tex": "\\frac{\\partial L}{\\partial w}(w,b)\\approx\\frac{L(w+h,b)-L(w-h,b)}{2h}",
+    "width": 357.84,
+    "meaning": ""
+  }
+]

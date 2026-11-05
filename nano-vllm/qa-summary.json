@@ -1,0 +1,181 @@
+{
+  "title": "nano-vLLM 推理引擎实验室 · 验证清单",
+  "date": "2026-10-21",
+  "status": "PASS_WITH_EXPLICIT_SCOPE_LIMITS",
+  "upstream_commit": "bb823b3e06983d71485a8e1f23715ebd87d98ef8",
+  "model_revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+  "chapters": 10,
+  "default_frames": 76,
+  "method": "数值/源码/CPU元数据/合成DOM/静态CSS与HTML/离线字节一致性；不做真实浏览器或GPU验收。",
+  "test_groups": [
+    {
+      "name": "原三幕状态模型",
+      "assertions": 1703,
+      "scenario": "输入/采样时序、三预算、三缓存变体与边界"
+    },
+    {
+      "name": "新增数学与生成字符串",
+      "assertions": 119233,
+      "independent_groups": 21,
+      "scenarios": {
+        "attentionConfigurations": 672,
+        "allUiAttentionConfigurations": 22800,
+        "cacheReuseConfigurations": 84,
+        "performanceConfigurations": 32,
+        "tensorConfigurations": 12,
+        "architectureConfigurations": 21,
+        "traceSnapshots": 21,
+        "renderedFrameCases": 1399
+      }
+    },
+    {
+      "name": "控制器合成冒烟",
+      "assertions": 530,
+      "scenario": "10章逐帧、播放、回退、自测、参数与焦点"
+    },
+    {
+      "name": "独立合成DOM结构与交互",
+      "assertions": 11903,
+      "scenario": "76默认状态及参数/分支/中断流程；131份生成HTML；非浏览器"
+    },
+    {
+      "name": "CSS源码与独立HTML结构",
+      "assertions": 995,
+      "scenario": "16类文字×3宽度的颜色模型、10宽度布局规则；131份HTML与33个矩阵表实例"
+    },
+    {
+      "name": "源码透镜/锚点/模型配置",
+      "assertions": 313,
+      "scenario": "19个源码透镜、40条固定源码链接；19个透镜不是19个执行中的GPU算子"
+    },
+    {
+      "name": "真实Python调度差分",
+      "assertions": 250,
+      "scenario": "三预算逐轮CPU元数据"
+    },
+    {
+      "name": "真实Python缓存差分",
+      "assertions": 1056,
+      "scenario": "三变体映射、引用、空闲队列与索引身份"
+    },
+    {
+      "name": "抢占与边界",
+      "assertions": 55,
+      "scenario": "6轮调度与抢占微边界；真实XXH64；GPU输出ID为预设"
+    },
+    {
+      "name": "离线内联与下载附件一致性",
+      "assertions": 184,
+      "scenario": "5脚本与CSS字节一致，76默认状态一致，4个下载文件内嵌一致"
+    }
+  ],
+  "counting_note": "断言数包括同一不变量在多种参数下重复检查，不代表同样数量的独立知识点；不同测试层也存在重叠。",
+  "presentation_review": "源代码范围内发现的焦点、滚动状态、标签语义、对比度与小字问题均已修复并回归；这不是实际渲染或全面WCAG认证。",
+  "not_verified": [
+    "GPU/CUDA/FlashAttention/CUDA Graph/NCCL执行",
+    "实际模型权重、tokenizer与logits",
+    "实测延迟、吞吐、显存或加速比",
+    "真实浏览器渲染、布局、截图、帧率、屏幕阅读器与登录"
+  ],
+  "source_hashes": {
+    "index.html": "d2c2215de139e795861074eb15aca56e1c57b845072ad845fd2e1db4374b5ec3",
+    "style.css": "00b2870543e7ba7ca5d98747c51425cf8dd9c3c77ea3ea91296024bcc343a0e0",
+    "engine.js": "8d340b6911a3f8731b822722cd381f8e248727223b4217b880e5c406566f8919",
+    "preemption-data.js": "058065940e0106960042ee6d6d037f934c6f3d92c16a3677979c6f54c8392897",
+    "deep-engine.js": "e00c2660624d3294b3a3c2f28201e5137edca558ffb1f3ce950447acfa45a83e",
+    "deep-views.js": "2788e32c8ad954dd885bf9233013a0162f649cee1d9d076c621580ebd68f91cb",
+    "app.js": "f7c95c11733fd7cb4a16d28f461e09d0e97e9e222bbc0c442e49b6d3c311749f"
+  },
+  "coverage": [
+    {
+      "chapter": 1,
+      "title": "一个token的旅程",
+      "knowledge": "输入→写KV→采样；新输出为何尚无KV",
+      "learning_evidence": "区分计算帧/采样帧，输出计数与有效/预留槽位；可回退",
+      "source": "https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/scheduler.py#L81-L92",
+      "tests": "engine.test.cjs：输入/输出时序与容量不变量；controller每帧回退/重播",
+      "simplifications": "8输入/6预设输出，4槽块；不是实际tokenizer或模型答案"
+    },
+    {
+      "chapter": 2,
+      "title": "把注意力算出来",
+      "knowledge": "ID查表、XWQ/K/V、缩放点积、mask、稳定softmax、AV、logits/温度/采样、旧KV等价",
+      "learning_evidence": "手工矩阵完整乘加；query/embedding/T/u控件；CDF与argmax对照；增量/全量输出数值相等",
+      "source": "https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/models/qwen3.py#L72-L88",
+      "tests": "deep-engine：golden数值、22,800组UI组合、84个KV等价案例；完整/矩形mask",
+      "simplifications": "4词项、单头、D3/d2；未训练，无QK norm/RoPE/MLP；sampling分布等价演示不执行sampler内核"
+    },
+    {
+      "chapter": 3,
+      "title": "真实Transformer",
+      "knowledge": "RMSNorm、RoPE相对位置、实际Qwen3维度、SwiGLU、残差、全层KV",
+      "learning_evidence": "Norm倍数/位置控件；旋转长度与相对角、共同平移；真实D1024/Hq16/Hkv8/d128",
+      "source": "https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/models/qwen3.py#L120-L183",
+      "tests": "deep-engine：21架构组合、RMSNorm/SiLU、RoPE恒等式、SwiGLU、112KiB/token；官方固定config",
+      "simplifications": "2D旋转与2→3→2MLP独立toy，不声称整层或整模型输出已验证"
+    },
+    {
+      "chapter": 4,
+      "title": "让请求轮流上场",
+      "knowledge": "prefill优先、首序列切块、同轮阶段不混、请求间加入/退出",
+      "learning_evidence": "6/8/12预算对照与轮次表；每格可跳转",
+      "source": "https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/scheduler.py#L25-L73",
+      "tests": "250项真实Python CPU差分，三预算逐轮；controller焦点/参数/终止",
+      "simplifications": "显存充足，无前缀命中；固定到达时刻，不是服务延迟模拟"
+    },
+    {
+      "chapter": 5,
+      "title": "把记忆分成小块",
+      "knowledge": "逻辑→物理映射、完整前缀、末块排除、ref_count、保留与索引覆盖",
+      "learning_evidence": "三种前缀变体；可点击物理块/逻辑表检查引用",
+      "source": "https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/block_manager.py#L58-L120",
+      "tests": "1056项真实Python CPU差分；三变体的表/refs/空闲队列/索引身份",
+      "simplifications": "4槽块、12块池；字符代表token身份，不是K/V向量；不展示真实采样"
+    },
+    {
+      "chapter": 6,
+      "title": "显存不足怎么办",
+      "knowledge": "抢占保留token、释放引用、被覆盖后重新prefill当前序列",
+      "learning_evidence": "6轮真实源码CPU trace展开为11帧；调度前/后/后处理微边界与有效槽",
+      "source": "https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/scheduler.py#L57-L92",
+      "tests": "55项源码元数据检查；21快照一致性；B恢复5输入且输出计数保留",
+      "simplifications": "缩小块与池；固定输出ID；有效槽由cached/table推导，不是GPU字节探测"
+    },
+    {
+      "chapter": 7,
+      "title": "算一笔资源账",
+      "knowledge": "有效容量/块占用/池预留；权重摊薄；KV读写；FLOPs；roofline条件",
+      "learning_evidence": "B/T/阶段对照；尾部槽、池超限警示；理想decode强度；不虚构prefill IO",
+      "source": "https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py#L103-L121",
+      "tests": "32组性能模型：公式、量纲、舍入、fitsPool、读写与操作量",
+      "simplifications": "假想P≈1B密集权重/L24/Hq16/Hkv4/d64/b2；不是Qwen或实测，不预测秒数"
+    },
+    {
+      "chapter": 8,
+      "title": "三个优化层次",
+      "knowledge": "FlashAttention在线softmax、分页地址、CUDA Graph新输入重放",
+      "learning_evidence": "两tile m/ℓ/u实际推导；位置9→物理槽17；model-only图捕获边界",
+      "source": "https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/layers/attention.py#L59-L75",
+      "tests": "online softmax两tile与整行等价；固定地址公式；Graph源码分支核验",
+      "simplifications": "2×2 tile示意，非真实GPU分块；不声称自写PagedAttention CUDA kernel"
+    },
+    {
+      "chapter": 9,
+      "title": "同一层分给多卡",
+      "knowledge": "GQA共享KV头、TP整除、列分片与行归约、通信",
+      "learning_evidence": "8Q头/不同KV与TP合法性；2rank局部乘积求和",
+      "source": "https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/layers/linear.py#L131-L156",
+      "tests": "12头数/TP组合；合法分片覆盖/非法组合；row sum已知答案",
+      "simplifications": "结构选择不是运行时改真实模型；2rank例子独立于TP控件，不测NCCL"
+    },
+    {
+      "chapter": 10,
+      "title": "自己做一次实验",
+      "knowledge": "冻结版本/环境、正确性优先、单变量、TTFT/TPOT/吞吐、可证伪预测",
+      "learning_evidence": "GPU示例与复现实验说明下载；明确generate返回边界与温度约束",
+      "source": "https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/sampling_params.py#L5-L11",
+      "tests": "Python语法与冻结API静态核验；动态下载/离线嵌入检查",
+      "simplifications": "GPU脚本未执行；没有实测延迟/吞吐；真实浏览器验收已取消"
+    }
+  ]
+}

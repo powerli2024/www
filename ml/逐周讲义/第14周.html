@@ -1,0 +1,143 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>把注意力算出来：Q、K、V与因果遮罩</title><link rel="stylesheet" href="../assets/reader.css"></head><body class="static-reader"><main><p><a href="../index.html#week-14">返回交互课程</a></p><div class="eyebrow">第14周 / 静态讲义</div><h1>把注意力算出来：Q、K、V与因果遮罩</h1><section class="lesson-section" id="w14-section-1"><h2><span class="section-number">01</span>1 查询、键和值分别回答什么问题</h2><p>一个位置需要从上下文选择有用信息。查询Q表示“我当前要找什么”，键K表示“每个位置提供怎样的匹配线索”，值V表示“真正汇总的内容”。这些只是便于理解的角色描述，实际数值由可学习线性投影产生，不是程序里写了自然语言问题。</p>
+<p>长度T、表示宽度d的输入X分别乘W_Q、W_K、W_V得到Q、K、V。一个查询与所有键点积，形成对各位置的分数；softmax把一行分数变成非负且和为1的权重，再加权求和各位置的V。QK转置后是(T,T)，左维表示谁在查询，右维表示读取谁。</p>
+<p>缩放除以sqrt(d_k)用于控制点积随维度增大而变大的尺度，避免softmax过早变得非常尖锐。它不是把每个向量强制归一到长度1。softmax计算先减去该行最大值，数学上概率不变，却降低指数溢出的风险。本例用已经给定的Q/K/V，先掌握核心运算，再把投影矩阵加入模型。</p>
+<p>Attention Is All You Need原论文是编码器—解码器模型，本课程HW4是GPT2式仅解码器自回归模型。共享的机制是注意力、前馈层、残差等构件，不能把结构图一模一样套用。阅读时先定位缩放点积公式和遮罩，再解释每条箭头，不要求本周复现翻译实验。</p>
+<div class="formula"><button class="formula-zoom" type="button" title="放大公式" aria-label="放大公式：softmax沿键位置逐行执行。每个查询得到一个上下文加权和。"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIKICAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4KPHN2ZyB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgd2lkdGg9IjI5OHB0IiBoZWlnaHQ9IjM4cHQiIHZpZXdCb3g9IjAgMCAyOTggMzgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmVyc2lvbj0iMS4xIj4KIDxtZXRhZGF0YT4KICA8cmRmOlJERiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOmNjPSJodHRwOi8vY3JlYXRpdmVjb21tb25zLm9yZy9ucyMiIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+CiAgIDxjYzpXb3JrPgogICAgPGRjOnR5cGUgcmRmOnJlc291cmNlPSJodHRwOi8vcHVybC5vcmcvZGMvZGNtaXR5cGUvU3RpbGxJbWFnZSIvPgogICAgPGRjOmRhdGU+MjAyNi0xMC0yM1QxOToyMDo1Ny43NTAxMTY8L2RjOmRhdGU+CiAgICA8ZGM6Zm9ybWF0PmltYWdlL3N2Zyt4bWw8L2RjOmZvcm1hdD4KICAgIDxkYzpjcmVhdG9yPgogICAgIDxjYzpBZ2VudD4KICAgICAgPGRjOnRpdGxlPk1hdHBsb3RsaWIgdjMuMTAuMywgaHR0cHM6Ly9tYXRwbG90bGliLm9yZy88L2RjOnRpdGxlPgogICAgIDwvY2M6QWdlbnQ+CiAgICA8L2RjOmNyZWF0b3I+CiAgIDwvY2M6V29yaz4KICA8L3JkZjpSREY+CiA8L21ldGFkYXRhPgogPGRlZnM+CiAgPHN0eWxlIHR5cGU9InRleHQvY3NzIj4qe3N0cm9rZS1saW5lam9pbjogcm91bmQ7IHN0cm9rZS1saW5lY2FwOiBidXR0fTwvc3R5bGU+CiA8L2RlZnM+CiA8ZyBpZD0iZmlndXJlXzEiPgogIDxnIGlkPSJwYXRjaF8xIj4KICAgPHBhdGggZD0iTSAwIDM4IApMIDI5OCAzOCAKTCAyOTggMCAKTCAwIDAgCnoKIiBzdHlsZT0iZmlsbDogI2ZmZmZmZiIvPgogIDwvZz4KICA8ZyBpZD0idGV4dF8xIj4KICAgPCEtLSAkQT1cbWF0aHJte3NvZnRtYXh9XGxlZnQoXGZyYWN7UUteVH17XHNxcnR7ZF9rfX0rTVxyaWdodCksXHF1YWQgTz1BViQgLS0+CiAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgMjIpIHNjYWxlKDAuMTkgLTAuMTkpIj4KICAgIDxkZWZzPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zLU9ibGlxdWUtNDEiIGQ9Ik0gMjM1NiA0NjY2IApMIDMwNzIgNDY2NiAKTCAzOTM4IDAgCkwgMzI3OCAwIApMIDMwODQgMTE5NyAKTCA5ODQgMTE5NyAKTCAzMjUgMCAKTCAtMzQxIDAgCkwgMjM1NiA0NjY2IAp6Ck0gMjU4NCA0MDQ0IApMIDEyNzUgMTcyMiAKTCAyOTg4IDE3MjIgCkwgMjU4NCA0MDQ0IAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy0zZCIgZD0iTSA2NzggMjkwNiAKTCA0Njg0IDI5MDYgCkwgNDY4NCAyMzgxIApMIDY3OCAyMzgxIApMIDY3OCAyOTA2IAp6Ck0gNjc4IDE2MzEgCkwgNDY4NCAxNjMxIApMIDQ2ODQgMTEwMCAKTCA2NzggMTEwMCAKTCA2NzggMTYzMSAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtNzMiIGQ9Ik0gMjgzNCAzMzk3IApMIDI4MzQgMjg1MyAKUSAyNTkxIDI5NzggMjMyOCAzMDQwIApRIDIwNjYgMzEwMyAxNzg0IDMxMDMgClEgMTM1NiAzMTAzIDExNDIgMjk3MiAKUSA5MjggMjg0MSA5MjggMjU3OCAKUSA5MjggMjM3OCAxMDgxIDIyNjQgClEgMTIzNCAyMTUwIDE2OTcgMjA0NyAKTCAxODk0IDIwMDMgClEgMjUwNiAxODcyIDI3NjQgMTYzMyAKUSAzMDIyIDEzOTQgMzAyMiA5NjYgClEgMzAyMiA0NzggMjYzNiAxOTMgClEgMjI1MCAtOTEgMTU3NSAtOTEgClEgMTI5NCAtOTEgOTg5IC0zNiAKUSA2ODQgMTkgMzQ3IDEyOCAKTCAzNDcgNzIyIApRIDY2NiA1NTYgOTc1IDQ3MyAKUSAxMjg0IDM5MSAxNTg4IDM5MSAKUSAxOTk0IDM5MSAyMjEyIDUzMCAKUSAyNDMxIDY2OSAyNDMxIDkyMiAKUSAyNDMxIDExNTYgMjI3MyAxMjgxIApRIDIxMTYgMTQwNiAxNTgxIDE1MjIgCkwgMTM4MSAxNTY5IApRIDg0NyAxNjgxIDYwOSAxOTE0IApRIDM3MiAyMTQ3IDM3MiAyNTUzIApRIDM3MiAzMDQ3IDcyMiAzMzE1IApRIDEwNzIgMzU4NCAxNzE2IDM1ODQgClEgMjAzNCAzNTg0IDIzMTUgMzUzNyAKUSAyNTk3IDM0OTEgMjgzNCAzMzk3IAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy02ZiIgZD0iTSAxOTU5IDMwOTcgClEgMTQ5NyAzMDk3IDEyMjggMjczNiAKUSA5NTkgMjM3NSA5NTkgMTc0NyAKUSA5NTkgMTExOSAxMjI2IDc1OCAKUSAxNDk0IDM5NyAxOTU5IDM5NyAKUSAyNDE5IDM5NyAyNjg3IDc1OSAKUSAyOTU2IDExMjIgMjk1NiAxNzQ3IApRIDI5NTYgMjM2OSAyNjg3IDI3MzMgClEgMjQxOSAzMDk3IDE5NTkgMzA5NyAKegpNIDE5NTkgMzU4NCAKUSAyNzA5IDM1ODQgMzEzNyAzMDk2IApRIDM1NjYgMjYwOSAzNTY2IDE3NDcgClEgMzU2NiA4ODggMzEzNyAzOTggClEgMjcwOSAtOTEgMTk1OSAtOTEgClEgMTIwNiAtOTEgNzc5IDM5OCAKUSAzNTMgODg4IDM1MyAxNzQ3IApRIDM1MyAyNjA5IDc3OSAzMDk2IApRIDEyMDYgMzU4NCAxOTU5IDM1ODQgCnoKIiB0cmFuc2Zvcm09InNjYWxlKDAuMDE1NjI1KSIvPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zLTY2IiBkPSJNIDIzNzUgNDg2MyAKTCAyMzc1IDQzODQgCkwgMTgyNSA0Mzg0IApRIDE1MTYgNDM4NCAxMzk1IDQyNTkgClEgMTI3NSA0MTM0IDEyNzUgMzgwOSAKTCAxMjc1IDM1MDAgCkwgMjIyMiAzNTAwIApMIDIyMjIgMzA1MyAKTCAxMjc1IDMwNTMgCkwgMTI3NSAwIApMIDY5NyAwIApMIDY5NyAzMDUzIApMIDE0NyAzMDUzIApMIDE0NyAzNTAwIApMIDY5NyAzNTAwIApMIDY5NyAzNzQ0IApRIDY5NyA0MzI4IDk2OSA0NTk1IApRIDEyNDEgNDg2MyAxODMxIDQ4NjMgCkwgMjM3NSA0ODYzIAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy03NCIgZD0iTSAxMTcyIDQ0OTQgCkwgMTE3MiAzNTAwIApMIDIzNTYgMzUwMCAKTCAyMzU2IDMwNTMgCkwgMTE3MiAzMDUzIApMIDExNzIgMTE1MyAKUSAxMTcyIDcyNSAxMjg5IDYwMyAKUSAxNDA2IDQ4MSAxNzY2IDQ4MSAKTCAyMzU2IDQ4MSAKTCAyMzU2IDAgCkwgMTc2NiAwIApRIDExMDAgMCA4NDcgMjQ4IApRIDU5NCA0OTcgNTk0IDExNTMgCkwgNTk0IDMwNTMgCkwgMTcyIDMwNTMgCkwgMTcyIDM1MDAgCkwgNTk0IDM1MDAgCkwgNTk0IDQ0OTQgCkwgMTE3MiA0NDk0IAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy02ZCIgZD0iTSAzMzI4IDI4MjggClEgMzU0NCAzMjE2IDM4NDQgMzQwMCAKUSA0MTQ0IDM1ODQgNDU1MCAzNTg0IApRIDUwOTcgMzU4NCA1Mzk0IDMyMDEgClEgNTY5MSAyODE5IDU2OTEgMjExMyAKTCA1NjkxIDAgCkwgNTExMyAwIApMIDUxMTMgMjA5NCAKUSA1MTEzIDI1OTcgNDkzNCAyODQwIApRIDQ3NTYgMzA4NCA0MzkxIDMwODQgClEgMzk0NCAzMDg0IDM2ODQgMjc4NyAKUSAzNDI1IDI0OTEgMzQyNSAxOTc4IApMIDM0MjUgMCAKTCAyODQ3IDAgCkwgMjg0NyAyMDk0IApRIDI4NDcgMjYwMCAyNjY5IDI4NDIgClEgMjQ5MSAzMDg0IDIxMTkgMzA4NCAKUSAxNjc4IDMwODQgMTQxOCAyNzg2IApRIDExNTkgMjQ4OCAxMTU5IDE5NzggCkwgMTE1OSAwIApMIDU4MSAwIApMIDU4MSAzNTAwIApMIDExNTkgMzUwMCAKTCAxMTU5IDI5NTYgClEgMTM1NiAzMjc4IDE2MzEgMzQzMSAKUSAxOTA2IDM1ODQgMjI4NCAzNTg0IApRIDI2NjYgMzU4NCAyOTMzIDMzOTAgClEgMzIwMCAzMTk3IDMzMjggMjgyOCAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtNjEiIGQ9Ik0gMjE5NCAxNzU5IApRIDE0OTcgMTc1OSAxMjI4IDE2MDAgClEgOTU5IDE0NDEgOTU5IDEwNTYgClEgOTU5IDc1MCAxMTYxIDU3MCAKUSAxMzYzIDM5MSAxNzA5IDM5MSAKUSAyMTg4IDM5MSAyNDc3IDczMCAKUSAyNzY2IDEwNjkgMjc2NiAxNjMxIApMIDI3NjYgMTc1OSAKTCAyMTk0IDE3NTkgCnoKTSAzMzQxIDE5OTcgCkwgMzM0MSAwIApMIDI3NjYgMCAKTCAyNzY2IDUzMSAKUSAyNTY5IDIxMyAyMjc1IDYxIApRIDE5ODEgLTkxIDE1NTYgLTkxIApRIDEwMTkgLTkxIDcwMSAyMTEgClEgMzg0IDUxMyAzODQgMTAxOSAKUSAzODQgMTYwOSA3NzkgMTkwOSAKUSAxMTc1IDIyMDkgMTk1OSAyMjA5IApMIDI3NjYgMjIwOSAKTCAyNzY2IDIyNjYgClEgMjc2NiAyNjYzIDI1MDUgMjg4MCAKUSAyMjQ0IDMwOTcgMTc3MiAzMDk3IApRIDE0NzIgMzA5NyAxMTg3IDMwMjUgClEgOTAzIDI5NTMgNjQxIDI4MDkgCkwgNjQxIDMzNDEgClEgOTU2IDM0NjMgMTI1MyAzNTIzIApRIDE1NTAgMzU4NCAxODMxIDM1ODQgClEgMjU5MSAzNTg0IDI5NjYgMzE5MCAKUSAzMzQxIDI3OTcgMzM0MSAxOTk3IAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy03OCIgZD0iTSAzNTEzIDM1MDAgCkwgMjI0NyAxNzk3IApMIDM1NzggMCAKTCAyOTAwIDAgCkwgMTg4MSAxMzc1IApMIDg2MyAwIApMIDE4NCAwIApMIDE1NDQgMTgzMSAKTCAzMDAgMzUwMCAKTCA5NzggMzUwMCAKTCAxOTA2IDIyNTMgCkwgMjgzNCAzNTAwIApMIDM1MTMgMzUwMCAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IlNUSVhTaXplVHdvU3ltLVJlZ3VsYXItMjgiIGQ9Ik0gMzIxOSAtMTU1NSAKTCAzMjE5IC0xNzg2IApRIDIxNDQgLTc3NCAxNTE3IDczMCAKUSA4OTAgMjIzNCA4OTAgNDExNSAKUSA4OTAgNjAwMyAxNTMzIDc1OTMgClEgMjE3NiA5MTg0IDMyMTkgMTAwMjIgCkwgMzIxOSA5ODExIApRIDI0OTAgOTA2MiAxOTk0IDc2MDYgClEgMTQ5OCA2MTUwIDE0OTggNDExNSAKUSAxNDk4IDU2MyAzMjE5IC0xNTU1IAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy1PYmxpcXVlLTUxIiBkPSJNIDIzMDkgLTg0IApRIDIyNzUgLTg4IDIyMzcgLTg5IApRIDIyMDAgLTkxIDIxMjUgLTkxIApRIDEyNTAgLTkxIDc1NiA0MTEgClEgMjYzIDkxMyAyNjMgMTc5NyAKUSAyNjMgMjMxOSA0NTIgMjg0NCAKUSA2NDEgMzM2OSA5NzggMzc4OCAKUSAxMzY5IDQyNjkgMTg1OCA0NTA5IApRIDIzNDcgNDc1MCAyOTM4IDQ3NTAgClEgMzc5NCA0NzUwIDQyODcgNDI0NSAKUSA0NzgxIDM3NDEgNDc4MSAyODY5IApRIDQ3ODEgMTkyOCA0MjY1IDExNDcgClEgMzc1MCAzNjYgMjkxOSA0NCAKTCAzNTUzIC04MjUgCkwgMjg0NyAtODI1IApMIDIzMDkgLTg0IAp6Ck0gMjkxOSA0MjM4IApRIDI0MDAgNDIzOCAyMDAzIDM5ODYgClEgMTYwNiAzNzM0IDEzMTMgMzIxOSAKUSAxMTI1IDI4OTEgMTAyNiAyNTIyIApRIDkyOCAyMTUzIDkyOCAxNzc4IApRIDkyOCAxMTI4IDEyMzkgNzc1IApRIDE1NTAgNDIyIDIxMTkgNDIyIApRIDI2MzEgNDIyIDMwMzIgNjc2IApRIDM0MzQgOTMxIDM3MTkgMTQzNCAKUSAzOTA5IDE3NzIgNDAwOSAyMTQyIApRIDQxMDkgMjUxMyA0MTA5IDI4ODEgClEgNDEwOSAzNTI4IDM3OTYgMzg4MyAKUSAzNDg0IDQyMzggMjkxOSA0MjM4IAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy1PYmxpcXVlLTRiIiBkPSJNIDEwODEgNDY2NiAKTCAxNzE2IDQ2NjYgCkwgMTMzMSAyNzAwIApMIDM3ODEgNDY2NiAKTCA0NjIyIDQ2NjYgCkwgMTg1MCAyNDM4IApMIDM4NzggMCAKTCAzMTA5IDAgCkwgMTI0NyAyMjcyIApMIDgwNiAwIApMIDE3MiAwIApMIDEwODEgNDY2NiAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtT2JsaXF1ZS01NCIgZD0iTSAzNzggNDY2NiAKTCA0MzI1IDQ2NjYgCkwgNDIyNSA0MTM0IApMIDI1NTkgNDEzNCAKTCAxNzU5IDAgCkwgMTEyNSAwIApMIDE5MjUgNDEzNCAKTCAyNzUgNDEzNCAKTCAzNzggNDY2NiAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IlNUSVhTaXplT25lU3ltLVJlZ3VsYXItMjIxYSIgZD0iTSA2OTcwIDk5MzMgCkwgMzM3MyAtMTg4OCAKTCAzMTA0IC0xODg4IApMIDE2MjYgMjkxOCAKUSAxNTU1IDMxNDkgMTQ2NSAzMjUxIApRIDEzNzYgMzM1NCAxMjI5IDMzNTQgClEgMTAxMSAzMzU0IDc5NCAzMTgxIApMIDcxNyAzMzA5IApMIDE3NjYgNDExNSAKTCAxOTI2IDQxMTUgCkwgMzM3OSAtNjAyIApMIDM0MDUgLTYwMiAKTCA2NjA1IDk5MzMgCkwgNjk3MCA5OTMzIAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy1PYmxpcXVlLTY0IiBkPSJNIDI2NzUgNTI1IApRIDI0NDQgMjIyIDIxMjggNjUgClEgMTgxMyAtOTEgMTQyOCAtOTEgClEgOTAzIC05MSA1OTggMjY3IApRIDI5NCA2MjUgMjk0IDEyNDcgClEgMjk0IDE3NjYgNDc4IDIyMzYgClEgNjYzIDI3MDYgMTAxMyAzMDc4IApRIDEyNDQgMzMyNSAxNTM0IDM0NTQgClEgMTgyNSAzNTg0IDIxNDQgMzU4NCAKUSAyNDgxIDM1ODQgMjczOSAzNDIxIApRIDI5OTcgMzI1OSAzMTM4IDI5NTYgCkwgMzUxMyA0ODYzIApMIDQwOTEgNDg2MyAKTCAzMTQ0IDAgCkwgMjU2NiAwIApMIDI2NzUgNTI1IAp6Ck0gODkxIDEzNTAgClEgODkxIDg5NyAxMDk1IDY0NCAKUSAxMzAwIDM5MSAxNjYzIDM5MSAKUSAxOTMxIDM5MSAyMTYxIDUyMCAKUSAyMzkxIDY1MCAyNTY2IDkwMyAKUSAyNzUwIDExNjYgMjg1NiAxNTA5IApRIDI5NjMgMTg1MyAyOTYzIDIxODggClEgMjk2MyAyNjIyIDI3NTggMjg2NSAKUSAyNTUzIDMxMDkgMjE5NCAzMTA5IApRIDE5MjIgMzEwOSAxNjg3IDI5ODEgClEgMTQ1MyAyODUzIDEyODggMjYxMyAKUSAxMTA2IDIzNTMgOTk4IDIwMDkgClEgODkxIDE2NjYgODkxIDEzNTAgCnoKIiB0cmFuc2Zvcm09InNjYWxlKDAuMDE1NjI1KSIvPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zLU9ibGlxdWUtNmIiIGQ9Ik0gMTE3MiA0ODYzIApMIDE3NDcgNDg2MyAKTCAxMTk3IDIwMjggCkwgMzE2OSAzNTAwIApMIDM5MTYgMzUwMCAKTCAxNzE2IDE4MjUgCkwgMzMyMiAwIApMIDI2MjUgMCAKTCAxMTMxIDE3MDkgCkwgODAwIDAgCkwgMjI1IDAgCkwgMTE3MiA0ODYzIAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy0yYiIgZD0iTSAyOTQ0IDQwMTMgCkwgMjk0NCAyMjcyIApMIDQ2ODQgMjI3MiAKTCA0Njg0IDE3NDEgCkwgMjk0NCAxNzQxIApMIDI5NDQgMCAKTCAyNDE5IDAgCkwgMjQxOSAxNzQxIApMIDY3OCAxNzQxIApMIDY3OCAyMjcyIApMIDI0MTkgMjI3MiAKTCAyNDE5IDQwMTMgCkwgMjk0NCA0MDEzIAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy1PYmxpcXVlLTRkIiBkPSJNIDEwODEgNDY2NiAKTCAyMDI4IDQ2NjYgCkwgMjU3MiAxNTIyIApMIDQzNzggNDY2NiAKTCA1MzUwIDQ2NjYgCkwgNDQ0MSAwIApMIDM4MjggMCAKTCA0NjIyIDQwOTEgCkwgMjc5MSA4OTcgCkwgMjE3NSA4OTcgCkwgMTU4MSA0MTAzIApMIDc4OCAwIApMIDE3MiAwIApMIDEwODEgNDY2NiAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IlNUSVhTaXplVHdvU3ltLVJlZ3VsYXItMjkiIGQ9Ik0gNzMwIDk3OTIgCkwgNzMwIDEwMDIyIApRIDE4MDUgOTAxMSAyNDMyIDc1MDcgClEgMzA1OSA2MDAzIDMwNTkgNDExNSAKUSAzMDU5IDIyMzQgMjQxNiA2NDMgClEgMTc3MyAtOTQ3IDczMCAtMTc4NiAKTCA3MzAgLTE1NzQgClEgMTQ1OSAtODI2IDE5NTUgNjMzIApRIDI0NTEgMjA5MyAyNDUxIDQxMTUgClEgMjQ1MSA3Njc0IDczMCA5NzkyIAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy0yYyIgZD0iTSA3NTAgNzk0IApMIDE0MDkgNzk0IApMIDE0MDkgMjU2IApMIDg5NyAtNzQ0IApMIDQ5NCAtNzQ0IApMIDc1MCAyNTYgCkwgNzUwIDc5NCAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtT2JsaXF1ZS00ZiIgZD0iTSAyOTE5IDQyMzggClEgMjQwMCA0MjM4IDIwMDMgMzk4NiAKUSAxNjA2IDM3MzQgMTMxMyAzMjE5IApRIDExMjUgMjg5MSAxMDI2IDI1MjIgClEgOTI4IDIxNTMgOTI4IDE3NzggClEgOTI4IDExMjggMTIzOSA3NzUgClEgMTU1MCA0MjIgMjExOSA0MjIgClEgMjYzMSA0MjIgMzAzMiA2NzYgClEgMzQzNCA5MzEgMzcxOSAxNDM0IApRIDM5MDkgMTc3MiA0MDA5IDIxNDIgClEgNDEwOSAyNTEzIDQxMDkgMjg4MSAKUSA0MTA5IDM1MjggMzc5NiAzODgzIApRIDM0ODQgNDIzOCAyOTE5IDQyMzggCnoKTSAyMTAwIC05MSAKUSAxMjQxIC05MSA3NDggNDE4IApRIDI1NiA5MjggMjU2IDE4MTMgClEgMjU2IDIzMTkgNDQ4IDI4NDcgClEgNjQxIDMzNzUgOTc4IDM3ODggClEgMTM3NSA0MjcyIDE4NjIgNDUxMSAKUSAyMzUwIDQ3NTAgMjkzOCA0NzUwIApRIDM3OTQgNDc1MCA0Mjg3IDQyNDUgClEgNDc4MSAzNzQxIDQ3ODEgMjg2OSAKUSA0NzgxIDIzMzEgNDU5MyAxODEyIApRIDQ0MDYgMTI5NCA0MDU2IDg3MiAKUSAzNjU2IDM4NCAzMTczIDE0NiAKUSAyNjkxIC05MSAyMTAwIC05MSAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtT2JsaXF1ZS01NiIgZD0iTSAxMzE5IDAgCkwgNTAwIDQ2NjYgCkwgMTExOSA0NjY2IApMIDE3OTcgNjUzIApMIDQwNjMgNDY2NiAKTCA0NzUwIDQ2NjYgCkwgMjA1MyAwIApMIDEzMTkgMCAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICA8L2RlZnM+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLU9ibGlxdWUtNDEiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgMC41NDM3NSkiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtM2QiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDg3Ljg5MDYyNSAwLjU0Mzc1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy03MyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTkxLjE2MjEwOSAwLjU0Mzc1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy02ZiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjQzLjI2MTcxOSAwLjU0Mzc1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy02NiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzA0LjQ0MzM1OSAwLjU0Mzc1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy03NCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzM5LjY0ODQzOCAwLjU0Mzc1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy02ZCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzc4Ljg1NzQyMiAwLjU0Mzc1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy02MSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDc2LjI2OTUzMSAwLjU0Mzc1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy03OCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTM3LjU0ODgyOCAwLjU0Mzc1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjU1RJWFNpemVUd29TeW0tUmVndWxhci0yOCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTk2LjcyODUxNiAtNDguNDM3NSkgc2NhbGUoMS4wNDk0MjgpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLU9ibGlxdWUtNTEiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDY2MC41NzM1MDIgNTMuMzY0MDYyKSBzY2FsZSgwLjcpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLU9ibGlxdWUtNGIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDcxNS42NzExNTggNTMuMzY0MDYyKSBzY2FsZSgwLjcpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLU9ibGlxdWUtNTQiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDc2Ni40ODYyMTggODAuMTYwOTM3KSBzY2FsZSgwLjQ5KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjU1RJWFNpemVPbmVTeW0tUmVndWxhci0yMjFhIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg2NTguNTczNTAyIC02My44OTg0MzgpIHNjYWxlKDAuNDY4NTgxKSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy1PYmxpcXVlLTY0IiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg3MTYuODk2ODAyIC02Ni40NzM0MzgpIHNjYWxlKDAuNykiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtT2JsaXF1ZS02YiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNzYxLjMzMDM5NiAtNzcuOTU3ODEzKSBzY2FsZSgwLjQ5KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy0yYiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoODMyLjM1Mjg1NiAwLjU0Mzc1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy1PYmxpcXVlLTRkIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg5MzUuNjI0MzQxIDAuNTQzNzUpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNTVElYU2l6ZVR3b1N5bS1SZWd1bGFyLTI5IiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMDIxLjkwMzYzOCAtNDguNDM3NSkgc2NhbGUoMS4wNDk0MjgpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLTJjIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMDg1Ljc0MzYxOSAwLjU0Mzc1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy1PYmxpcXVlLTRmIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMjM0LjQyNTI1OSAwLjU0Mzc1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy0zZCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTMzMi42MTg2MTkgMC41NDM3NSkiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtT2JsaXF1ZS00MSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTQzNS44OTAxMDMgMC41NDM3NSkiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtT2JsaXF1ZS01NiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTUwNC4yOTgzMDYgMC41NDM3NSkiLz4KICAgIDxwYXRoIGQ9Ik0gNjU4LjU3MzUwMiAxOS4zNDA2MjUgCkwgNjU4LjU3MzUwMiAyNS41OTA2MjUgCkwgODAwLjM3MDQzNSAyNS41OTA2MjUgCkwgODAwLjM3MDQzNSAxOS4zNDA2MjUgCkwgNjU4LjU3MzUwMiAxOS4zNDA2MjUgCnoKIi8+CiAgICA8cGF0aCBkPSJNIDcwOC4xNDY4MDIgNC4zNDA2MjUgCkwgNzA4LjE0NjgwMiA4LjcxNTYyNSAKTCA4MDAuMzcwNDM1IDguNzE1NjI1IApMIDgwMC4zNzA0MzUgNC4zNDA2MjUgCkwgNzA4LjE0NjgwMiA0LjM0MDYyNSAKegoiLz4KICAgPC9nPgogIDwvZz4KIDwvZz4KPC9zdmc+Cg==" width="423" alt="softmax沿键位置逐行执行。每个查询得到一个上下文加权和。" loading="lazy"></button><span class="zoom-hint" aria-hidden="true">点击放大</span></div><p>softmax沿键位置逐行执行。每个查询得到一个上下文加权和。</p>
+<details open class="symbols"><summary>逐个认识符号</summary><ul><li><p>Q：T×d_k查询矩阵</p>
+</li><li><p>K：T×d_k键矩阵</p>
+</li><li><p>V：T×d_v值矩阵</p>
+</li><li><p>M：T×T遮罩</p>
+</li><li><p>A：T×T注意力权重</p>
+</li><li><p>O：T×d_v输出</p>
+</li></ul></details><aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>三token的第一行</h3><ol><li><p>Q和K按行是[1,0]、[0,1]、[1,1]，d_k=2。V按行是[1,2]、[3,4]、[5,6]。</p>
+</li><li><p>第0个查询的原始分数为[1/√2,0,1/√2]。</p>
+</li><li><p>因果遮罩只保留位置0，变为[0.7071,−∞,−∞]。</p>
+</li><li><p>softmax得到[1,0,0]，输出就是V₀=[1,2]。</p>
+</li></ol><div class="worked-result"><p>第一个位置只能看到自己，而它的目标是下一token。</p>
+</div></aside></section><section class="lesson-section" id="w14-section-2"><h2><span class="section-number">02</span>2 因果mask不是把未来乘零这么简单</h2><p>对于第i个查询，所有j&gt;i的键位置必须不可见。把它们的logit设为负无穷，再做softmax，它们的权重成为0。若只是把未来分数设为0，exp(0)=1，未来仍会拿到概率；若softmax后把权重乘0却不重新归一化，则权重和改变，输出尺度也改变。</p>
+<p>本页使用j≤i的下三角可见区域。为什么可以看到自己？因为位置i输入的是当前token，位置i输出预测的是下一个token，当前token属于合法上下文。若标签没有偏移，却仍允许看到自己，就可能变成复制输入答案。mask和target shift必须一起核查。</p>
+<p>每一行至少保留一个可见位置，才能让softmax有定义。全负无穷行会在减最大值时产生无效运算；加入padding mask时尤其要避免完全遮住某些查询。不同库对布尔mask中True表示允许还是禁止可能有不同约定，不应只凭变量名猜；本页直接用数值分数说明机制。</p>
+<p>前缀不变量是可执行的因果检查：在评估模式、关闭随机Dropout的条件下，改变最后token的表示，前面各位置输出应保持不变。只检查最终loss不足以发现泄漏，因为泄漏可能让loss更好看。本页同时做不加mask的对照，显示前面输出会被未来改动影响。</p>
+<aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>第二和第三行的加权和</h3><ol><li><p>第1行可见两个位置，分数[0,1/√2]，softmax约为[0.330238,0.669762,0]。</p>
+</li><li><p>输出第一个分量=0.330238×1+0.669762×3≈2.339523，第二分量≈3.339523。</p>
+</li><li><p>第2行分数[1/√2,1/√2,2/√2]，权重约为[0.248255,0.248255,0.503490]。</p>
+</li><li><p>第2行输出约为[3.510470,4.510470]。</p>
+</li></ol><div class="worked-result"><p>输出是值向量的加权平均，匹配分数不是最终内容。</p>
+</div></aside></section><section class="lesson-section" id="w14-section-3"><h2><span class="section-number">03</span>3 位置、复杂度与机制边界</h2><p>不带位置表示且没有mask的自注意力，对输入位置做同样置换时，输出也会相应置换，这叫置换等变；它没有凭空知道第几个位置的能力。因果mask本身引入了顺序限制，不能把无mask时的置换结论不加条件地照搬给自回归模型。但仅靠可见范围并不等同于完整的位置编码，因此实际模型通常显式加入位置表示。</p>
+<p>HW4使用GPT2式学习位置嵌入：颜色ID查表得到内容向量，位置编号查另一张表得到位置向量，二者相加。位置容量限制可接收的最大序列长度。像素按行扫描还把二维结构变成一维顺序，这是一种建模选择，不会自动保留所有二维邻接关系。</p>
+<p>朴素全注意力存储T×T分数矩阵，长度翻倍时这部分元素数变成4倍；但整个模型总计算还包括投影和前馈层，不能用一个平方关系描述全部成本。本周手写代码用小数组，是为了看清索引和mask，没有宣称达到库算子的性能。</p>
+<p>练习顺序是先不看程序手算一行，再运行核对，随后故意把mask条件反向、去掉缩放或改softmax维度，并预测结果。只看彩色热图容易产生“哪个位置重要”的故事；注意力权重本身不是因果解释，模型还含投影、残差与其他层，解释必须有受控干预支持。</p>
+<aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>长度与矩阵大小</h3><ol><li><p>T=3时每个头的分数矩阵有9项。</p>
+</li><li><p>T=6时有36项，是4倍。</p>
+</li><li><p>T=400时有160000项；2个头每个样本有320000项，尚未计批次、层数和其他激活。</p>
+</li></ol><div class="worked-result"><p>先按形状估算再试跑资源，不把参数少等同于中间激活少。</p>
+</div></aside></section><h2>Python与C++机制示例</h2><p>下面的小程序验证关键机制；完整项目须按本周交付要求另行完成。</p><h3>Python</h3><pre><code>&quot;&quot;&quot;Causal attention uses rows as query positions and columns as key positions.&quot;&quot;&quot;
+import math
+# STEP 1
+q = [[1.,0.],[0.,1.],[1.,1.]]
+k = [[1.,0.],[0.,1.],[1.,1.]]
+v = [[1.,2.],[3.,4.],[5.,6.]]
+def softmax(scores):
+    mx = max(scores)
+    weights = [math.exp(s-mx) for s in scores]
+    return [w/sum(weights) for w in weights]
+# STEP 2
+def attention(q,k,v,causal):
+    rows, outputs = [], []
+    for i,query in enumerate(q):
+        scores = [sum(a*b for a,b in zip(query,key))/math.sqrt(2) for key in k]
+        scores = [s if not causal or j&lt;=i else -math.inf for j,s in enumerate(scores)]
+        a = softmax(scores)
+        rows.append(a)
+        outputs.append([sum(a[j]*v[j][d] for j in range(len(v))) for d in range(2)])
+    return rows,outputs
+# STEP 3
+weights,out = attention(q,k,v,True)
+for i in range(3):
+    print(f&#x27;row{i}_weights=&#x27;+&#x27; &#x27;.join(f&#x27;{a:.6f}&#x27; for a in weights[i]))
+    print(f&#x27;row{i}_output=&#x27;+&#x27; &#x27;.join(f&#x27;{a:.6f}&#x27; for a in out[i]))
+assert all(abs(sum(row)-1)&lt;1e-12 for row in weights)
+# STEP 4
+q2,k2,v2 = [row[:] for row in q],[row[:] for row in k],[row[:] for row in v]
+q2[2],k2[2],v2[2] = [9.,-7.],[9.,-7.],[80.,-40.]
+altered = attention(q2,k2,v2,True)[1]
+prefix_ok = out[:2] == altered[:2]
+unmasked_changes = attention(q,k,v,False)[1][0] != attention(q2,k2,v2,False)[1][0]
+print(f&#x27;causal_prefix_unchanged={prefix_ok} unmasked_prefix_changes={unmasked_changes}&#x27;)
+assert prefix_ok and unmasked_changes
+</code></pre><h3>C++</h3><pre><code>#include &lt;utility&gt;
+#include &lt;vector&gt;
+#include &lt;array&gt;
+#include &lt;cmath&gt;
+#include &lt;limits&gt;
+#include &lt;algorithm&gt;
+#include &lt;iostream&gt;
+#include &lt;iomanip&gt;
+#include &lt;cassert&gt;
+using Vec=std::array&lt;double,2&gt;; using Mat=std::vector&lt;Vec&gt;;
+// STEP 1
+std::vector&lt;double&gt; softmax(const std::vector&lt;double&gt;&amp; s) {
+    double mx=*std::max_element(s.begin(),s.end()),total=0; std::vector&lt;double&gt; a;
+    for(double v:s) {a.push_back(std::exp(v-mx));total+=a.back();}
+    for(auto&amp; v:a) v/=total;
+    return a;
+}
+// STEP 2
+std::pair&lt;std::vector&lt;std::vector&lt;double&gt;&gt;,Mat&gt; attention(const Mat&amp; q,const Mat&amp; k,const Mat&amp; v,bool causal) {
+    std::vector&lt;std::vector&lt;double&gt;&gt; weights; Mat outputs;
+    for(std::size_t i=0;i&lt;q.size();++i) {
+        std::vector&lt;double&gt; scores;
+        for(std::size_t j=0;j&lt;k.size();++j)
+            scores.push_back(causal&amp;&amp;j&gt;i?-std::numeric_limits&lt;double&gt;::infinity():(q[i][0]*k[j][0]+q[i][1]*k[j][1])/std::sqrt(2.));
+        auto a=softmax(scores); Vec out{};
+        for(std::size_t j=0;j&lt;v.size();++j) for(int d=0;d&lt;2;++d) out[d]+=a[j]*v[j][d];
+        weights.push_back(a); outputs.push_back(out);
+    }
+    return {weights,outputs};
+}
+int main() {
+    Mat q{{1,0},{0,1},{1,1}},k=q,v{{1,2},{3,4},{5,6}};
+    // STEP 3
+    auto result=attention(q,k,v,true);
+    std::cout&lt;&lt;std::fixed&lt;&lt;std::setprecision(6);
+    for(int i=0;i&lt;3;++i) {
+        std::cout&lt;&lt;&quot;row&quot;&lt;&lt;i&lt;&lt;&quot;_weights=&quot;; double sum=0;
+        for(int j=0;j&lt;3;++j) {std::cout&lt;&lt;(j?&quot; &quot;:&quot;&quot;)&lt;&lt;result.first[i][j];sum+=result.first[i][j];}
+        assert(std::abs(sum-1)&lt;1e-12);
+        std::cout&lt;&lt;&quot;\nrow&quot;&lt;&lt;i&lt;&lt;&quot;_output=&quot;&lt;&lt;result.second[i][0]&lt;&lt;&#x27; &#x27;&lt;&lt;result.second[i][1]&lt;&lt;&#x27;\n&#x27;;
+    }
+    // STEP 4
+    Mat q2=q,k2=k,v2=v; q2[2]={9,-7};k2[2]={9,-7};v2[2]={80,-40};
+    auto altered=attention(q2,k2,v2,true).second;
+    bool prefix=result.second[0]==altered[0]&amp;&amp;result.second[1]==altered[1];
+    bool changes=attention(q,k,v,false).second[0]!=attention(q2,k2,v2,false).second[0];
+    std::cout&lt;&lt;&quot;causal_prefix_unchanged=&quot;&lt;&lt;(prefix?&quot;True&quot;:&quot;False&quot;)&lt;&lt;&quot; unmasked_prefix_changes=&quot;&lt;&lt;(changes?&quot;True&quot;:&quot;False&quot;)&lt;&lt;&#x27;\n&#x27;;
+    assert(prefix&amp;&amp;changes);
+}
+</code></pre><h3>逐步解释</h3><h4>输入角色与稳定softmax</h4><p>Q/K/V是按行存储的二维列表或vector<array>。softmax减行最大值，再指数、求和、归一化；负无穷的指数为0。</p>
+<p>自查：指出Q的第1行和V的第1行在运算中分别做什么。</p><h4>查询行到上下文输出</h4><p>外层i是查询；对每个键j算点积并缩放；j&gt;i设−∞；随后按列分量d汇总V。C++返回权重与输出便于检查。</p>
+<p>自查：确认softmax在键位置上做，输出每行仍是2维。</p><h4>显示可核对的每一行</h4><p>程序打印三行权重和输出，并检查每行权重和为1。不是只打印最终数组形状。</p>
+<p>自查：手算第二行的两项概率，与六位小数输出比较。</p><h4>未来扰动与无mask对照</h4><p>同时改最后行Q/K/V，保留前面行；比较因果输出前两行不变，再确认无mask首行会变。</p>
+<p>自查：若开启Dropout，说明为何应先eval再做这类精确比较。</p><h3>参考输出</h3><pre>row0_weights=1.000000 0.000000 0.000000
+row0_output=1.000000 2.000000
+row1_weights=0.330238 0.669762 0.000000
+row1_output=2.339523 3.339523
+row2_weights=0.248255 0.248255 0.503490
+row2_output=3.510470 4.510470
+causal_prefix_unchanged=True unmasked_prefix_changes=True</pre><h2>练习与参考答案</h2><h3>练习1</h3><p>基础：Q和K全为0，因果mask下三行权重分别是什么？</p>
+<p>提示：</p><p>所有可见分数相等。</p>
+<p>参考：</p><p>第0行为[1,0,0]；第1行为[1/2,1/2,0]；第2行为[1/3,1/3,1/3]。第2行输出是三个V的平均[3,4]。mask决定可见集合，softmax在集合内等权。</p>
+<h3>练习2</h3><p>实现：故意把被遮位置分数设成0，检查前缀不变量。</p>
+<p>提示：</p><p>exp(0)不是0。</p>
+<p>第一行本应只有一个非零权重。</p>
+<p>参考：</p><p>第一行会把概率分给未来位置，因此改变最后V可能改变首行输出。不变量断言应失败。修复为softmax前置−∞；仅在softmax后乘0还需重新归一化，否则不是相同定义。</p>
+<h3>练习3</h3><p>迁移：把序列长度从400改成64，需要核对哪些地方？</p>
+<p>提示：</p><p>不仅改数据shape。</p>
+<p>参考：</p><p>核对颜色扫描顺序、位置嵌入容量、生成前缀与补全总长，以及损失分母。对64个像素采用sequence[:-1]与sequence[1:]时，训练输入和目标都长63，训练注意力mask为63×63。64是完整序列长度或位置容量；若预建64×64因果表，需要切到实际输入长度，生成阶段的mask随前缀长度变化。记录替代合成数据，不能与400像素官方分数直接比较。</p>
+<h2>自测</h2><h3>1. QK转置后的行代表什么？</h3><ol type="A"><li>隐藏通道</li><li>随机种子</li><li>查询位置</li><li>颜色类别</li></ol><p>参考：C</p><p>列代表被读取的键位置。</p>
+<h3>2. 为何不能把未来logit简单设为0？</h3><ol type="A"><li>需要先取绝对值</li><li>0无法存储</li><li>exp(0)=1仍分配权重</li><li>softmax只能输入正数</li></ol><p>参考：C</p><p>屏蔽需要使对应概率为0，常用−∞。</p>
+<h3>3. 当前输入位置允许看自己何时合理？</h3><ol type="A"><li>标签就是自己且无其他约束</li><li>任何任务都不允许</li><li>预测下一token且目标已偏移</li><li>只有训练不评估</li></ol><p>参考：C</p><p>当前token属于下一个token的合法过去。</p>
+<h3>4. 注意力热图最亮位置可以直接当作因果解释吗？</h3><ol type="A"><li>训练后一定可以</li><li>只有红色可以</li><li>不可以，仅权重不足以证明因果</li><li>总可以</li></ol><p>参考：C</p><p>要结合计算路径与受控干预，不能从热图编故事。</p>
+<h2>开放讲解题</h2><h3>生成是串行的，训练为什么可以并行？</h3><p>训练拥有完整真实序列，在因果mask下每个位置独立地使用合法真实前缀，矩阵运算可并行计算所有位置。生成缺少未来token，后一个位置需等待前一个采样结果。</p>
+<h3>单头注意力的输入输出形状怎样变化？</h3><p>输入X为T×d，Q/K为T×d_k，V为T×d_v，分数与权重为T×T，乘V后输出T×d_v。批维只是在外面复制这些计算，softmax沿每个查询的键位置维度。</p>
+<h2>交付物</h2><ul><li>三行注意力完整手算与程序输出</li><li>一份因果扰动通过/去mask失败记录</li><li>Attention论文公式与结构导读卡</li></ul><h2>验收标准</h2><ul><li>每个符号和维度可独立解释</li><li>未来扰动不影响过去输出</li><li>能区分原论文encoder-decoder与HW4 decoder-only</li></ul><h2>来源与延伸</h2><ul><li><a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a> — 2017原论文，核对缩放点积、多头、mask；2026-10-23查阅。</li><li><a href="https://zh.d2l.ai/chapter_attention-mechanisms/attention-scoring-functions.html">动手学深度学习：注意力评分</a> — 结合小例子理解分数到权重的归一化。</li></ul></main></body></html>

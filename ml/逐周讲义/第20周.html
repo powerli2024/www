@@ -1,0 +1,128 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>推理预算与可靠评估：读新论文时先问代价</title><link rel="stylesheet" href="../assets/reader.css"></head><body class="static-reader"><main><p><a href="../index.html#week-20">返回交互课程</a></p><div class="eyebrow">第20周 / 静态讲义</div><h1>推理预算与可靠评估：读新论文时先问代价</h1><section class="lesson-section" id="w20-section-1"><h2><span class="section-number">01</span>更好的分数，可能来自不同的预算</h2><p>训练预算决定学习参数花了多少计算；推理预算决定固定参数回答一个输入时花了多少计算。增加生成长度、多采样几次或重试工具调用都增加推理成本，但并不等同于重新训练。比较方法时至少记录输入token、实际输出token、重复次数、最大上限与墙钟时间；上限相同不保证实际消耗相同。</p>
+<p>本周选读s1的研究流程：数据筛选、监督微调、推理预算控制、数学任务评价。它是特定模型和数据上的实验，不是只往任意模型加一句话就获得推理能力。阅读时画四个方框，标出哪一步改变了数据、哪一步改变了权重、哪一步只影响推理，再看消融能否区分这些因素。</p>
+<p>长单次与短多次生成的比较，需要接近的实际总预算以及预先固定的候选选择规则。若知道正确答案后从多次生成中挑正确的一次，那是在评价“至少存在正确答案”的上界，而不是用户实际能得到的系统准确率。多数投票或验证器也有自己的成本和错误，必须一起报告。</p>
+<p>像素生成器没有数学问题到数值答案的接口，因此本周只做论文导读与日志分析，不要求运行s1模型。不要把延长像素补全长度叫作推理时间扩展：它改变了输出任务；若只比较采样次数，也必须定义不借助真实答案的选择规则。</p>
+<div class="formula"><button class="formula-zoom" type="button" title="放大公式" aria-label="放大公式：将实际生成成本与正确率并列记录。"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIKICAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4KPHN2ZyB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgd2lkdGg9IjE5NXB0IiBoZWlnaHQ9IjUwcHQiIHZpZXdCb3g9IjAgMCAxOTUgNTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmVyc2lvbj0iMS4xIj4KIDxtZXRhZGF0YT4KICA8cmRmOlJERiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOmNjPSJodHRwOi8vY3JlYXRpdmVjb21tb25zLm9yZy9ucyMiIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+CiAgIDxjYzpXb3JrPgogICAgPGRjOnR5cGUgcmRmOnJlc291cmNlPSJodHRwOi8vcHVybC5vcmcvZGMvZGNtaXR5cGUvU3RpbGxJbWFnZSIvPgogICAgPGRjOmRhdGU+MjAyNi0xMC0yM1QxOToyMDo1Ny45NDk1MDE8L2RjOmRhdGU+CiAgICA8ZGM6Zm9ybWF0PmltYWdlL3N2Zyt4bWw8L2RjOmZvcm1hdD4KICAgIDxkYzpjcmVhdG9yPgogICAgIDxjYzpBZ2VudD4KICAgICAgPGRjOnRpdGxlPk1hdHBsb3RsaWIgdjMuMTAuMywgaHR0cHM6Ly9tYXRwbG90bGliLm9yZy88L2RjOnRpdGxlPgogICAgIDwvY2M6QWdlbnQ+CiAgICA8L2RjOmNyZWF0b3I+CiAgIDwvY2M6V29yaz4KICA8L3JkZjpSREY+CiA8L21ldGFkYXRhPgogPGRlZnM+CiAgPHN0eWxlIHR5cGU9InRleHQvY3NzIj4qe3N0cm9rZS1saW5lam9pbjogcm91bmQ7IHN0cm9rZS1saW5lY2FwOiBidXR0fTwvc3R5bGU+CiA8L2RlZnM+CiA8ZyBpZD0iZmlndXJlXzEiPgogIDxnIGlkPSJwYXRjaF8xIj4KICAgPHBhdGggZD0iTSAwIDUwIApMIDE5NSA1MCAKTCAxOTUgMCAKTCAwIDAgCnoKIiBzdHlsZT0iZmlsbDogI2ZmZmZmZiIvPgogIDwvZz4KICA8ZyBpZD0idGV4dF8xIj4KICAgPCEtLSAkQz1cc3VtX3tpPTF9XntufSB0X2ksXHF1YWQgQT1cZnJhY3sxfXtufVxzdW1fe2k9MX1ee259IHpfaSQgLS0+CiAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgMzEpIHNjYWxlKDAuMTkgLTAuMTkpIj4KICAgIDxkZWZzPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zLU9ibGlxdWUtNDMiIGQ9Ik0gNDQ0NyA0MzA2IApMIDQzMTkgMzY0MSAKUSA0MDE5IDM5NDQgMzY4MyA0MDkxIApRIDMzNDcgNDIzOCAyOTU2IDQyMzggClEgMjQyMiA0MjM4IDIwMTcgMzk4MSAKUSAxNjEzIDM3MjUgMTMxOSAzMjAwIApRIDExMzEgMjg2MyAxMDMyIDI0ODYgClEgOTM0IDIxMDkgOTM0IDE3MjggClEgOTM0IDEwOTEgMTI2NCA3NTYgClEgMTU5NCA0MjIgMjIyMiA0MjIgClEgMjY1NiA0MjIgMzA1NiA1NjEgClEgMzQ1NiA3MDAgMzgzNCA5NzggCkwgMzY4OCAyMzEgClEgMzMxNiA3MiAyOTM2IC05IApRIDI1NTYgLTkxIDIxNzUgLTkxIApRIDEyNzggLTkxIDc3MyAzOTYgClEgMjY5IDg4NCAyNjkgMTc1MyAKUSAyNjkgMjMwOSA0NjEgMjg0NiAKUSA2NTMgMzM4NCAxMDEzIDM4MjggClEgMTM5NCA0MzAwIDE4ODMgNDUyNSAKUSAyMzcyIDQ3NTAgMzAyMiA0NzUwIApRIDM0MjIgNDc1MCAzNzgwIDQ2MzkgClEgNDEzOCA0NTI4IDQ0NDcgNDMwNiAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtM2QiIGQ9Ik0gNjc4IDI5MDYgCkwgNDY4NCAyOTA2IApMIDQ2ODQgMjM4MSAKTCA2NzggMjM4MSAKTCA2NzggMjkwNiAKegpNIDY3OCAxNjMxIApMIDQ2ODQgMTYzMSAKTCA0Njg0IDExMDAgCkwgNjc4IDExMDAgCkwgNjc4IDE2MzEgCnoKIiB0cmFuc2Zvcm09InNjYWxlKDAuMDE1NjI1KSIvPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zLU9ibGlxdWUtNmUiIGQ9Ik0gMzU2NiAyMTEzIApMIDMxNTYgMCAKTCAyNTc4IDAgCkwgMjk4OCAyMDkxIApRIDMwMTYgMjIzOCAzMDMxIDIzNTAgClEgMzA0NyAyNDYzIDMwNDcgMjUyOCAKUSAzMDQ3IDI3OTEgMjg4MSAyOTM3IApRIDI3MTYgMzA4NCAyNDE5IDMwODQgClEgMTk1NiAzMDg0IDE2MjIgMjc3NiAKUSAxMjg4IDI0NjkgMTE4NCAxOTQxIApMIDgwMCAwIApMIDIyNSAwIApMIDkwMyAzNTAwIApMIDE0NzggMzUwMCAKTCAxMzYzIDI5NTAgClEgMTYwMyAzMjUzIDE5NDAgMzQxOCAKUSAyMjc4IDM1ODQgMjY1MCAzNTg0IApRIDMxMTMgMzU4NCAzMzY3IDMzMzQgClEgMzYyMiAzMDg0IDM2MjIgMjYzMSAKUSAzNjIyIDI1MTkgMzYwOCAyMzkxIApRIDM1OTQgMjI2MyAzNTY2IDIxMTMgCnoKIiB0cmFuc2Zvcm09InNjYWxlKDAuMDE1NjI1KSIvPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zRGlzcGxheS0yMjExIiBkPSJNIDI0NCA2NTA5IApMIDU4MDMgNjUwOSAKTCA1ODAzIDU2NTYgCkwgMTU2NiA1NjU2IApMIDQ1MzQgMjQ4OCAKTCAxNDY5IC04ODggCkwgNTkxOSAtODg4IApMIDU5MTkgLTE3MzggCkwgMTA5IC0xNzM4IApMIDEwOSAtMTA3OCAKTCAzMzE2IDI0NjMgCkwgMjQ0IDU3MjggCkwgMjQ0IDY1MDkgCnoKIiB0cmFuc2Zvcm09InNjYWxlKDAuMDE1NjI1KSIvPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zLU9ibGlxdWUtNjkiIGQ9Ik0gMTE3MiA0ODYzIApMIDE3NDcgNDg2MyAKTCAxNjA2IDQxMzQgCkwgMTAzMSA0MTM0IApMIDExNzIgNDg2MyAKegpNIDkwOSAzNTAwIApMIDE0ODQgMzUwMCAKTCA4MDAgMCAKTCAyMjUgMCAKTCA5MDkgMzUwMCAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtMzEiIGQ9Ik0gNzk0IDUzMSAKTCAxODI1IDUzMSAKTCAxODI1IDQwOTEgCkwgNzAzIDM4NjYgCkwgNzAzIDQ0NDEgCkwgMTgxOSA0NjY2IApMIDI0NTAgNDY2NiAKTCAyNDUwIDUzMSAKTCAzNDgxIDUzMSAKTCAzNDgxIDAgCkwgNzk0IDAgCkwgNzk0IDUzMSAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtT2JsaXF1ZS03NCIgZD0iTSAyNzA2IDM1MDAgCkwgMjYxOSAzMDUzIApMIDE0NzIgMzA1MyAKTCAxMTAwIDExNTMgClEgMTA4MSAxMDQ3IDEwNzIgOTc1IApRIDEwNjMgOTAzIDEwNjMgODYzIApRIDEwNjMgNjYzIDExODMgNTcyIApRIDEzMDMgNDgxIDE1NjkgNDgxIApMIDIxNTAgNDgxIApMIDIwNTMgMCAKTCAxNTAzIDAgClEgOTkxIDAgNzM5IDIwMCAKUSA0ODggNDAwIDQ4OCA4MDYgClEgNDg4IDg3OCA0OTcgOTY0IApRIDUwNiAxMDUwIDUyNSAxMTUzIApMIDg5NyAzMDUzIApMIDQwOSAzMDUzIApMIDUwMCAzNTAwIApMIDk3OCAzNTAwIApMIDExNzIgNDQ5NCAKTCAxNzQ3IDQ0OTQgCkwgMTU1NiAzNTAwIApMIDI3MDYgMzUwMCAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtMmMiIGQ9Ik0gNzUwIDc5NCAKTCAxNDA5IDc5NCAKTCAxNDA5IDI1NiAKTCA4OTcgLTc0NCAKTCA0OTQgLTc0NCAKTCA3NTAgMjU2IApMIDc1MCA3OTQgCnoKIiB0cmFuc2Zvcm09InNjYWxlKDAuMDE1NjI1KSIvPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zLU9ibGlxdWUtNDEiIGQ9Ik0gMjM1NiA0NjY2IApMIDMwNzIgNDY2NiAKTCAzOTM4IDAgCkwgMzI3OCAwIApMIDMwODQgMTE5NyAKTCA5ODQgMTE5NyAKTCAzMjUgMCAKTCAtMzQxIDAgCkwgMjM1NiA0NjY2IAp6Ck0gMjU4NCA0MDQ0IApMIDEyNzUgMTcyMiAKTCAyOTg4IDE3MjIgCkwgMjU4NCA0MDQ0IAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy1PYmxpcXVlLTdhIiBkPSJNIDc0NCAzNTAwIApMIDM0NzUgMzUwMCAKTCAzMzcyIDI5NzUgCkwgNzM4IDQ1OSAKTCAyOTEzIDQ1OSAKTCAyODIyIDAgCkwgLTE5IDAgCkwgODQgNTI1IApMIDI3MTkgMzA0MSAKTCA2NTMgMzA0MSAKTCA3NDQgMzUwMCAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICA8L2RlZnM+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLU9ibGlxdWUtNDMiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgMC4zNDY4NzUpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLTNkIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4OS4zMDY2NDEgMC4zNDY4NzUpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLU9ibGlxdWUtNmUiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI0NS41NzgxMjUgMTIwLjgpIHNjYWxlKDAuNykiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnNEaXNwbGF5LTIyMTEiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIyMi41NzgxMjUgMC4zNDY4NzUpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLU9ibGlxdWUtNjkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE5Mi41NzgxMjUgLTk4Ljc0ODQzOCkgc2NhbGUoMC43KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy0zZCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjI1LjY2NDA2MiAtOTguNzQ4NDM4KSBzY2FsZSgwLjcpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLTMxIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyOTcuOTU0MTAyIC05OC43NDg0MzgpIHNjYWxlKDAuNykiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtT2JsaXF1ZS03NCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzQyLjQ5MDIzNCAwLjM0Njg3NSkiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtT2JsaXF1ZS02OSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzgxLjY5OTIxOSAtMTYuMDU5Mzc1KSBzY2FsZSgwLjcpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLTJjIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0MDMuODgxODM2IDAuMzQ2ODc1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy1PYmxpcXVlLTQxIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg1NTIuNTYzNDc3IDAuMzQ2ODc1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy0zZCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNjQwLjQ1NDEwMiAwLjM0Njg3NSkiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtMzEiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDc0My43MjU1ODYgNDQuMTQzNzUpIHNjYWxlKDAuNykiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtT2JsaXF1ZS02ZSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNzQzLjcyNTU4NiAtMjYuMzA2MjUpIHNjYWxlKDAuNykiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtT2JsaXF1ZS02ZSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoODUzLjc2MTcxOSAxMjAuOCkgc2NhbGUoMC43KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fuc0Rpc3BsYXktMjIxMSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoODMwLjc2MTcxOSAwLjM0Njg3NSkiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtT2JsaXF1ZS02OSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoODAwLjc2MTcxOSAtOTguNzQ4NDM4KSBzY2FsZSgwLjcpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLTNkIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4MzMuODQ3NjU2IC05OC43NDg0MzgpIHNjYWxlKDAuNykiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtMzEiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDkwNi4xMzc2OTUgLTk4Ljc0ODQzOCkgc2NhbGUoMC43KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy1PYmxpcXVlLTdhIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg5NTAuNjczODI4IDAuMzQ2ODc1KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy1PYmxpcXVlLTY5IiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMDAzLjE2NDA2MiAtMTYuMDU5Mzc1KSBzY2FsZSgwLjcpIi8+CiAgICA8cGF0aCBkPSJNIDc0My43MjU1ODYgMTkuMTQzNzUgCkwgNzQzLjcyNTU4NiAyNS4zOTM3NSAKTCA3ODguMjYxNzE5IDI1LjM5Mzc1IApMIDc4OC4yNjE3MTkgMTkuMTQzNzUgCkwgNzQzLjcyNTU4NiAxOS4xNDM3NSAKegoiLz4KICAgPC9nPgogIDwvZz4KIDwvZz4KPC9zdmc+Cg==" width="277" alt="将实际生成成本与正确率并列记录。" loading="lazy"></button><span class="zoom-hint" aria-hidden="true">点击放大</span></div><p>将实际生成成本与正确率并列记录。</p>
+<details open class="symbols"><summary>逐个认识符号</summary><ul><li><p>n：固定评价题目数</p>
+</li><li><p>t_i：第i题实际生成token数，包含预定规则内的多次生成</p>
+</li><li><p>z_i：第i题最终系统答案是否正确，取0或1</p>
+</li><li><p>C：总输出token；A：准确率；输入与耗时另报</p>
+</li></ul></details><aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>多对一题值不值得</h3><ol><li><p>短预算4题中对2题，输出80+120+90+110=400个token，准确率0.5。</p>
+</li><li><p>长预算同4题中对3题，输出240+210+260+290=1000个token，准确率0.75。</p>
+</li><li><p>长预算多对1题，但多花600个token。短/长每1000token成功题数为5和3。</p>
+</li></ol><div class="worked-result"><p>准确率与效率给出不同侧面；效率不能代替任务成功率，4题也不足以推出普遍趋势。</p>
+</div></aside></section><section class="lesson-section" id="w20-section-2"><h2><span class="section-number">02</span>同样平均成功率，为什么体验可能不同</h2><p>平均成功率把所有题目和重复运行压成一个数，可能隐藏不稳定。想象4题各跑3次：系统S总是在前两题成功、后两题失败；系统V每题有时成功有时失败。两者总成功次数都为6/12，但用户对某一固定问题能否重复得到正确结果的预期不同。</p>
+<p>2026可靠性论文把关注点扩展到一致性、鲁棒性、可预测性与错误严重程度。这里借用评估视角，不照搬Agent基准给图像模型打可靠性总分。一致性关注重复运行；鲁棒性关注受控输入或环境变化；可预测性关注系统能否合理判断自己可能失败；严重程度关注失败后果，而不仅是计数。</p>
+<p>本程序计算“所有重复均成功的题目比例”，只是一个容易手算的教学指标，不宣称完整实现论文全部指标。S为2/4，V为0/4；但S有两题永远失败，所以也不能仅凭这一项断言S在一切情境下更好。先问使用需求，再选互补指标。</p>
+<p>迁移回项目B时，固定同一批前缀、采样规则和温度，列出每个前缀在多个采样种子下的结果；另用固定的颜色变换强度或已定义子类检查敏感性。不能用随机展示中最好的一张代替稳定性。对于像素生成任务，错误严重程度可以用预先定义的“编码越界、结构失败、颜色偏差”分类，不套用现实安全后果。</p>
+<aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>平均一样，逐题不同</h3><ol><li><p>S四题结果为111、111、000、000；V为101、010、101、010。</p>
+</li><li><p>两者成功次数都是6，总运行12次，平均0.5。</p>
+</li><li><p>S有2题三次全对，比例0.5；V没有任何题三次全对，比例0。</p>
+</li></ol><div class="worked-result"><p>平均值相同不代表重复行为相同；需保留逐题日志才看得见区别。</p>
+</div></aside></section><section class="lesson-section" id="w20-section-3"><h2><span class="section-number">03</span>做一张可检查的论文卡，并修补自己的协议</h2><p>对s1写一页卡：研究问题、方法四环节、固定预算是什么、评分如何取最终答案、一个不能外推的结论。对可靠性论文只挑一个图与一个局限，用自己的构造例子解释为什么单一分数不够。两篇合计阅读约2小时；先理解评价方法，不同时开两个新系统项目。</p>
+<p>把本周得到的想法落实为三个协议字段：实际资源日志；逐样本、逐重复的结果；明确失败类别。对于训练失败、生成截断、无效token、评价程序错误，分开记录。若答案抽取器或评价器失败，不能静默丢题让分母变小；应按预先规则计入失败或单独报告并说明评分覆盖率。</p>
+<p>先预测一种变化，再设计区分实验。例如温度增加后图像更丰富但结构更不稳，需要固定前缀比较重复结果，而不只看交叉熵。用相同参数、同前缀集、同补全长度，唯一改变温度；记录所有样本和时间。这个实验研究采样规则，不能被描述成模型学到了更多知识。</p>
+<p>本周构造日志用于确认平均、成本和重复指标的代码。真实项目还需要对实际日志字段、缺失记录和评分定义做检查。不得把这段程序的虚构长预算收益写成对s1或某个Agent的验证；参考年份以原文首发为准，近期论文也不等于截至2026-10-23的全部最新研究。</p>
+<aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>评分覆盖率的陷阱</h3><ol><li><p>预定10题，8题抽取成功，其中6题正确。</p>
+</li><li><p>若只报6/8=75%，读者不知道2题无法提供可用答案。</p>
+</li><li><p>按事先规定将抽取失败计为系统失败时，系统准确率为6/10=60%，另报抽取成功覆盖率80%。</p>
+</li></ol><div class="worked-result"><p>分母选择属于实验协议，不能为了分数临时调整。</p>
+</div></aside></section><h2>Python与C++机制示例</h2><p>下面的小程序验证关键机制；完整项目须按本周交付要求另行完成。</p><h3>Python</h3><pre><code>&quot;&quot;&quot;Fabricated evaluation logs, not results of s1 or an AI agent.&quot;&quot;&quot;
+# STEP 1
+def summarize(correct, tokens):
+    assert len(correct) == len(tokens) &gt; 0
+    assert all(v in (0, 1) for v in correct) and all(t &gt; 0 for t in tokens)
+    return sum(correct) / len(correct), sum(tokens), 1000 * sum(correct) / sum(tokens)
+
+# STEP 2
+short = summarize([1, 0, 1, 0], [80, 120, 90, 110])
+long = summarize([1, 1, 1, 0], [240, 210, 260, 290])
+assert long[0] &gt; short[0] and long[1] &gt; short[1]
+
+# STEP 3
+stable = [[1,1,1], [1,1,1], [0,0,0], [0,0,0]]
+variable = [[1,0,1], [0,1,0], [1,0,1], [0,1,0]]
+def reliability(rows):
+    average = sum(sum(row) for row in rows) / sum(len(row) for row in rows)
+    all_success = sum(all(row) for row in rows) / len(rows)
+    return average, all_success
+assert reliability(stable)[0] == reliability(variable)[0]
+
+# STEP 4
+print(&quot;FABRICATED LOGS; no model or agent evaluated&quot;)
+for name, result in [(&quot;short&quot;, short), (&quot;long&quot;, long)]:
+    print(f&quot;{name} accuracy={result[0]:.6f} tokens={result[1]} successes_per_1k={result[2]:.6f}&quot;)
+for name, rows in [(&quot;stable&quot;, stable), (&quot;variable&quot;, variable)]:
+    average, all_success = reliability(rows)
+    print(f&quot;{name} average={average:.6f} all_repeats_success={all_success:.6f}&quot;)
+</code></pre><h3>C++</h3><pre><code>// Fabricated evaluation logs, not results of s1 or an AI agent.
+#include &lt;array&gt;
+#include &lt;cassert&gt;
+#include &lt;iomanip&gt;
+#include &lt;iostream&gt;
+#include &lt;numeric&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+// STEP 1
+struct Summary { double accuracy; int tokens; double efficiency; };
+Summary summarize(const std::vector&lt;int&gt;&amp; correct,const std::vector&lt;int&gt;&amp; tokens) {
+    assert(correct.size()==tokens.size() &amp;&amp; !correct.empty());
+    for(int c:correct) assert(c==0 || c==1);
+    for(int t:tokens) assert(t&gt;0);
+    const int good=std::accumulate(correct.begin(),correct.end(),0);
+    const int cost=std::accumulate(tokens.begin(),tokens.end(),0);
+    return {double(good)/correct.size(),cost,1000.0*good/cost};
+}
+int main() {
+    // STEP 2
+    const auto short_run=summarize({1,0,1,0},{80,120,90,110});
+    const auto long_run=summarize({1,1,1,0},{240,210,260,290});
+    assert(long_run.accuracy&gt;short_run.accuracy &amp;&amp; long_run.tokens&gt;short_run.tokens);
+
+    // STEP 3
+    const std::vector&lt;std::vector&lt;int&gt;&gt; stable{{1,1,1},{1,1,1},{0,0,0},{0,0,0}};
+    const std::vector&lt;std::vector&lt;int&gt;&gt; variable{{1,0,1},{0,1,0},{1,0,1},{0,1,0}};
+    auto reliability=[](const std::vector&lt;std::vector&lt;int&gt;&gt;&amp; rows){
+        int successes=0,count=0,all_success=0;
+        for(const auto&amp; row:rows) {
+            int good=std::accumulate(row.begin(),row.end(),0);
+            successes+=good; count+=int(row.size()); all_success+=(good==int(row.size()));
+        }
+        return std::array&lt;double,2&gt;{double(successes)/count,double(all_success)/rows.size()};
+    };
+    assert(reliability(stable)[0]==reliability(variable)[0]);
+
+    // STEP 4
+    std::cout&lt;&lt;std::fixed&lt;&lt;std::setprecision(6);
+    std::cout&lt;&lt;&quot;FABRICATED LOGS; no model or agent evaluated\n&quot;;
+    for(const auto&amp; pair:std::vector&lt;std::pair&lt;std::string,Summary&gt;&gt;{{&quot;short&quot;,short_run},{&quot;long&quot;,long_run}})
+        std::cout&lt;&lt;pair.first&lt;&lt;&quot; accuracy=&quot;&lt;&lt;pair.second.accuracy&lt;&lt;&quot; tokens=&quot;&lt;&lt;pair.second.tokens&lt;&lt;&quot; successes_per_1k=&quot;&lt;&lt;pair.second.efficiency&lt;&lt;&#x27;\n&#x27;;
+    for(const auto&amp; pair:std::vector&lt;std::pair&lt;std::string,std::vector&lt;std::vector&lt;int&gt;&gt;&gt;&gt;{{&quot;stable&quot;,stable},{&quot;variable&quot;,variable}}) {
+        const auto result=reliability(pair.second);
+        std::cout&lt;&lt;pair.first&lt;&lt;&quot; average=&quot;&lt;&lt;result[0]&lt;&lt;&quot; all_repeats_success=&quot;&lt;&lt;result[1]&lt;&lt;&#x27;\n&#x27;;
+    }
+}
+</code></pre><h3>逐步解释</h3><h4>定义成本和准确率</h4><p>summarize先核对每题结果和token数一一对应。Python sum与C++ accumulate求和；C++先转double避免整数除法。successes_per_1k只是辅助比率。</p>
+<p>自查：解释1000这个倍率只改变单位。</p><h4>相同四题的两档预算</h4><p>固定构造正确性和实际token，分别汇总。断言表明该例中正确率与成本同时上升，不能推广为所有样本上的规律。</p>
+<p>自查：算出额外一题对应600额外token。</p><h4>保留逐题重复矩阵</h4><p>外层行是题目，内层元素是重复。Python all(row)检查是否全1，C++比较成功数和行长度，随后计算题目比例。</p>
+<p>自查：不得把12次运行当成12道独立题。</p><h4>并列报告而不压成总分</h4><p>输出成本、准确率、成功/千token以及重复稳定项，且持续标注虚构日志。平均与逐题稳定可以同时成立却表达不同事实。</p>
+<p>自查：说出代码没有测到的耗时、输入token与失败严重性。</p><h3>参考输出</h3><pre>FABRICATED LOGS; no model or agent evaluated
+short accuracy=0.500000 tokens=400 successes_per_1k=5.000000
+long accuracy=0.750000 tokens=1000 successes_per_1k=3.000000
+stable average=0.500000 all_repeats_success=0.500000
+variable average=0.500000 all_repeats_success=0.000000</pre><h2>练习与参考答案</h2><h3>练习1</h3><p>基础：5题共对4题，生成2500token，算准确率及成功/千token。</p>
+<p>提示：</p><p>分别使用题目数与token数作为分母。</p>
+<p>参考：</p><p>准确率4/5=0.8；成功/千token=1000×4/2500=1.6。二者单位不同，不能写成1.6倍可靠。</p>
+<h3>练习2</h3><p>实践：将S最后一题改为001，计算两个指标。</p>
+<p>提示：</p><p>原先总成功数6，加1。</p>
+<p>参考：</p><p>平均成功率7/12≈0.5833；三次全成功仍只有前两题，因此比例仍0.5。单次成功改善不必改变全重复成功指标，指标要搭配使用。</p>
+<h3>练习3</h3><p>迁移：短多次生成中用真实答案挑正确样本，与长单次比较公平吗？</p>
+<p>提示：</p><p>思考上线时是否拥有真实答案。</p>
+<p>参考：</p><p>不公平。那是oracle选择，最多作为有明确标注的上界。实际比较要固定可执行选择器，计入它的输入、调用与时间成本，再对最终所选答案计分。</p>
+<h2>自测</h2><h3>1. 实际推理成本应记录？</h3><ol type="A"><li>只记录最大长度</li><li>只记录模型参数量</li><li>实际token、次数、时间等</li><li>只记录正确题</li></ol><p>参考：C</p><p>最大预算和实际消耗不同，失败也消耗资源。</p>
+<h3>2. S与V平均同为0.5，说明？</h3><ol type="A"><li>汇总成功率相同</li><li>S一定适合所有人</li><li>V没有成功过</li><li>所有可靠性性质相同</li></ol><p>参考：A</p><p>逐题重复记录呈现不同模式；平均值只能支持自身定义的结论。</p>
+<h3>3. 像素模型能直接复现s1数学推理吗？</h3><ol type="A"><li>写Wait就可以</li><li>不能，任务接口和模型能力不同</li><li>延长图像就可以</li><li>增大温度就可以</li></ol><p>参考：B</p><p>导读可迁移预算意识，任务与实证结论不能直接迁移。</p>
+<h3>4. 未成功抽取答案的题应如何处理？</h3><ol type="A"><li>换成容易题</li><li>按预定失败规则且报告覆盖率</li><li>从分母悄悄移除</li><li>算正确</li></ol><p>参考：B</p><p>处理规则应事先明确，并保留所有预定题目的状态。</p>
+<h2>开放讲解题</h2><h3>用一分钟区分训练数据改进和推理预算改进。</h3><p>前者改变模型学习所见样本，通常通过训练改变权重；后者在权重固定时增加或控制生成计算。若同时改动，需要消融和成本记录才能归因。</p>
+<h3>本周可靠性思想对像素项目最直接的改进是什么？</h3><p>保留固定前缀的全部重复结果、对受控变化的敏感性以及失败类型，避免只报平均损失或展示最好图片；不把这些指标当作真实Agent安全结论。</p>
+<h2>交付物</h2><ul><li>两张短论文卡及四环节示意</li><li>构造日志计算过程，标明与真实实验的区别</li><li>更新的项目B协议：实际资源、逐样本重复、失败分类</li></ul><h2>验收标准</h2><ul><li>能解释准确率增加但单位token效率下降的例子</li><li>没有把oracle挑选当作可部署选择方法</li><li>能举出一项论文结论不适用于当前像素任务的原因</li></ul><h2>来源与延伸</h2><ul><li><a href="https://arxiv.org/abs/2501.19393">s1: Simple test-time scaling（2025）</a> — 2026-10-23核对v3；区分训练数据、训练和推理预算，不要求下载32B模型。</li><li><a href="https://arxiv.org/html/2602.16666v3">Towards a Science of AI Agent Reliability（2026，v3）</a> — 2026-10-23核对原文；选读一致性、鲁棒性、可预测性与错误严重程度，作为评估方法导读。</li></ul></main></body></html>

@@ -1,0 +1,129 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>最终评估与误差归因：让每一句结论都能回查</title><link rel="stylesheet" href="../assets/reader.css"></head><body class="static-reader"><main><p><a href="../index.html#week-23">返回交互课程</a></p><div class="eyebrow">第23周 / 静态讲义</div><h1>最终评估与误差归因：让每一句结论都能回查</h1><section class="lesson-section" id="w23-section-1"><h2><span class="section-number">01</span>最终测试是对冻结方案的测量</h2><p>最终测试的价值来自它没有参与此前的方法选择。开始前确认基础文件、适配文件、配置、词表、来源划分和计分位置都已固定，保存一个评价清单。这里“一次”指一次预定最终评价流程，流程可包含全部预定方法和种子，并非只能调用模型一次；不允许看完结果再从测试中挑最佳配置。</p>
+<p>基础模型和所有被选适配模型，都在相同A测试与B测试上运行teacher forcing评价。输入前缀、目标shift、mask、自然对数和计分token集合保持一致。评估关闭训练随机层并关闭梯度记录；数据使用测试清单，不借开发目录中的缓存替代。</p>
+<p>结果先写原始记录，再计算主表；包括样本ID、模型ID、域、被计分token数、负对数概率总和、失败状态。记录实际时间和资源，即使它比预估大。若评价程序崩溃，可修复实现问题后按记录恢复同一冻结方案；不把重新评价当作改配置机会。</p>
+<p>本周小程序只在内存中演示一次性门控，进程重启就会忘记状态。真实项目需靠持久运行记录、冻结文件和用途约束管理流程，不把这个布尔值当安全机制。程序不会读取真实测试数据，也不会替你生成最终模型分数。</p>
+<aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>什么算测试后重新选择</h3><ol><li><p>冻结F4、L5及三个种子，统一评估，这是预定流程。</p>
+</li><li><p>看到L5测试更差后改用L6，再对同一测试报告“最终最佳”，属于用测试选择。</p>
+</li><li><p>若继续探索L6，应保留原报告，将它标为新开发版本，并另准备独立最终评价数据。</p>
+</li></ol><div class="worked-result"><p>使用测试的次数不是唯一判断，是否利用结果作选择才是关键。</p>
+</div></aside></section><section class="lesson-section" id="w23-section-2"><h2><span class="section-number">02</span>汇总损失时，分母必须与指标定义一致</h2><p>如果每张图被计分token数相同，先平均每张图损失与汇总总损失再除总token等价。长度不同、mask不同或有截断时，二者可能不同。项目B规定按预测token平均，因此先累加负对数概率总和，再除所有有效token数，不能把每个批次平均损失直接等权平均。</p>
+<p>举例中gA只有2个计分token，适配B损失总和2.2，平均1.1；gB有8个，损失总和7.2，平均0.9。等图平均为1.0，token平均为9.4/10=0.94。两者都可有定义，但不能在不同方法之间混用分母。固定项目用一种主定义，必要时另报另一种并明确名称。</p>
+<p>负对数概率必须有限且非负；真实实现可直接累加log-softmax提供的稳定对数值，避免先把极小概率取出来再log造成下溢。若样本被截断或评分失败，应按协议报告覆盖率与失败，不能把困难token从分母删除。极大损失提示低概率，但不自动说明某一种具体编码错误。</p>
+<div class="formula"><button class="formula-zoom" type="button" title="放大公式" aria-label="放大公式：变长样本先累加损失总和，再按有效token总数平均。"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIKICAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4KPHN2ZyB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgd2lkdGg9IjEwMHB0IiBoZWlnaHQ9IjY0cHQiIHZpZXdCb3g9IjAgMCAxMDAgNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmVyc2lvbj0iMS4xIj4KIDxtZXRhZGF0YT4KICA8cmRmOlJERiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOmNjPSJodHRwOi8vY3JlYXRpdmVjb21tb25zLm9yZy9ucyMiIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+CiAgIDxjYzpXb3JrPgogICAgPGRjOnR5cGUgcmRmOnJlc291cmNlPSJodHRwOi8vcHVybC5vcmcvZGMvZGNtaXR5cGUvU3RpbGxJbWFnZSIvPgogICAgPGRjOmRhdGU+MjAyNi0xMC0yM1QxOToyMDo1OC4wMjA0MTU8L2RjOmRhdGU+CiAgICA8ZGM6Zm9ybWF0PmltYWdlL3N2Zyt4bWw8L2RjOmZvcm1hdD4KICAgIDxkYzpjcmVhdG9yPgogICAgIDxjYzpBZ2VudD4KICAgICAgPGRjOnRpdGxlPk1hdHBsb3RsaWIgdjMuMTAuMywgaHR0cHM6Ly9tYXRwbG90bGliLm9yZy88L2RjOnRpdGxlPgogICAgIDwvY2M6QWdlbnQ+CiAgICA8L2RjOmNyZWF0b3I+CiAgIDwvY2M6V29yaz4KICA8L3JkZjpSREY+CiA8L21ldGFkYXRhPgogPGRlZnM+CiAgPHN0eWxlIHR5cGU9InRleHQvY3NzIj4qe3N0cm9rZS1saW5lam9pbjogcm91bmQ7IHN0cm9rZS1saW5lY2FwOiBidXR0fTwvc3R5bGU+CiA8L2RlZnM+CiA8ZyBpZD0iZmlndXJlXzEiPgogIDxnIGlkPSJwYXRjaF8xIj4KICAgPHBhdGggZD0iTSAwIDY0IApMIDEwMCA2NCAKTCAxMDAgMCAKTCAwIDAgCnoKIiBzdHlsZT0iZmlsbDogI2ZmZmZmZiIvPgogIDwvZz4KICA8ZyBpZD0idGV4dF8xIj4KICAgPCEtLSAkTF97XG1hdGhybXt0b2tlbn19PVxmcmFje1xzdW1faiBTX2p9e1xzdW1faiBOX2p9JCAtLT4KICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCAzNykgc2NhbGUoMC4xOSAtMC4xOSkiPgogICAgPGRlZnM+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtT2JsaXF1ZS00YyIgZD0iTSAxMDc1IDQ2NjYgCkwgMTcwOSA0NjY2IApMIDkwOSA1MjUgCkwgMzE4MSA1MjUgCkwgMzA3OCAwIApMIDE3MiAwIApMIDEwNzUgNDY2NiAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtNzQiIGQ9Ik0gMTE3MiA0NDk0IApMIDExNzIgMzUwMCAKTCAyMzU2IDM1MDAgCkwgMjM1NiAzMDUzIApMIDExNzIgMzA1MyAKTCAxMTcyIDExNTMgClEgMTE3MiA3MjUgMTI4OSA2MDMgClEgMTQwNiA0ODEgMTc2NiA0ODEgCkwgMjM1NiA0ODEgCkwgMjM1NiAwIApMIDE3NjYgMCAKUSAxMTAwIDAgODQ3IDI0OCAKUSA1OTQgNDk3IDU5NCAxMTUzIApMIDU5NCAzMDUzIApMIDE3MiAzMDUzIApMIDE3MiAzNTAwIApMIDU5NCAzNTAwIApMIDU5NCA0NDk0IApMIDExNzIgNDQ5NCAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtNmYiIGQ9Ik0gMTk1OSAzMDk3IApRIDE0OTcgMzA5NyAxMjI4IDI3MzYgClEgOTU5IDIzNzUgOTU5IDE3NDcgClEgOTU5IDExMTkgMTIyNiA3NTggClEgMTQ5NCAzOTcgMTk1OSAzOTcgClEgMjQxOSAzOTcgMjY4NyA3NTkgClEgMjk1NiAxMTIyIDI5NTYgMTc0NyAKUSAyOTU2IDIzNjkgMjY4NyAyNzMzIApRIDI0MTkgMzA5NyAxOTU5IDMwOTcgCnoKTSAxOTU5IDM1ODQgClEgMjcwOSAzNTg0IDMxMzcgMzA5NiAKUSAzNTY2IDI2MDkgMzU2NiAxNzQ3IApRIDM1NjYgODg4IDMxMzcgMzk4IApRIDI3MDkgLTkxIDE5NTkgLTkxIApRIDEyMDYgLTkxIDc3OSAzOTggClEgMzUzIDg4OCAzNTMgMTc0NyAKUSAzNTMgMjYwOSA3NzkgMzA5NiAKUSAxMjA2IDM1ODQgMTk1OSAzNTg0IAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy02YiIgZD0iTSA1ODEgNDg2MyAKTCAxMTU5IDQ4NjMgCkwgMTE1OSAxOTkxIApMIDI4NzUgMzUwMCAKTCAzNjA5IDM1MDAgCkwgMTc1MyAxODYzIApMIDM2ODggMCAKTCAyOTM4IDAgCkwgMTE1OSAxNzA5IApMIDExNTkgMCAKTCA1ODEgMCAKTCA1ODEgNDg2MyAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtNjUiIGQ9Ik0gMzU5NyAxODk0IApMIDM1OTcgMTYxMyAKTCA5NTMgMTYxMyAKUSA5OTEgMTAxOSAxMzExIDcwOCAKUSAxNjMxIDM5NyAyMjAzIDM5NyAKUSAyNTM0IDM5NyAyODQ1IDQ3OCAKUSAzMTU2IDU1OSAzNDYzIDcyMiAKTCAzNDYzIDE3OCAKUSAzMTUzIDQ3IDI4MjggLTIyIApRIDI1MDMgLTkxIDIxNjkgLTkxIApRIDEzMzEgLTkxIDg0MiAzOTYgClEgMzUzIDg4NCAzNTMgMTcxNiAKUSAzNTMgMjU3NSA4MTcgMzA3OSAKUSAxMjgxIDM1ODQgMjA2OSAzNTg0IApRIDI3NzUgMzU4NCAzMTg2IDMxMjkgClEgMzU5NyAyNjc1IDM1OTcgMTg5NCAKegpNIDMwMjIgMjA2MyAKUSAzMDE2IDI1MzQgMjc1OCAyODE1IApRIDI1MDAgMzA5NyAyMDc1IDMwOTcgClEgMTU5NCAzMDk3IDEzMDUgMjgyNSAKUSAxMDE2IDI1NTMgOTcyIDIwNTkgCkwgMzAyMiAyMDYzIAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy02ZSIgZD0iTSAzNTEzIDIxMTMgCkwgMzUxMyAwIApMIDI5MzggMCAKTCAyOTM4IDIwOTQgClEgMjkzOCAyNTkxIDI3NDQgMjgzNyAKUSAyNTUwIDMwODQgMjE2MyAzMDg0IApRIDE2OTcgMzA4NCAxNDI4IDI3ODcgClEgMTE1OSAyNDkxIDExNTkgMTk3OCAKTCAxMTU5IDAgCkwgNTgxIDAgCkwgNTgxIDM1MDAgCkwgMTE1OSAzNTAwIApMIDExNTkgMjk1NiAKUSAxMzY2IDMyNzIgMTY0NSAzNDI4IApRIDE5MjUgMzU4NCAyMjkxIDM1ODQgClEgMjg5NCAzNTg0IDMyMDMgMzIxMSAKUSAzNTEzIDI4MzggMzUxMyAyMTEzIAp6CiIgdHJhbnNmb3JtPSJzY2FsZSgwLjAxNTYyNSkiLz4KICAgICA8cGF0aCBpZD0iRGVqYVZ1U2Fucy0zZCIgZD0iTSA2NzggMjkwNiAKTCA0Njg0IDI5MDYgCkwgNDY4NCAyMzgxIApMIDY3OCAyMzgxIApMIDY3OCAyOTA2IAp6Ck0gNjc4IDE2MzEgCkwgNDY4NCAxNjMxIApMIDQ2ODQgMTEwMCAKTCA2NzggMTEwMCAKTCA2NzggMTYzMSAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnNEaXNwbGF5LTIyMTEiIGQ9Ik0gMjQ0IDY1MDkgCkwgNTgwMyA2NTA5IApMIDU4MDMgNTY1NiAKTCAxNTY2IDU2NTYgCkwgNDUzNCAyNDg4IApMIDE0NjkgLTg4OCAKTCA1OTE5IC04ODggCkwgNTkxOSAtMTczOCAKTCAxMDkgLTE3MzggCkwgMTA5IC0xMDc4IApMIDMzMTYgMjQ2MyAKTCAyNDQgNTcyOCAKTCAyNDQgNjUwOSAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtT2JsaXF1ZS02YSIgZD0iTSA5MjggMzUwMCAKTCAxNTAzIDM1MDAgCkwgODEzIC02MyAKTCA4MDkgLTc4IApRIDY5NCAtNjc1IDU0NCAtODk3IApRIDQwMyAtMTEwNiAxMzIgLTEyMTggClEgLTEzOCAtMTMzMSAtNTA2IC0xMzMxIApMIC03MjIgLTEzMzEgCkwgLTYyOCAtODQ0IApMIC00ODEgLTg0NCAKUSAtMTQ0IC04NDQgLTEgLTcwMyAKUSAxNDEgLTU2MyAyMzggLTYzIApMIDkyOCAzNTAwIAp6Ck0gMTE5NyA0ODYzIApMIDE3NzIgNDg2MyAKTCAxNjMxIDQxMzQgCkwgMTA1NiA0MTM0IApMIDExOTcgNDg2MyAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICAgPHBhdGggaWQ9IkRlamFWdVNhbnMtT2JsaXF1ZS01MyIgZD0iTSAzODU5IDQ1MTMgCkwgMzczOCAzODk3IApRIDM0MjIgNDA2NiAzMTExIDQxNTIgClEgMjgwMCA0MjM4IDI1MDkgNDIzOCAKUSAxOTQ0IDQyMzggMTYwOSAzOTkxIApRIDEyNzUgMzc0NCAxMjc1IDMzMzQgClEgMTI3NSAzMTA5IDEzOTggMjk4OSAKUSAxNTIyIDI4NjkgMjAzNCAyNzMxIApMIDI0MTMgMjYzOCAKUSAzMDUzIDI0NzIgMzMwMyAyMjE3IApRIDM1NTMgMTk2MyAzNTUzIDE1MDMgClEgMzU1MyA3OTcgMjk5OCAzNTMgClEgMjQ0NCAtOTEgMTUzOCAtOTEgClEgMTE2NiAtOTEgNzkxIC0xNyAKUSA0MTYgNTYgMzggMjA2IApMIDE2NiA4NTYgClEgNTEzIDY0MSA4NjEgNTMxIApRIDEyMDkgNDIyIDE1NTYgNDIyIApRIDIxNDcgNDIyIDI1MDMgNjg0IApRIDI4NTkgOTQ3IDI4NTkgMTM2OSAKUSAyODU5IDE2NTAgMjcxNyAxNzk1IApRIDI1NzUgMTk0MSAyMTA2IDIwNTkgCkwgMTcyOCAyMTU2IApRIDEwODEgMjMyNSA4NDUgMjU0NSAKUSA2MDkgMjc2NiA2MDkgMzE2MyAKUSA2MDkgMzg1OSAxMTQ1IDQzMDQgClEgMTY4MSA0NzUwIDI1NDEgNDc1MCAKUSAyODc1IDQ3NTAgMzIwMyA0NjkwIApRIDM1MzEgNDYzMSAzODU5IDQ1MTMgCnoKIiB0cmFuc2Zvcm09InNjYWxlKDAuMDE1NjI1KSIvPgogICAgIDxwYXRoIGlkPSJEZWphVnVTYW5zLU9ibGlxdWUtNGUiIGQ9Ik0gMTA4MSA0NjY2IApMIDE5MzEgNDY2NiAKTCAzMjE5IDY2NiAKTCA0MDAwIDQ2NjYgCkwgNDYxNiA0NjY2IApMIDM3MDYgMCAKTCAyODUzIDAgCkwgMTU2OSA0MDI1IApMIDc4OCAwIApMIDE3MiAwIApMIDEwODEgNDY2NiAKegoiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMTU2MjUpIi8+CiAgICA8L2RlZnM+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLU9ibGlxdWUtNGMiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgMC40NTM3NSkiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtNzQiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDU1LjcxMjg5MSAtMTUuOTUyNSkgc2NhbGUoMC43KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy02ZiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoODMuMTU5MTggLTE1Ljk1MjUpIHNjYWxlKDAuNykiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtNmIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDEyNS45ODYzMjggLTE1Ljk1MjUpIHNjYWxlKDAuNykiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtNjUiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE2Ni41MjM0MzggLTE1Ljk1MjUpIHNjYWxlKDAuNykiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtNmUiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIwOS41ODk4NDQgLTE1Ljk1MjUpIHNjYWxlKDAuNykiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtM2QiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI3Ni4xNzE4NzUgMC40NTM3NSkiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnNEaXNwbGF5LTIyMTEiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDM4My40NDMzNTkgMTIzLjgwNzgxMykgc2NhbGUoMC43KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy1PYmxpcXVlLTZhIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0MDUuNDQzMzU5IDU0LjQ0MTA5NCkgc2NhbGUoMC40OSkiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtT2JsaXF1ZS01MyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDQ2Ljk3OTI5NyAxMjMuODA3ODEzKSBzY2FsZSgwLjcpIi8+CiAgICA8dXNlIHhsaW5rOmhyZWY9IiNEZWphVnVTYW5zLU9ibGlxdWUtNmEiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDQ5MS40MTI4OTEgMTEyLjMyMzQzOCkgc2NhbGUoMC40OSkiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnNEaXNwbGF5LTIyMTEiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDM3OS40NDMzNTkgLTU4LjE5MTU2Mikgc2NhbGUoMC43KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy1PYmxpcXVlLTZhIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0MDEuNDQzMzU5IC0xMjcuNTU4MjgxKSBzY2FsZSgwLjQ5KSIvPgogICAgPHVzZSB4bGluazpocmVmPSIjRGVqYVZ1U2Fucy1PYmxpcXVlLTRlIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0NDIuOTc5Mjk3IC01OC4xOTE1NjIpIHNjYWxlKDAuNykiLz4KICAgIDx1c2UgeGxpbms6aHJlZj0iI0RlamFWdVNhbnMtT2JsaXF1ZS02YSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDk1LjM0MjU3OCAtNjkuNjc1OTM3KSBzY2FsZSgwLjQ5KSIvPgogICAgPHBhdGggZD0iTSAzNzkuNDQzMzU5IDE5LjI1MDYyNSAKTCAzNzkuNDQzMzU5IDI1LjUwMDYyNSAKTCA1MTAuODcwNDEgMjUuNTAwNjI1IApMIDUxMC44NzA0MSAxOS4yNTA2MjUgCkwgMzc5LjQ0MzM1OSAxOS4yNTA2MjUgCnoKIi8+CiAgIDwvZz4KICA8L2c+CiA8L2c+Cjwvc3ZnPgo=" width="142" alt="变长样本先累加损失总和，再按有效token总数平均。" loading="lazy"></button><span class="zoom-hint" aria-hidden="true">点击放大</span></div><p>变长样本先累加损失总和，再按有效token总数平均。</p>
+<details open class="symbols"><summary>逐个认识符号</summary><ul><li><p>j：样本索引</p>
+</li><li><p>S_j：第j样本被计分位置的负对数概率之和</p>
+</li><li><p>N_j：第j样本被计分token数</p>
+</li><li><p>L_token：项目B主评价损失</p>
+</li></ul></details><aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>从总和到收益/遗忘</h3><ol><li><p>两张图token数为2与8；基础A损失总和0.8与3.2，总计4，除以10得0.4。</p>
+</li><li><p>适配A总和1.2与4.0，平均0.52；基础B总和3.2与12.8，平均1.6。</p>
+</li><li><p>适配B总和2.2与7.2，平均0.94。</p>
+</li><li><p>新域收益1.6−0.94=0.66；旧域遗忘0.52−0.4=0.12。</p>
+</li></ol><div class="worked-result"><p>所有四项使用相同计分位置和token权重，差值才可比较。</p>
+</div></aside></section><section class="lesson-section" id="w23-section-3"><h2><span class="section-number">03</span>误差分析是提出可区分解释，不是看图编故事</h2><p>选择固定前缀和采样种子，展示全部补全，附模型与温度。不只展示最好16张，而是事先固定16个样本；如测试样本不足16则全部展示并说明数量。teacher forcing损失与自由生成图片分开分析：前者每步看到真实历史，后者会沿自己生成的历史继续，因此可能累积错误。</p>
+<p>建立有限而清楚的错误类别，例如颜色置换未学会、形状连续性失败、重复纹理、无效颜色ID。先记录可观察事实：“第3个样本前缀后的12个位置反复出现颜色2”；再列假设：“温度过低或模型分布过尖”；最后说明区分实验：“固定参数与前缀改变温度，在开发集比较”。这个实验应归入后续开发，不能悄悄重新选当前最终结果。</p>
+<p>按样本子组汇总有助于发现集中问题，但子组应有含义，如横条、竖条、方框，且报告数量。只剩1张样本的子组不支持稳定的群体结论。不要在几十种切法中寻找一个惊艳差异再当作预先假设；把事后切片标为探索性并等待新数据检验。</p>
+<p>写结论时使用证据链：一个结论对应结果表的行、图的点或样本ID。可以写“该配置在本固定测试集的新域收益为0.66、旧域遗忘0.12”；不能写“LoRA不会遗忘”或“小模型解决知识迁移”。失败与负结果应说明已排查什么、仍不能判断什么，不用猜测填满因果故事。</p>
+<aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>观察和解释分两栏</h3><ol><li><p>观察：某固定前缀的补全出现重复颜色；teacher forcing损失却不高。</p>
+</li><li><p>假设一：自由生成偏离训练历史后积累错误；假设二：采样温度导致分布过尖。</p>
+</li><li><p>可区分操作：在开发样本上分别比较真实历史喂入和自由历史，并固定其他条件调整温度。</p>
+</li><li><p>尚未做区分实验前，仅报告观察与待检验原因。</p>
+</li></ol><div class="worked-result"><p>列出合理原因不等于原因已被证明。</p>
+</div></aside></section><h2>Python与C++机制示例</h2><p>下面的小程序验证关键机制；完整项目须按本周交付要求另行完成。</p><h3>Python</h3><pre><code>&quot;&quot;&quot;Aggregate fabricated final-test token losses; no actual test set is read.&quot;&quot;&quot;
+# STEP 1
+# id, token_count, base_A_sum, adapted_A_sum, base_B_sum, adapted_B_sum
+rows = [(&quot;gA&quot;,2,.8,1.2,3.2,2.2), (&quot;gB&quot;,8,3.2,4.0,12.8,7.2)]
+assert len({row[0] for row in rows}) == len(rows)
+assert all(row[1] &gt; 0 for row in rows)
+frozen, already_evaluated = True, False
+
+# STEP 2
+def evaluate(frozen, already_evaluated, rows):
+    if not frozen or already_evaluated:
+        raise ValueError(&quot;freeze first; do not reopen the final test to select a model&quot;)
+    tokens = sum(r[1] for r in rows)
+    losses = [sum(r[column] for r in rows) / tokens for column in range(2,6)]
+    return losses, True
+
+# STEP 3
+losses, already_evaluated = evaluate(frozen, already_evaluated, rows)
+base_a, adapt_a, base_b, adapt_b = losses
+image_average_b = sum(r[5]/r[1] for r in rows)/len(rows)
+blocked = False
+try:
+    evaluate(frozen, already_evaluated, rows)
+except ValueError:
+    blocked = True
+assert blocked
+
+# STEP 4
+print(&quot;FABRICATED FINAL TABLE; no actual final test opened&quot;)
+print(f&quot;tokens={sum(r[1] for r in rows)} base_A={base_a:.6f} adapt_A={adapt_a:.6f}&quot;)
+print(f&quot;base_B={base_b:.6f} adapt_B={adapt_b:.6f}&quot;)
+print(f&quot;gain={base_b-adapt_b:.6f} forgetting={adapt_a-base_a:.6f}&quot;)
+print(f&quot;image_average_B={image_average_b:.6f} token_average_B={adapt_b:.6f}&quot;)
+print(&quot;repeat_gate=PASS (in-memory demonstration only)&quot;)
+</code></pre><h3>C++</h3><pre><code>// Aggregate fabricated final-test token losses; no actual test set is read.
+#include &lt;array&gt;
+#include &lt;cassert&gt;
+#include &lt;iomanip&gt;
+#include &lt;iostream&gt;
+#include &lt;set&gt;
+#include &lt;stdexcept&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+// STEP 1
+struct Row { std::string id; int tokens; std::array&lt;double,4&gt; sums; };
+// STEP 2
+std::array&lt;double,4&gt; evaluate(bool frozen,bool&amp; already_evaluated,const std::vector&lt;Row&gt;&amp; rows) {
+    if(!frozen || already_evaluated) throw std::invalid_argument(&quot;freeze first; no reselection&quot;);
+    int tokens=0; std::array&lt;double,4&gt; losses{};
+    for(const auto&amp; r:rows) { tokens+=r.tokens; for(int i=0;i&lt;4;++i) losses[i]+=r.sums[i]; }
+    assert(tokens&gt;0); for(double&amp; loss:losses) loss/=tokens;
+    already_evaluated=true; return losses;
+}
+int main() {
+    const std::vector&lt;Row&gt; rows{{&quot;gA&quot;,2,{{.8,1.2,3.2,2.2}}},{&quot;gB&quot;,8,{{3.2,4.0,12.8,7.2}}}};
+    std::set&lt;std::string&gt; ids;
+    for(const auto&amp; r:rows) { assert(r.tokens&gt;0); ids.insert(r.id); } assert(ids.size()==rows.size());
+    const bool frozen=true; bool already_evaluated=false;
+    // STEP 3
+    const auto loss=evaluate(frozen,already_evaluated,rows);
+    double image_average_b=0; int tokens=0;
+    for(const auto&amp; r:rows) { image_average_b+=r.sums[3]/r.tokens; tokens+=r.tokens; }
+    image_average_b/=rows.size(); bool blocked=false;
+    try { evaluate(frozen,already_evaluated,rows); } catch(const std::invalid_argument&amp;) { blocked=true; }
+    assert(blocked);
+    // STEP 4
+    std::cout&lt;&lt;std::fixed&lt;&lt;std::setprecision(6);
+    std::cout&lt;&lt;&quot;FABRICATED FINAL TABLE; no actual final test opened\n&quot;;
+    std::cout&lt;&lt;&quot;tokens=&quot;&lt;&lt;tokens&lt;&lt;&quot; base_A=&quot;&lt;&lt;loss[0]&lt;&lt;&quot; adapt_A=&quot;&lt;&lt;loss[1]&lt;&lt;&#x27;\n&#x27;;
+    std::cout&lt;&lt;&quot;base_B=&quot;&lt;&lt;loss[2]&lt;&lt;&quot; adapt_B=&quot;&lt;&lt;loss[3]&lt;&lt;&#x27;\n&#x27;;
+    std::cout&lt;&lt;&quot;gain=&quot;&lt;&lt;loss[2]-loss[3]&lt;&lt;&quot; forgetting=&quot;&lt;&lt;loss[1]-loss[0]&lt;&lt;&#x27;\n&#x27;;
+    std::cout&lt;&lt;&quot;image_average_B=&quot;&lt;&lt;image_average_b&lt;&lt;&quot; token_average_B=&quot;&lt;&lt;loss[3]&lt;&lt;&#x27;\n&#x27;;
+    std::cout&lt;&lt;&quot;repeat_gate=PASS (in-memory demonstration only)\n&quot;;
+}
+</code></pre><h3>逐步解释</h3><h4>保存总和与分母</h4><p>每行记录ID、token数及四个总损失，避免只有一个批次平均数。检查来源ID唯一、token数为正；真实项目还要校验清单完整性。</p>
+<p>自查：说出2.2表示总损失而非每token平均。</p><h4>评价门控与汇总</h4><p>函数先检查冻结及未使用状态，再累加列并除总token。Python返回更新后的布尔值，C++用引用修改它，展示两种状态传递方式。</p>
+<p>自查：若already_evaluated=True，应拒绝。</p><h4>同时核对两种平均</h4><p>计算等图平均作为对照，再故意第二次调用并捕获预期异常。try/except与C++try/catch处理预期拒绝，不吞掉任意未知错误。</p>
+<p>自查：为什么1.00与0.94都可计算但不能混称同一指标？</p><h4>结果附测量边界</h4><p>打印四项损失、差值和门控范围。虚构表没有实际打开测试；进程内状态演示不是持久审计。</p>
+<p>自查：把gB的token数改动时，也要同步修改总损失或解释新的数据含义。</p><h3>参考输出</h3><pre>FABRICATED FINAL TABLE; no actual final test opened
+tokens=10 base_A=0.400000 adapt_A=0.520000
+base_B=1.600000 adapt_B=0.940000
+gain=0.660000 forgetting=0.120000
+image_average_B=1.000000 token_average_B=0.940000
+repeat_gate=PASS (in-memory demonstration only)</pre><h2>练习与参考答案</h2><h3>练习1</h3><p>基础：两批token数分别10、30，平均损失分别2、1，整体token平均是多少？</p>
+<p>提示：</p><p>先还原每批总损失。</p>
+<p>参考：</p><p>总损失10×2+30×1=50，总token40，平均1.25；直接(2+1)/2=1.5是等批平均，除非协议规定等批权重，否则不是目标指标。</p>
+<h3>练习2</h3><p>实践：B损失下降而补全经常断裂，怎样写分析？</p>
+<p>提示：</p><p>分别说明teacher forcing与自由生成。</p>
+<p>参考：</p><p>报告两种观察；提出生成历史偏移、采样规则或局部结构约束不足等假设；在后续开发中设计单因素对照。不要把低损失等同于好图片，也不要未经验证断言唯一原因。</p>
+<h3>练习3</h3><p>迁移：最终测试某子组只有2张，表现比另一方法好，能下什么结论？</p>
+<p>提示：</p><p>限定观察数量与事后分析性质。</p>
+<p>参考：</p><p>可准确描述这2张样本上的结果，不能推广到该子组总体。保留ID、预测与子组定义；若发现来自事后切片，应标为探索性，下一轮用新独立样本验证。</p>
+<h2>自测</h2><h3>1. 变长样本的token平均应？</h3><ol type="A"><li>丢掉截断样本</li><li>平均所有批次平均数</li><li>总损失除总有效token</li><li>只平均最长样本</li></ol><p>参考：C</p><p>权重由被计分token数决定，分母应可追踪。</p>
+<h3>2. 最终评价包括预先固定的三种子，是否违背“一次最终测试”？</h3><ol type="A"><li>必然</li><li>只要运行三次就泄漏</li><li>不，关键是是否按预定流程且不回流选择</li><li>只允许一个种子</li></ol><p>参考：C</p><p>一次流程可以包含多个预定测量，不能据测试重选配置。</p>
+<h3>3. 哪句是已观察事实？</h3><ol type="A"><li>一定由于容量不足</li><li>论文因此错误</li><li>固定样本连续12格都为颜色2</li><li>一定因为温度过低</li></ol><p>参考：C</p><p>其余是需要区分实验的原因推断或过度结论。</p>
+<h3>4. 程序布尔门控能在进程重启后阻止再测吗？</h3><ol type="A"><li>等于文件权限</li><li>等于正式审计</li><li>不能，本例不持久化</li><li>能永久阻止</li></ol><p>参考：C</p><p>教学机制只在当前进程保存状态，真实流程须有持久记录。</p>
+<h2>开放讲解题</h2><h3>为什么测试后不能依据错误重新挑学习率，再沿用原最终分数？</h3><p>测试信息参与选择后，其独立评估角色受到破坏。继续研究可以，但应保留旧报告、创建新开发版本并另备独立最终数据。</p>
+<h3>怎样把一项结论做成可回查证据？</h3><p>注明配置与模型ID、数据版本与用途、指标定义、结果表行和样本ID，区分观察和假设；让读者从原始数值重新算出差值。</p>
+<h2>交付物</h2><ul><li>冻结后A/B最终结果表、实际资源及完整评价记录</li><li>全部固定前缀补全与逐样本错误分类</li><li>报告中的结论—证据对应表和探索性分析标记</li></ul><h2>验收标准</h2><ul><li>四项损失的计分范围、对数底与分母一致</li><li>最终测试结果没有回流选择配置</li><li>每项主要结论有结果或样本依据；未验证原因标为假设</li></ul><h2>来源与延伸</h2><ul><li><a href="https://arxiv.org/abs/2405.14782">Lessons from the Trenches on Reproducible Evaluation of Language Models</a> — 首发2024，核对版本为2026年修订v3；迁移其版本、评价设置与可追溯思想，不要求复现语言模型基准。</li><li><a href="https://arxiv.org/abs/2405.09673">LoRA Learns Less and Forgets Less（TMLR 2024）</a> — 2026-10-23核对；只借用新域学习与域外保留的比较问题，不把像素实验称为论文复现。</li></ul></main></body></html>

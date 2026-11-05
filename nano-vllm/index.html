@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f4ef">
+  <meta name="description" content="从token与attention数学到Qwen3、KV缓存、调度抢占、FlashAttention、CUDA Graph和TP。十幕可核算的nano-vLLM中文交互实验室。">
+  <title>nano-vLLM · 推理引擎实验室</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="engine.js" defer></script>
+  <script src="preemption-data.js" defer></script>
+  <script src="deep-engine.js" defer></script>
+  <script src="deep-views.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#experiment">跳到交互实验</a>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="nano-vLLM 推理引擎实验室首页"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>nano-vLLM<span class="brand-slash"> / </span><b>推理引擎实验室</b></span></a>
+    <a class="source-link" href="https://github.com/GeeeekExplorer/nano-vllm/tree/bb823b3e06983d71485a8e1f23715ebd87d98ef8" target="_blank" rel="noopener">对照源码 <span aria-hidden="true">↗</span></a>
+  </header>
+  <main id="top">
+    <section class="hero" aria-labelledby="hero-title">
+      <div><p class="eyebrow"><span></span> SMALL ENGINE. BIG IDEAS.</p><h1 id="hero-title">让推理，<br><span>变得看得见。</span></h1></div>
+      <div class="hero-note"><p class="hero-lead">一次读入，一步续写。<br>从一行数学，到一台推理引擎。</p><p class="hero-description">先亲手算出注意力，再追踪 token、调度与显存。十个逐步实验，把底层数学、真实 Qwen3 与 nano-vLLM 源码连成一条线。</p><div class="hero-meta"><span>中文交互讲解</span><span>冻结源码 bb823b3</span><span>10 幕 · 按需深入</span></div></div>
+    </section>
+
+    <section class="learning-route" aria-labelledby="route-title"><div class="route-heading"><h2 id="route-title">一条路线，十个可停靠的实验。</h2><p>01—03 数学与模型 · 04—06 请求与记忆 · 07—10 系统与验证</p></div>
+    <nav class="chapter-tabs" aria-label="实验章节" role="tablist"><button id="tab-journey" role="tab" aria-selected="true" aria-controls="experiment" data-mode="journey"><span class="tab-index">01</span><span><strong>一个token的旅程</strong><small>Prefill → Decode</small></span></button><button id="tab-attention" role="tab" aria-selected="false" aria-controls="experiment" data-mode="attention" tabindex="-1"><span class="tab-index">02</span><span><strong>把注意力算出来</strong><small>Embedding → 概率</small></span></button><button id="tab-architecture" role="tab" aria-selected="false" aria-controls="experiment" data-mode="architecture" tabindex="-1"><span class="tab-index">03</span><span><strong>真实Transformer</strong><small>Qwen3 · RoPE · MLP</small></span></button><button id="tab-scheduler" role="tab" aria-selected="false" aria-controls="experiment" data-mode="scheduler" tabindex="-1"><span class="tab-index">04</span><span><strong>让请求轮流上场</strong><small>连续批处理</small></span></button><button id="tab-cache" role="tab" aria-selected="false" aria-controls="experiment" data-mode="cache" tabindex="-1"><span class="tab-index">05</span><span><strong>把记忆分成小块</strong><small>块表 · 前缀复用</small></span></button><button id="tab-preemption" role="tab" aria-selected="false" aria-controls="experiment" data-mode="preemption" tabindex="-1"><span class="tab-index">06</span><span><strong>显存不足怎么办</strong><small>抢占 · 重建KV</small></span></button><button id="tab-performance" role="tab" aria-selected="false" aria-controls="experiment" data-mode="performance" tabindex="-1"><span class="tab-index">07</span><span><strong>算一笔资源账</strong><small>容量 · 流量 · FLOPs</small></span></button><button id="tab-kernels" role="tab" aria-selected="false" aria-controls="experiment" data-mode="kernels" tabindex="-1"><span class="tab-index">08</span><span><strong>三个优化层次</strong><small>Flash · Paging · Graph</small></span></button><button id="tab-tensor" role="tab" aria-selected="false" aria-controls="experiment" data-mode="tensor" tabindex="-1"><span class="tab-index">09</span><span><strong>同一层分给多卡</strong><small>GQA · TP · 归约</small></span></button><button id="tab-practice" role="tab" aria-selected="false" aria-controls="experiment" data-mode="practice" tabindex="-1"><span class="tab-index">10</span><span><strong>自己做一次实验</strong><small>复现 · 测量 · 证据</small></span></button></nav><p class="route-tip">点击选幕，再用「下一步」逐帧看。播放不会自动开始；参数改变时，数字会立即重算。</p></section>
+
+    <section id="experiment" class="experiment" role="tabpanel" aria-labelledby="tab-journey" tabindex="-1">
+      <div class="lab-topline"><span class="lab-label"><span class="status-dot"></span> INTERACTIVE LAB <span id="lab-number">/ 01</span></span><button id="boundary-open" class="boundary-button">教学模拟 · 非真实推理 <span aria-hidden="true">ⓘ</span></button></div>
+      <div class="lab-heading"><div><p class="section-kicker" id="lab-kicker">从 prompt 到第一个新 token</p><h2 id="lab-title">先理解上下文，再逐步生成。</h2></div><div id="lab-options" class="lab-options"></div></div>
+      <div id="lab-stage" class="lab-stage"></div>
+      <div class="explanation" aria-live="polite" aria-atomic="true"><span class="explanation-icon" aria-hidden="true">↳</span><div><h3 id="step-title"></h3><p id="step-description"></p></div><span id="step-counter" class="step-counter"></span></div>
+      <div class="transport">
+        <div class="transport-buttons"><button id="play" class="play-button" aria-label="播放动画"><span id="play-icon" aria-hidden="true">▶</span><span id="play-label">播放</span></button><button id="back" class="icon-button" aria-label="上一步" title="上一步">←</button><button id="next" class="next-button" aria-label="下一步">下一步 <span aria-hidden="true">→</span></button><button id="reset" class="icon-button" aria-label="从头开始" title="从头开始">↺</button></div>
+        <label class="timeline-label"><span class="sr-only">当前动画步骤</span><input id="timeline" type="range" min="0" max="12" step="1" value="0" aria-label="拖动浏览动画步骤"></label>
+        <label class="speed-control">速度 <select id="speed" aria-label="播放速度"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label>
+      </div>
+      <p class="lab-footnote" id="lab-footnote"></p>
+    </section>
+
+    <section class="takeaway" aria-labelledby="takeaway-title"><div class="takeaway-index">TAKEAWAY <span id="takeaway-no">01 / 10</span></div><h2 id="takeaway-title"></h2><p id="takeaway-text"></p><button id="next-chapter" class="text-button">下一幕：让请求轮流上场 <span aria-hidden="true">→</span></button></section>
+
+    <section class="mini-check" aria-labelledby="check-question"><div><span class="check-eyebrow">验证一下你的理解</span><h3 id="check-question"></h3></div><div id="check-answers" class="check-answers"></div><p id="check-feedback" aria-live="polite"></p><button id="check-jump" class="check-jump" hidden>跳到关键帧 →</button></section>
+
+    <section class="anatomy" aria-labelledby="anatomy-title"><div class="section-title-row"><div><p class="eyebrow">UNDER THE HOOD</p><h2 id="anatomy-title">一轮推理，四个角色。</h2></div><p>动画里的动作，可以沿着这条路径<br>回到源码里找到。</p></div>
+      <div class="code-flow">
+        <a class="code-node" data-code="scheduler" href="https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/scheduler.py#L25-L73" target="_blank" rel="noopener"><span class="code-number">01 <i>↗</i></span><h3>谁上场？</h3><code>Scheduler.schedule()</code><p>选择本轮序列与阶段，决定处理多少个 token。</p></a>
+        <a class="code-node" data-code="blocks" href="https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/block_manager.py" target="_blank" rel="noopener"><span class="code-number">02 <i>↗</i></span><h3>放在哪里？</h3><code>BlockManager</code><p>分配、映射与共享 KV 块，管理引用计数。</p></a>
+        <a class="code-node" data-code="runner" href="https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py#L214-L220" target="_blank" rel="noopener"><span class="code-number">03 <i>↗</i></span><h3>计算什么？</h3><code>ModelRunner.run()</code><p>组织输入、执行模型，得到 logits 并采样。</p></a>
+        <a class="code-node" data-code="postprocess" href="https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/scheduler.py#L81-L92" target="_blank" rel="noopener"><span class="code-number">04 <i>↗</i></span><h3>接着做什么？</h3><code>Scheduler.postprocess()</code><p>更新缓存与序列，追加输出；结束时释放引用。</p></a>
+      </div><p class="code-note">这是职责示意，不是严格的四个独立时间段：块管理会在调度与后处理阶段被调用。</p>
+    </section>
+
+    <section class="depth" aria-labelledby="depth-title"><div class="section-title-row"><div><p class="eyebrow">THE IMPORTANT DETAILS</p><h2 id="depth-title">再往里看一层。</h2></div><p>四个容易混淆，但值得分清的概念。</p></div>
+      <div class="detail-list">
+        <details><summary><span class="detail-no">01</span><span>KV Cache 究竟缓存了什么？</span><span class="detail-plus">+</span></summary><div class="detail-body"><p>Transformer 的每一层都会从当前隐藏状态投影出 Q、K、V。新 token 的 Q 与可见历史的 K 做注意力，再加权历史的 V。自回归生成时，旧 token 对应的 K / V 可以复用，因此不用每轮重新计算整个前缀。</p><div class="formula"><span>本轮 Q</span><b>×</b><span>历史与当前 K</span><b>→</b><span>注意力权重</span><b>×</b><span>历史与当前 V</span></div><p>这里省略缩放、softmax、位置编码、head 与 layer 维度。KV Cache 不缓存 Q；它也不是完整的隐藏状态、logits 或最终答案。</p><a class="inline-source" href="https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/layers/attention.py" target="_blank" rel="noopener">对应源码：layers/attention.py ↗</a></div></details>
+        <details><summary><span class="detail-no">02</span><span>为什么需要块表，而不只是一个大数组？</span><span class="detail-plus">+</span></summary><div class="detail-body"><p>每条序列拥有一张逻辑块到物理块的映射表。序列看起来连续，物理块却不必连续；新增长度可以增配块，相同前缀可以共享块。这是分页式 KV 管理的核心直觉。</p><p>源码会先预留整个 KV 池；“分配 / 释放块”是改变请求对池内块的占用，不是每轮向 CUDA 申请 / 归还显存。固定块也有尾部未用槽位。它减少对连续大内存的依赖，但不意味着零碎片、无限显存或免费计算。显存不足时，源码还可能抢占序列、释放其引用并放回等待队列，之后重新 Prefill。第04幕调度实验假设显存充足；第06幕则用源码CPU trace单独追踪真实抢占过程。</p><a class="inline-source" href="https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/block_manager.py" target="_blank" rel="noopener">对应源码：engine/block_manager.py ↗</a></div></details>
+        <details><summary><span class="detail-no">03</span><span>FlashAttention、Paged KV、CUDA Graph 是一回事吗？</span><span class="detail-plus">+</span></summary><div class="detail-body"><p>不是。Paged KV 管理缓存的布局与共享；FlashAttention 是注意力计算的高效实现，能够利用 KV 缓存等输入；CUDA Graph 则把适用的 GPU 操作序列捕获下来以便重放，降低重复发射的开销。</p><p>这版 runner 在 Decode 的适用路径使用 CUDA Graph，而 Prefill 走 eager 路径。重放执行图仍会读取新输入、计算新结果，不是“重放旧答案”。本页动画没有模拟真实内核耗时，也不提供加速倍数。</p><a class="inline-source" href="https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py" target="_blank" rel="noopener">对应源码：engine/model_runner.py ↗</a></div></details>
+        <details><summary><span class="detail-no">04</span><span>nano-vLLM 与生产级 vLLM 的边界在哪里？</span><span class="detail-plus">+</span></summary><div class="detail-body"><p>这里讲的是 GeeeekExplorer/nano-vllm 的冻结实现，而不是把完整 vLLM 的所有行为缩成一张图。这版代码包含轻量推理引擎、Qwen3 模型实现、KV 块管理、前缀缓存、连续批处理和张量并行等机制。</p><p>尤其别把“支持 chunked prefill”读成任意混合调度：本页对应版本仅允许当轮首序列切块，Prefill 优先，单轮不会混合 Prefill 与 Decode。生产系统的功能与性能应另外对照所用版本实测。</p><a class="inline-source" href="https://github.com/GeeeekExplorer/nano-vllm/tree/bb823b3e06983d71485a8e1f23715ebd87d98ef8" target="_blank" rel="noopener">查看冻结版本与 README ↗</a></div></details>
+      </div>
+    </section>
+
+    <section id="boundaries" tabindex="-1" class="boundaries" aria-labelledby="boundaries-title"><div><p class="eyebrow">ACCURACY & SCOPE</p><h2 id="boundaries-title">哪些是真实机制，<br>哪些是教学简化？</h2><p>形象，不以牺牲边界为代价。</p><a class="download-link" href="nano-vllm-offline.html" download>下载离线版 <span aria-hidden="true">↓</span></a></div><div class="boundary-list">
+      <div><span class="boundary-tag faithful">遵循源码</span><p>输入 token 写 KV 后再采样；Prefill 未完成不追加输出；每轮阶段一致；仅首序列可切块；完整前缀共享、末块不复用；引用计数归零后缓存可暂留；抢占保留token、必要时重新Prefill；Q/KV头的TP整除约束。</p></div>
+      <div><span class="boundary-tag abstract">缩小示意</span><p>每块 4 个 token、最多 3 条序列、6 / 8 / 12 的 Prefill 预算，仅为看清过程。源码默认块大小为 256，且要求为 256 的倍数。字符与词块不是实际tokenizer结果。数学toy不是训练权重，性能假想结构不是Qwen3配置。</p></div>
+      <div><span class="boundary-tag omitted">验证范围</span><p>不加载模型、不运行GPU；token旅程与调度演示的输出为预设，数学幕用手工矩阵计算；动画时长不对应真实耗时。KV图跨层抽象，真实维度另列；CPU trace不代表GPU执行。按最新要求取消真实浏览器与登录验收，仅验证静态、数学、源码和模拟交互。</p></div>
+      <div><span class="boundary-tag reference">版本与证据</span><p>核验于 2026-10-21，冻结提交 <a href="https://github.com/GeeeekExplorer/nano-vllm/commit/bb823b3e06983d71485a8e1f23715ebd87d98ef8" target="_blank" rel="noopener">bb823b3e0698 ↗</a>（2026-04-26）。上方源码入口固定到同一提交。未来版本可能改变行为。</p></div>
+    </div></section>
+  </main>
+  <section class="study-end" aria-labelledby="study-end-title"><div><p class="eyebrow">CONNECT THE DOTS</p><h2 id="study-end-title">现在，你可以沿着因果链问问题。</h2><p>为什么旧KV不变？为什么cache hit不是答案复用？为什么更大batch不保证更低延迟？带着一个预测，回到对应实验，改一个参数，看证据是否支持它。</p></div><a href="#route-title">选择一个实验 ↑</a></section>
+  <footer><span class="footer-brand">nano-vLLM <b> / </b> 推理引擎实验室</span><span>学习机制，不把模拟当作基准测试。</span><a href="#top">回到顶部 ↑</a></footer>
+  <noscript><div class="noscript-notice">交互实验需要启用 JavaScript。下方的原理讲解与源码链接仍可阅读。</div></noscript>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>独立交付与答辩：从会运行到能解释、能迁移</title><link rel="stylesheet" href="../assets/reader.css"></head><body class="static-reader"><main><p><a href="../index.html#week-24">返回交互课程</a></p><div class="eyebrow">第24周 / 静态讲义</div><h1>独立交付与答辩：从会运行到能解释、能迁移</h1><section class="lesson-section" id="w24-section-1"><h2><span class="section-number">01</span>交付物应该使另一个人少猜一步</h2><p>把最终包分成清晰入口：开始说明、数据来源与划分、配置、源代码、环境、原始结果、报告。每个结果图应有生成它的记录和入口，不能只有截图。数据若受许可或体积限制不能一起提供，应给获取方法、版本与校验信息，并明确缺失时哪些命令不能运行。不要把大型模型文件已存在作为未经说明的前提。</p>
+<p>给出一条最小复跑路线：先运行数据/shape检查，再运行短机制检查，再加载冻结配置做小预算演练，最后按需要进行完整复跑。新输出目录防止旧结果被当成新结果。配置默认值必须显式记录，数据缓存命中与否也应可见；原始课件与参考notebook保留，不和自己的实验输出混放。</p>
+<p>Python主线可以使用既有NumPy或PyTorch，C++用于数学机制核对与日志分析，不强制用C++重写完整深度学习训练框架。能解释两种语言中函数、循环、容器、索引和数值类型对应关系，比机械维护两套大型框架更重要。依赖和编译命令需与实际测试一致，不要求此时安装新的推理系统。</p>
+<p>复跑结果有两个层次：同一确定性小程序应在数值容差内一致；深度训练可能因硬件、并行内核与随机性出现差异，应比较协议、配置和允许的指标范围。先核对文件、数据清单和计数，再比较损失，不要只看到分数略变就断言模型失败或完全复现。</p>
+<aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>一个最小复跑的核对过程</h3><ol><li><p>冻结线性模型w=1.5、b=0.5，输入[1,2,3]，目标[2,3,5]。</p>
+</li><li><p>预测为[2,3.5,5]，误差平方为[0,0.25,0]，MSE=0.25/3=0.083333。</p>
+</li><li><p>在另一组容器副本上用相同配置重算，结果仍一致。</p>
+</li><li><p>这证明微型函数的确定性，不替代项目B训练复跑。</p>
+</li></ol><div class="worked-result"><p>先让最小入口可验证，再逐层增加复杂度，范围写清。</p>
+</div></aside></section><section class="lesson-section" id="w24-section-2"><h2><span class="section-number">02</span>20分钟讲解要形成因果链</h2><p>前3分钟讲问题与数据：输入是什么、输出是什么、来源如何分组、为什么封存测试。接着5分钟讲模型与学习：从线性回归的梯度走到自回归条件概率、因果注意力，再说明LoRA如何在冻结基础上加增量。不要堆模型名称，应画出一个样本经过关键计算的路径。</p>
+<p>再用5分钟讲实验：不适配基线、相同搜索预算、配置选择、配对种子与最终测试。用3分钟讲一张收益—遗忘图与资源表，指出一个负结果或反例。最后4分钟回答支持什么、不支持什么，以及如果增加一周时间要做哪个能区分原因的实验。报告不是逐行念代码，而是解释设计为什么足以回答问题。</p>
+<p>讲解、理解、实践三条分别评分，不让代码运行通过掩盖说不清。每条可沿用四项各0–2分、至少6/8且无0分：讲解看术语、例子、逻辑、边界；理解看手算、预测、反例、迁移；实践看运行、数据用途、结果追溯、故障定位。让自己先闭卷回答，卡住后才看提示与参考。</p>
+<p>参考答案展示必要要点，不是唯一话术。遇到追问不知道，准确说出未知点和需要的证据，比凭记忆编造库行为更可靠。每次答辩后仅补最薄弱的链条，例如“为什么测试不调参”或“第一步A梯度为什么为零”，不用重新从第一周通读全部材料。</p>
+<aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>同一个结果的好坏两种解释</h3><ol><li><p>不充分：“LoRA参数少，所以一定更好。”</p>
+</li><li><p>充分：“本模型和预算下LoRA可训练参数更少；最终结果显示收益与遗忘的具体差值，时间和显存来自实测，不能由参数比直接推出。”</p>
+</li><li><p>追问“换基础检查点还成立吗？”时，应回答本实验未覆盖这一变化，并提出新增基础种子重复。</p>
+</li></ol><div class="worked-result"><p>答辩考察推理与证据链，不要求替未知情况做保证。</p>
+</div></aside></section><section class="lesson-section" id="w24-section-3"><h2><span class="section-number">03</span>用陌生变体检查迁移，再用延迟复述检查保持</h2><p>第一道变体把颜色置换换成形状子域：你应识别分布变化性质改变，保留来源分组但重新定义数据与评价。第二道把LoRA秩加倍：你应能算参数量按r线性增加，但收益和速度不是保证线性变化。第三道让两种方法平均相同但方差不同：你应要求原始配对与失败记录，而不是任选一边。</p>
+<p>一周后闭卷做15分钟延迟自测：画训练/开发/测试用途图，手算一层低秩前向，解释收益与遗忘的符号，再从空白写出损失汇总函数。先记录首次答案，之后才查教材；只记录看过答案后的正确率会高估保持程度。该延迟测试由你实际完成，材料生成或程序运行不能代替它。</p>
+<p>本周程序检查复跑函数、清单字段名与结论范围的简单对应。字段名齐全只说明清单结构完整，不能证明文件实际存在、内容正确或项目合格；完整交付需再按文档运行真实入口。scope_gate把“固定玩具数据”证据用于“所有模型”结论时拒绝，提醒证据范围必须匹配。</p>
+<p>完成后再选一个下一阶段方向，而不是无限加入论文。若对优化与理论感兴趣，补线性代数、概率和凸优化；若对研究实践感兴趣，优先扩大一个可解释的实验维度，如第二个基础检查点或新的变换，并准备独立评价。当前24周完成的是基础与两个项目的闭环，不是机器学习全领域毕业证。</p>
+<aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>延迟自测怎样计分</h3><ol><li><p>闭卷先答4题，每题0分=无法解释、1分=部分正确、2分=计算与条件清楚。</p>
+</li><li><p>总分需至少6且无0；若LoRA前向为0分，即使其余满分也先补这一项。</p>
+</li><li><p>补学后用数值不同的同机制题复测，保留第一次记录。</p>
+</li></ol><div class="worked-result"><p>复测检验迁移，不靠重复背同一个数值答案。</p>
+</div></aside></section><h2>Python与C++机制示例</h2><p>下面的小程序验证关键机制；完整项目须按本周交付要求另行完成。</p><h3>Python</h3><pre><code>&quot;&quot;&quot;A deterministic miniature rerun and evidence-scope gate, not a project certificate.&quot;&quot;&quot;
+import math
+
+# STEP 1
+def predict(xs, w, b):
+    return [w*x+b for x in xs]
+def mse(predictions, targets):
+    assert len(predictions) == len(targets) &gt; 0
+    return sum((p-y)**2 for p,y in zip(predictions,targets))/len(targets)
+xs, ys = [1.0,2.0,3.0], [2.0,3.0,5.0]
+configuration = {&quot;w&quot;:1.5,&quot;b&quot;:0.5}
+
+# STEP 2
+first = predict(xs, **configuration)
+second = predict(list(xs), **dict(configuration))
+assert first == second
+loss = mse(first, ys)
+assert math.isclose(loss,1/12,abs_tol=1e-12)
+
+# STEP 3
+required = {&quot;data_manifest&quot;, &quot;configuration&quot;, &quot;source&quot;, &quot;environment&quot;, &quot;raw_results&quot;, &quot;report&quot;}
+manifest = required - {&quot;raw_results&quot;}
+missing = sorted(required - manifest)
+assert missing == [&quot;raw_results&quot;]
+manifest.add(&quot;raw_results&quot;)
+assert required &lt;= manifest
+evidence = {&quot;E01&quot;: &quot;fixed_toy_dataset&quot;}
+def claim_supported(evidence_id, scope):
+    return evidence.get(evidence_id) == scope
+assert claim_supported(&quot;E01&quot;, &quot;fixed_toy_dataset&quot;)
+assert not claim_supported(&quot;E01&quot;, &quot;all_models&quot;)
+
+# STEP 4
+print(&quot;MINIATURE RERUN; not certification of your full project&quot;)
+print(f&quot;prediction={first[0]:.6f},{first[1]:.6f},{first[2]:.6f} mse={loss:.6f}&quot;)
+print(&quot;deterministic_rerun=PASS missing_before=&quot; + &quot;,&quot;.join(missing))
+print(&quot;manifest_names_after=PASS scope_gate=PASS&quot;)
+print(&quot;human_explanation_exam=NOT_RUN delayed_retest=NOT_RUN&quot;)
+</code></pre><h3>C++</h3><pre><code>// A miniature rerun and evidence-scope gate, not a project certificate.
+#include &lt;cassert&gt;
+#include &lt;cmath&gt;
+#include &lt;iomanip&gt;
+#include &lt;iostream&gt;
+#include &lt;map&gt;
+#include &lt;set&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+// STEP 1
+std::vector&lt;double&gt; predict(const std::vector&lt;double&gt;&amp; xs,double w,double b) {
+    std::vector&lt;double&gt; result; for(double x:xs) result.push_back(w*x+b); return result;
+}
+double mse(const std::vector&lt;double&gt;&amp; predictions,const std::vector&lt;double&gt;&amp; targets) {
+    assert(predictions.size()==targets.size() &amp;&amp; !targets.empty()); double result=0;
+    for(std::size_t i=0;i&lt;targets.size();++i) result+=std::pow(predictions[i]-targets[i],2);
+    return result/targets.size();
+}
+int main() {
+    const std::vector&lt;double&gt; xs{1,2,3},ys{2,3,5}; const double w=1.5,b=.5;
+    // STEP 2
+    const auto first=predict(xs,w,b),second=predict(std::vector&lt;double&gt;(xs),w,b);
+    assert(first==second); const double loss=mse(first,ys); assert(std::abs(loss-1.0/12)&lt;1e-12);
+    // STEP 3
+    const std::set&lt;std::string&gt; required{&quot;data_manifest&quot;,&quot;configuration&quot;,&quot;source&quot;,&quot;environment&quot;,&quot;raw_results&quot;,&quot;report&quot;};
+    auto manifest=required; manifest.erase(&quot;raw_results&quot;); std::vector&lt;std::string&gt; missing;
+    for(const auto&amp; name:required) if(!manifest.count(name)) missing.push_back(name);
+    assert((missing==std::vector&lt;std::string&gt;{&quot;raw_results&quot;})); manifest.insert(&quot;raw_results&quot;); assert(manifest==required);
+    const std::map&lt;std::string,std::string&gt; evidence{{&quot;E01&quot;,&quot;fixed_toy_dataset&quot;}};
+    auto supported=[&amp;](const std::string&amp; id,const std::string&amp; scope) {
+        auto item=evidence.find(id); return item!=evidence.end() &amp;&amp; item-&gt;second==scope;
+    };
+    assert(supported(&quot;E01&quot;,&quot;fixed_toy_dataset&quot;) &amp;&amp; !supported(&quot;E01&quot;,&quot;all_models&quot;));
+    // STEP 4
+    std::cout&lt;&lt;std::fixed&lt;&lt;std::setprecision(6);
+    std::cout&lt;&lt;&quot;MINIATURE RERUN; not certification of your full project\n&quot;;
+    std::cout&lt;&lt;&quot;prediction=&quot;&lt;&lt;first[0]&lt;&lt;&#x27;,&#x27;&lt;&lt;first[1]&lt;&lt;&#x27;,&#x27;&lt;&lt;first[2]&lt;&lt;&quot; mse=&quot;&lt;&lt;loss&lt;&lt;&#x27;\n&#x27;;
+    std::cout&lt;&lt;&quot;deterministic_rerun=PASS missing_before=&quot;&lt;&lt;missing[0]&lt;&lt;&#x27;\n&#x27;;
+    std::cout&lt;&lt;&quot;manifest_names_after=PASS scope_gate=PASS\n&quot;;
+    std::cout&lt;&lt;&quot;human_explanation_exam=NOT_RUN delayed_retest=NOT_RUN\n&quot;;
+}
+</code></pre><h3>逐步解释</h3><h4>抽出纯函数</h4><p>predict只依赖输入和w、b，mse检查长度再逐项求平方平均。Python关键字展开配置与C++显式参数传入表达相同计算。</p>
+<p>自查：不用运行先算预测2、3.5、5。</p><h4>复跑并核对数值</h4><p>对容器副本使用相同配置重算，先比较预测再比较MSE。math.isclose或绝对误差容差用于浮点检查；小例子结果确定不代表深度模型处处位级相同。</p>
+<p>自查：手算MSE=1/12。</p><h4>缺失字段与范围检查</h4><p>集合差找出raw_results缺失，补名后仅验证字段集；字典/map按证据ID查范围。对all_models的越界结论拒绝，不能用一个PASS替代人工审阅。</p>
+<p>自查：说出“文件名存在”与“内容可复跑”的区别。</p><h4>把人工验收标成尚未运行</h4><p>程序明确打印答辩和延迟复测NOT_RUN。软件无法从你读过的页数判断理解，必须实际进行口述、迁移题与独立运行。</p>
+<p>自查：列出你还需要亲自完成的两个步骤。</p><h3>参考输出</h3><pre>MINIATURE RERUN; not certification of your full project
+prediction=2.000000,3.500000,5.000000 mse=0.083333
+deterministic_rerun=PASS missing_before=raw_results
+manifest_names_after=PASS scope_gate=PASS
+human_explanation_exam=NOT_RUN delayed_retest=NOT_RUN</pre><h2>练习与参考答案</h2><h3>练习1</h3><p>基础：把本例w改成2、b改成0，预测与MSE是多少？</p>
+<p>提示：</p><p>输入与目标保持。</p>
+<p>参考：</p><p>预测[2,4,6]，误差[0,1,1]，MSE=2/3≈0.666667。相对原模型损失更高；如果这是测试数据，不能据此反过来调w并继续声称同一次独立测试。</p>
+<h3>练习2</h3><p>实践：别人复跑时MSE与报告不同，按什么顺序定位？</p>
+<p>提示：</p><p>先查输入与配置，再查数值实现。</p>
+<p>参考：</p><p>核对数据版本、划分和样本顺序；核对配置、检查点和预处理；核对计分位置、log底与分母；再查随机性、eval模式和数值精度。保留差异日志，不先修改报告数值凑一致。</p>
+<h3>练习3</h3><p>迁移：给64×32线性层，r从2变4，参数如何变化，能推断哪些性能？</p>
+<p>提示：</p><p>只推导参数，不猜测训练成绩。</p>
+<p>参考：</p><p>适配器从2×(64+32)=192增至4×96=384，翻倍。基础权重2048不变；更新表达空间上限扩大，但新域收益、遗忘、时间和显存需要实验，不能保证翻倍或单调改进。</p>
+<h2>自测</h2><h3>1. 清单字段名齐全意味着？</h3><ol type="A"><li>完整项目已经合格</li><li>只说明已列出这些字段名</li><li>文件内容都正确</li><li>答辩可以免除</li></ol><p>参考：B</p><p>必须检查真实文件与实际复跑，不能把结构检查扩大成质量保证。</p>
+<h3>2. 延迟复述何时看答案较合适？</h3><ol type="A"><li>答每个字都马上看</li><li>闭卷记录首次回答后</li><li>只记录看答案后的成绩</li><li>开始前背一遍</li></ol><p>参考：B</p><p>首次闭卷表现帮助辨认保持与迁移不足。</p>
+<h3>3. 复跑小程序确定性通过能证明？</h3><ol type="A"><li>用户已理解</li><li>该微型计算在检查条件下重复一致</li><li>所有GPU训练相同</li><li>全部论文复现</li></ol><p>参考：B</p><p>运行检查、研究有效性和人的掌握程度是不同验收。</p>
+<h3>4. 面对没有测过的基础检查点，应怎样回答？</h3><ol type="A"><li>删除局限</li><li>说明未覆盖并提出所需实验</li><li>保证结论不变</li><li>说论文肯定替你证明</li></ol><p>参考：B</p><p>诚实边界与可检验下一步优于没有证据的保证。</p>
+<h2>开放讲解题</h2><h3>不用教材串起24周主线。</h3><p>从用数据定义预测问题，到损失与梯度学习，再到划分、基线与可信比较；理解神经网络、自动求导、卷积和注意力，完成小生成器；最后围绕适配收益、遗忘、预算和重复设计可检验实验，并独立交付。</p>
+<h3>为什么课程通过不能只看分数或代码运行？</h3><p>代码可能来自参考，分数可能来自泄漏或偶然。需要分别证明能够解释机制、预测并迁移到新条件，以及独立执行和追溯结果；延迟复述再检查保持。</p>
+<h2>交付物</h2><ul><li>项目A与项目B的可复跑交付包，含原始结果和环境说明</li><li>20分钟讲解记录、未见变体作答与三条独立评分</li><li>一周后完成的延迟复述记录；未执行时明确标待完成</li></ul><h2>验收标准</h2><ul><li>从新输出目录按说明完成真实入口复跑，差异有定位记录</li><li>讲解、理解、实践分别≥6/8且无0分，不用总分互相抵消</li><li>能指出一项负结果、一项未覆盖范围和一个可检验后续问题</li></ul><h2>来源与延伸</h2><ul><li><a href="https://arxiv.org/abs/2405.14782">Lessons from the Trenches on Reproducible Evaluation of Language Models</a> — 首发2024，核对版本为2026年修订v3；迁移其版本、评价设置与可追溯思想，不要求复现语言模型基准。</li></ul></main></body></html>

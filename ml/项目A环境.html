@@ -1,0 +1,159 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>项目A环境说明</title><link rel="stylesheet" href="assets/reader.css"></head><body class="static-reader"><main><p><a href="index.html#week-4">返回第4周课程</a></p><h1>项目A：可直接使用的独立环境</h1>
+<p>2026年10月23日已在 <code>D:\gpt\machine_learning\.venv-project-a</code> 新建并验证独立Python环境。它提供第4–8周digits、传统模型、交叉验证和绘图的运行入口，原来的 <code>D:\Download\python</code> 包环境保持原样。</p>
+<p>本次处理的是旧环境导入scikit-learn时触发的pandas/NumPy二进制不兼容：<code>ValueError: numpy.dtype size changed... Expected 96... got 88</code>。新环境没有继承旧环境的第三方包，也没有安装pandas或PyTorch。已有的纯Python小程序和NumPy程序可以在这里运行；第10周需要PyTorch的示例仍应使用课程原来已验证的PyTorch解释器。本环境目前不承担MLP/CNN的PyTorch安装。</p>
+<h2>1. 直接运行，不需要激活环境</h2>
+<p>在PowerShell中复制下列命令。前面的 <code>&amp;</code> 表示调用引号内的可执行文件；使用明确路径，可以避开系统中多个Python之间的混淆，也不需要修改脚本执行策略。</p>
+<pre><code class="language-powershell">&amp; 'D:\gpt\machine_learning\.venv-project-a\Scripts\python.exe' --version
+&amp; 'D:\gpt\machine_learning\.venv-project-a\Scripts\python.exe' -c &quot;import sys,numpy,scipy,sklearn,matplotlib; print(sys.executable); print(numpy.__version__,scipy.__version__,sklearn.__version__,matplotlib.__version__)&quot;
+</code></pre>
+<p>运行第2周NumPy示例：</p>
+<pre><code class="language-powershell">&amp; 'D:\gpt\machine_learning\.venv-project-a\Scripts\python.exe' 'D:\gpt\machine_learning\学习包\course\examples\week02.py'
+</code></pre>
+<p>运行你的项目A文件时，保留同一个Python路径，把后面的脚本路径改为你实际保存的文件。例如脚本保存为 <code>D:\gpt\machine_learning\学习实践\project-a\baseline.py</code> 后，运行：</p>
+<pre><code class="language-powershell">&amp; 'D:\gpt\machine_learning\.venv-project-a\Scripts\python.exe' 'D:\gpt\machine_learning\学习实践\project-a\baseline.py'
+</code></pre>
+<p>上面这个 <code>baseline.py</code> 是学习时自行创建的项目入口示例，本次没有在该路径冒充生成你的作业。下面提供的环境烟测脚本则已经实际存在并运行通过。</p>
+<h2>2. 已验证的安装版本</h2>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>项目</th>
+<th>本次版本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Python</td>
+<td>3.12.7，Windows x64</td>
+</tr>
+<tr>
+<td>NumPy</td>
+<td>2.5.4</td>
+</tr>
+<tr>
+<td>SciPy</td>
+<td>1.18.1</td>
+</tr>
+<tr>
+<td>scikit-learn</td>
+<td>1.9.1</td>
+</tr>
+<tr>
+<td>Matplotlib</td>
+<td>3.11.2</td>
+</tr>
+<tr>
+<td>pip</td>
+<td>24.2</td>
+</tr>
+</tbody>
+</table></div>
+<p>这些版本由pip在官方PyPI上解析可用的兼容二进制包后安装，不是从旧环境混拷文件。全部直接和间接运行依赖已记录在 <a href="../course/requirements-project-a.txt">requirements-project-a.txt</a>。这是本次Windows/Python 3.12环境的版本锁定记录，不声称任意系统都可原样复现。</p>
+<p>安装遵循 <a href="https://scikit-learn.org/stable/install.html">scikit-learn官方安装说明</a>、<a href="https://docs.python.org/3/library/venv.html">Python venv说明</a>及<a href="https://matplotlib.org/stable/install/index.html">Matplotlib安装说明</a>。本次先确认目标目录不存在，再创建；没有覆盖既有用户环境。</p>
+<h2>3. 一条命令复核环境入口</h2>
+<pre><code class="language-powershell">&amp; 'D:\gpt\machine_learning\.venv-project-a\Scripts\python.exe' -I 'D:\gpt\machine_learning\学习包\course\verification_project_a_20261023\smoke_project_a.py'
+&amp; 'D:\gpt\machine_learning\.venv-project-a\Scripts\python.exe' -I -m pip --isolated check
+</code></pre>
+<p><code>-I</code>是隔离运行选项，避免用户路径和Python环境变量把旧包带进这次检查。脚本会重新生成同一目录内的烟测结果、划分记录和绘图，不会读取或修改你的正式项目作业，也不进行最终测试集预测。重新执行会更新该烟测目录中的结果文件；正式项目应另存自己的运行目录。</p>
+<p>通过时结尾包含：</p>
+<pre><code class="language-text">SCALER_TRAINING_SCOPE=PASS FINAL_TEST_METRICS=NOT_COMPUTED
+MATPLOTLIB_AGG_RENDER=PASS
+PROJECT_A_ENVIRONMENT_SMOKE_PASS
+No broken requirements found.
+</code></pre>
+<h2>4. 本次实际验证记录</h2>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>检查</th>
+<th>实际结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>新环境包隔离</td>
+<td>Python前缀指向<code>.venv-project-a</code>；无pandas、无torch</td>
+</tr>
+<tr>
+<td>加载digits</td>
+<td>1797个样本、64个特征</td>
+</tr>
+<tr>
+<td>完全相同图像检查</td>
+<td>1797个唯一图像，0个重复组</td>
+</tr>
+<tr>
+<td>固定初始划分</td>
+<td>1077训练、360验证、360最终测试</td>
+</tr>
+<tr>
+<td>开发数据规模</td>
+<td>1437，5折仅使用这部分数据</td>
+</tr>
+<tr>
+<td>多数类验证准确率</td>
+<td>0.102778</td>
+</tr>
+<tr>
+<td>逻辑回归验证准确率</td>
+<td>0.972222</td>
+</tr>
+<tr>
+<td>逻辑回归验证macro-F1</td>
+<td>0.972375</td>
+</tr>
+<tr>
+<td>逻辑回归验证log loss</td>
+<td>0.100269</td>
+</tr>
+<tr>
+<td>5折开发平均准确率</td>
+<td>0.967995</td>
+</tr>
+<tr>
+<td>5折开发平均macro-F1</td>
+<td>0.967880</td>
+</tr>
+<tr>
+<td>5折开发平均log loss</td>
+<td>0.108092</td>
+</tr>
+<tr>
+<td>Scaler拟合范围</td>
+<td>单验证与全部5折均核对仅使用对应训练样本</td>
+</tr>
+<tr>
+<td>训练收敛</td>
+<td>没有ConvergenceWarning</td>
+</tr>
+<tr>
+<td>绘图</td>
+<td>Agg后端PNG成功生成</td>
+</tr>
+<tr>
+<td>依赖一致性</td>
+<td><code>pip check</code>通过</td>
+</tr>
+<tr>
+<td>最终测试</td>
+<td>保存索引，未预测、未计算指标</td>
+</tr>
+</tbody>
+</table></div>
+<p>配置为 <code>StandardScaler()</code> 与 <code>LogisticRegression(C=1, max_iter=2000, solver='lbfgs')</code> 的Pipeline，固定种子42，分层5折，单进程运行。正式项目若出现重复图像，应先按图像分组，再保持组不跨训练和评估；本次原始digits不存在完全重复图像，因此使用分层划分。</p>
+<p>这些数字是<strong>环境与调用流程烟测</strong>，用于证明库能加载、拟合、评估和绘图。它们不是你已经完成的项目A交付，也不是模型搜索后的最终成绩。没有测试集指标、神经网络对照、完整误差分析或你的独立讲解证据，不能直接把本表复制成结课报告。</p>
+<p>原始证据位于 <a href="../course/verification_project_a_20261023/">verification_project_a_20261023</a>：</p>
+<ul>
+<li><a href="../course/verification_project_a_20261023/pip-install.log">安装日志</a>、<a href="../course/verification_project_a_20261023/pip-install-report.json">pip下载版本与哈希报告</a>。</li>
+<li><a href="../course/verification_project_a_20261023/smoke.log">运行输出</a>、<a href="../course/verification_project_a_20261023/results.json">结构化结果</a>、<a href="../course/verification_project_a_20261023/environment.json">环境版本</a>。</li>
+<li><a href="../course/verification_project_a_20261023/split_indices.json">固定划分与各折索引</a>、<a href="../course/verification_project_a_20261023/warnings.log">警告记录</a>、<a href="../course/verification_project_a_20261023/pip-check.log">依赖检查</a>。</li>
+<li><a href="../course/verification_project_a_20261023/development_cv_smoke.png">绘图烟测</a>。</li>
+</ul>
+<h2>5. 常见问题</h2>
+<p><strong>仍出现原来的dtype size错误。</strong> 先打印<code>sys.executable</code>，检查是否确实是<code>.venv-project-a\Scripts\python.exe</code>。只修改命令行提示符或文件名不会切换解释器；编辑器中也要选择同一路径。不要把旧环境的site-packages或DLL复制进来。</p>
+<p><strong>提示没有torch或pandas。</strong> 本环境有意只安装本阶段传统机器学习所需的包；digits、Pipeline、NumPy与Matplotlib均不需要这两个包。PyTorch示例需要课程已有PyTorch环境，后续若要把digits与PyTorch整合到一个训练环境，再按设备和官方版本要求单独配置。</p>
+<p><strong>PowerShell拒绝Activate.ps1。</strong> 本说明使用完整路径直接调用Python，无须激活脚本，无须降低系统执行策略。</p>
+<p><strong>没有弹出图形窗口。</strong> 烟测使用Agg后端，把图写成PNG，这是为了验证绘图能力而不依赖桌面窗口。打开生成的PNG查看即可；交互式窗口属于单独的GUI后端设置。</p>
+<p><strong>需要重建环境。</strong> 保留依赖锁定文件，使用同版本Python在一个新的、确认不存在的目录创建venv，再通过该新目录的Python安装<code>requirements-project-a.txt</code>。不在已有环境上使用<code>--clear</code>，不先删除当前环境。虚拟环境含基础解释器路径，搬动目录不等于可靠重建。</p>
+<p><strong>结果末位数字略有变化。</strong> 先核对版本、划分与配置。浮点库、CPU线程及平台可能改变末位；烟测保存所有折结果和完整设置，不能只追逐某个小数。最终项目仍按相同开发协议和事先声明的容差验收。</p>
+</main></body></html>

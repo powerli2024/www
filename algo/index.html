@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="description" content="算法设计与分析：完整讲义、数学推导、逐步动画与独立思考训练。离线学习，无需登录。">
+ <meta name="color-scheme" content="light">
+ <title>算法 · 思考实验室</title>
+ <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+ <link rel="stylesheet" href="assets/vendor/katex/dist/katex.min.css">
+ <link rel="stylesheet" href="assets/style.css">
+ <script defer src="assets/content.js"></script>
+ <script defer src="assets/labs-foundations.js"></script>
+ <script defer src="assets/labs-graphs-dp.js"></script>
+ <script defer src="assets/labs-advanced.js"></script>
+ <script defer src="assets/app.js"></script>
+</head>
+<body>
+ <a class="skip-link" href="#main">跳到正文</a>
+ <aside id="sidebar" aria-label="课程导航">
+  <a class="brand" href="#home" aria-label="算法思考实验室首页"><span class="brand-mark">∑</span><span>算法<span class="brand-sub">思考实验室</span></span></a>
+  <div class="rail-note">DESIGN · REASON · VERIFY</div>
+  <label class="search-wrap"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="搜索概念或课程" aria-label="搜索课程与讲义"></label>
+  <div id="search-status" role="status"></div>
+  <nav id="nav"></nav>
+  <div class="rail-bottom"><span class="offline-dot"></span>本地学习 · 无需联网<button id="export" class="text-btn" title="导出笔记与验收记录">导出记录 ↗</button><label class="text-btn import-label">导入记录<input id="import" type="file" accept="application/json" hidden></label></div>
+ </aside>
+ <div class="page-shell">
+  <header class="topbar"><button id="menu-toggle" class="icon-btn" aria-label="展开课程导航" aria-expanded="false">☰</button><a href="#home" class="crumb">算法设计与分析</a><span class="top-tag">以理解为目标，以考试为底线</span><button class="text-btn" id="focus-toggle" aria-pressed="false">专注阅读</button></header>
+  <main id="main" tabindex="-1"></main>
+  <footer>先预测，再观察，再解释。<span>教学参考 · 2026.10.23 · <a href="README.md">使用说明</a></span></footer>
+ </div>
+ <div id="toast" role="status" class="toast" hidden></div>
+ <noscript><p>此学习网页需要启用 JavaScript。原始 Markdown 讲义仍可直接阅读。</p></noscript>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-23",
+  "status": "passed",
+  "lessons": 15,
+  "documents": 7,
+  "presets": 32,
+  "frames": 647,
+  "predictions": 86,
+  "formulas": 15,
+  "links": 122,
+  "runtimeAssets": 9,
+  "fontFiles": 60,
+  "sourceFiles": 22,
+  "unchangedOriginals": 41,
+  "scope": "静态资源、公式生成、完整内容、内链、预设契约、原件哈希；算法值另见三个独立对照测试；不等于file协议浏览器实测或用户掌握。"
+}

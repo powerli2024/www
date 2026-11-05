@@ -1,0 +1,12 @@
+{
+  "katex": {
+    "version": "0.19.0",
+    "url": "https://registry.npmjs.org/katex/-/katex-0.19.0.tgz",
+    "sha256_archive": "d8e49f2fea6eeed7cdae2cf4fd48e2f1d348758aa9e5740715e4533c2c96d1ee"
+  },
+  "marked": {
+    "version": "17.0.5",
+    "source": "bundled runtime; local copy"
+  },
+  "runtime_network_requests": false
+}

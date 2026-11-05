@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-23",
+  "browser": "Codex in-app browser, local HTTP preview",
+  "status": "passed_with_documented_limit",
+  "lesson_read_pages": 15,
+  "support_document_pages": 7,
+  "experiment_presets_reached_final_state": 32,
+  "core_formula_blocks_rendered": 15,
+  "application_console_errors_observed": 0,
+  "checks": [
+    "15课完整讲义、15处核心公式与后置答案折叠",
+    "32预设在浏览器中切换、重建、通过时间轴到达末帧",
+    "预测未作答时单步被阻止，主动展开解析后可继续",
+    "播放与暂停按钮状态切换",
+    "笔记刷新后保留，导出JSON后导入恢复，核验笔记已恢复为空",
+    "空验收表单不产生记录；核验未产生任何掌握记录",
+    "全文搜索负环找到6份相关讲义/文档",
+    "1280像素桌面首页与390像素阅读/实验窄屏检查，无整页水平溢出",
+    "原始Markdown与课程文档链接由静态文件存在性检查补充验证"
+  ],
+  "limitations": [
+    "浏览器安全策略仅允许HTTP/HTTPS，拒绝file协议导航；没有绕过限制，未实测双击本地index.html",
+    "全部运行依赖已检查为本地文件；HTTP预览只绑定127.0.0.1，验证结束后关闭",
+    "未对每一帧和每一种设备做人工视觉审阅；算法轨迹另有有限oracle与不变量测试",
+    "验证记录不表示学习者已经掌握，也不等于学校官方答案核验"
+  ],
+  "screenshots": ["screenshots/home-desktop.jpg", "screenshots/reading-mobile.jpg", "screenshots/flow-desktop.jpg"]
+}

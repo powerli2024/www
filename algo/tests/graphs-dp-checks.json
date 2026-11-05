@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "presets": 8,
+  "presetFrames": 167,
+  "renderedFrames": 167,
+  "knapsackCases": 1554,
+  "lcsCases": 228,
+  "forestCases": 732,
+  "shortestCases": 798,
+  "negativeCases": 40,
+  "boundaryChecks": 10,
+  "evidenceBoundary": "有限输入的算法值、状态轨迹、快照隔离、预测时机和渲染参数核验；不等于浏览器布局、用户掌握或所有输入证明。"
+}

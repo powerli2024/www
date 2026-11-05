@@ -1,0 +1,122 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>研究协议：先写怎样会失败，再开始正式比较</title><link rel="stylesheet" href="../assets/reader.css"></head><body class="static-reader"><main><p><a href="../index.html#week-21">返回交互课程</a></p><div class="eyebrow">第21周 / 静态讲义</div><h1>研究协议：先写怎样会失败，再开始正式比较</h1><section class="lesson-section" id="w21-section-1"><h2><span class="section-number">01</span>一个研究问题必须有可能得到否定答案</h2><p>“证明LoRA有效”不是合适的问题，因为它把期望答案写进目标。可操作的问题是：在固定基础检查点、颜色置换域与本次搜索预算下，LoRA相对全量微调是否更少遗忘，代价是否为更少新域收益？这句话限定了模型、数据、预算和两个方向，也容许结果不支持预测。</p>
+<p>把预测写成两条独立陈述：LoRA减全量的平均遗忘差预计小于0；LoRA减全量的平均收益差预计小于0。任一差为正就不支持对应方向；差接近零且波动大则证据不足，不能硬说“基本证明”。描述性预测不自动等于正式统计检验，只有3次重复时尤其需要谨慎。</p>
+<p>先规定一个有意义的差异尺度，例如0.02个自然对数损失单位只是本项目讨论阈值，不能冒充统计显著性界限。领域实际价值、数值测量容差和统计不确定性是三件事。可说差异小到本项目暂不据此选择，也可保留连续数值让读者判断，不要把所有信息压成通过或失败。</p>
+<p>主指标和辅助指标要分工：新域收益与旧域遗忘回答学习取舍；资源回答成本；固定前缀补全展示行为。生成样本不能替代平均损失，也不能在看到图更好后把原先定义的主问题改成“美观”。探索性发现可以另列，明确它不是预先问题。</p>
+<aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>让预测能够被反驳</h3><ol><li><p>预测：LoRA平均遗忘比全量少，记差值D_F=F_LoRA−F_full。</p>
+</li><li><p>如果得到D_F=+0.04，应写该设定未支持“更少遗忘”，并核查测量和运行记录。</p>
+</li><li><p>如果D_F=−0.003而各次方向不同，应完整展示差值，避免把微小负均值包装成稳定规律。</p>
+</li></ol><div class="worked-result"><p>失败不意味着课程失败；无法说明什么结果会反驳自己，才说明问题尚未写清。</p>
+</div></aside></section><section class="lesson-section" id="w21-section-2"><h2><span class="section-number">02</span>两页协议具体写什么</h2><p>第一页写对象和方法：数据来源版本、原始组ID划分、颜色置换、词表、基础检查点哈希、插入层与偏置策略。列出不适配、全量、LoRA的实现版本和全部候选。第二页写预算、主指标、选择规则、种子、失败定义、最终测试时点与结果文件字段。每个字段都应让另一个人不靠聊天记录也能运行。</p>
+<p>冻结有顺序：先冻结开发搜索协议，使用开发数据选择配置；再冻结选中配置与重复种子，做重复实验；最后固定所有主比较后才读取测试结果。冻结不是禁止排错：若发现实现错误，记录变更原因和受影响运行，创建新协议版本并重跑相应部分。不能在看过测试后改规则却继续称同一次最终评价。</p>
+<p>每个运行记录唯一ID。基础检查点相同写同一哈希，随机种子、批次顺序标识和配置文件单独存。实际token、时间和峰值资源来自日志，不用预算上限代替实测。失败规则可包括非有限损失、资源超限、来源划分冲突、缺失结果；训练完成但表现差仍是有效结果。</p>
+<p>程序检查的是协议中的少量机器可判定条件：搜索候选数相同、正预算、至少3个不同重复种子、三类来源组无交集、测试仍封存。它无法替你判断研究假设是否有意义，也无法仅凭一个字符串证明基础文件哈希正确。软件检查与人工审阅应互补，别把PASS写成研究已有效。</p>
+<aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>预算提前算清</h3><ol><li><p>开发搜索12个候选，每个100更新步，每步128个计分token：12×100×128=153600。</p>
+</li><li><p>选定全量与LoRA各一组后，用3个新配对种子重复：2×3×100×128=76800。</p>
+</li><li><p>合计230400训练token；不适配无需训练，但其评价时间另计。</p>
+</li></ol><div class="worked-result"><p>搜索、正式重复与最终评价是不同阶段，必须分别记预算和实际消耗。</p>
+</div></aside></section><section class="lesson-section" id="w21-section-3"><h2><span class="section-number">03</span>从协议检查失败走到明确的修复动作</h2><p>若检查发现来源交集，立即停止后续训练；用原始组清单重新划分，并使所有变换版本继承新用途。若此前据此挑过配置，重新执行受影响的开发选择。若只差一个说明字段，可补充原始证据，但不能事后编造不存在的日志。每项修复标注是数据、实现、记录还是预算的变更。</p>
+<p>若两种方法候选数不等，先看是否误把秩与学习率的组合漏数。恢复公平预算或明确更改研究问题，比如“在不同资源预算下的表现”，并在实际比较前冻结这个新问题。不把额外调参隐去。若资源不足完成全部计划，可缩小双方预算，再创建新版本；不要单方面只缩减表现差的方法。</p>
+<p>本周用模板写一段可直接使用的研究摘要：我们固定某基础检查点，在相同来源划分和颜色置换上比较三类方法；根据A开发遗忘上限选择B开发损失最小的配置；以三个固定配对适配种子估计变化；最终A/B测试在第23周打开；结论仅覆盖该模型、变换和预算。把“某”替换成可查ID后就形成可执行摘要。</p>
+<p>最后进行一次反向审阅：只读协议，不看已有图表，能否知道每张预期结果图怎么产生？如果不能，补评分位置、分母、失败处理或选择规则，而不是增加更多形容词。用一小时口述给自己听，无法讲明的字段往往也是复跑会失败的地方。</p>
+<aside class="worked"><div class="eyebrow">一起算一个例子</div><h3>故意破坏协议，再验证拒绝</h3><ol><li><p>把LoRA候选数从6改成12，同时把训练组g0加入测试。</p>
+</li><li><p>检查器应同时返回unequal_search_budget与group_leakage，而不是只检查到第一个错误就宣称其余安全。</p>
+</li><li><p>恢复候选数和分组后再次检查，通过仅说明这些约束成立。</p>
+</li></ol><div class="worked-result"><p>拒绝路径能让检查器的作用可观察；人工还要审阅数据内容、配置真实性和问题价值。</p>
+</div></aside></section><h2>Python与C++机制示例</h2><p>下面的小程序验证关键机制；完整项目须按本周交付要求另行完成。</p><h3>Python</h3><pre><code>&quot;&quot;&quot;Validate a small protocol fixture before any final test is opened.&quot;&quot;&quot;
+import copy
+
+# STEP 1
+protocol = dict(base=&quot;base-v1&quot;, full_candidates=6, lora_candidates=6,
+                steps=100, tokens_per_step=128, seeds=[11,22,33],
+                train={&quot;g0&quot;,&quot;g1&quot;}, valid={&quot;g2&quot;}, test={&quot;g3&quot;}, test_locked=True)
+
+# STEP 2
+def check(p):
+    errors = []
+    if not p[&quot;base&quot;]: errors.append(&quot;missing_base&quot;)
+    if p[&quot;full_candidates&quot;] != p[&quot;lora_candidates&quot;]: errors.append(&quot;unequal_search_budget&quot;)
+    if p[&quot;steps&quot;] &lt;= 0 or p[&quot;tokens_per_step&quot;] &lt;= 0: errors.append(&quot;invalid_training_budget&quot;)
+    if len(set(p[&quot;seeds&quot;])) != len(p[&quot;seeds&quot;]) or len(p[&quot;seeds&quot;]) &lt; 3: errors.append(&quot;invalid_seeds&quot;)
+    if p[&quot;train&quot;] &amp; p[&quot;valid&quot;] or p[&quot;train&quot;] &amp; p[&quot;test&quot;] or p[&quot;valid&quot;] &amp; p[&quot;test&quot;]: errors.append(&quot;group_leakage&quot;)
+    if not p[&quot;test_locked&quot;]: errors.append(&quot;test_already_opened&quot;)
+    return errors
+
+# STEP 3
+assert check(protocol) == []
+bad = copy.deepcopy(protocol)
+bad[&quot;lora_candidates&quot;] = 12
+bad[&quot;test&quot;].add(&quot;g0&quot;)
+errors = check(bad)
+assert errors == [&quot;unequal_search_budget&quot;, &quot;group_leakage&quot;]
+search_tokens = 12 * protocol[&quot;steps&quot;] * protocol[&quot;tokens_per_step&quot;]
+repeat_tokens = 2 * len(protocol[&quot;seeds&quot;]) * protocol[&quot;steps&quot;] * protocol[&quot;tokens_per_step&quot;]
+
+# STEP 4
+print(&quot;PROTOCOL FIXTURE; no experiments performed&quot;)
+print(&quot;valid_protocol=PASS&quot;)
+print(&quot;rejected=&quot; + &quot;,&quot;.join(errors))
+print(f&quot;search_tokens={search_tokens} repeat_tokens={repeat_tokens} total={search_tokens+repeat_tokens}&quot;)
+</code></pre><h3>C++</h3><pre><code>// Validate a small protocol fixture before any final test is opened.
+#include &lt;cassert&gt;
+#include &lt;iostream&gt;
+#include &lt;set&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+// STEP 1
+struct Protocol {
+    std::string base; int full_candidates,lora_candidates,steps,tokens_per_step;
+    std::vector&lt;int&gt; seeds; std::set&lt;std::string&gt; train,valid,test; bool test_locked;
+};
+bool overlap(const std::set&lt;std::string&gt;&amp; a,const std::set&lt;std::string&gt;&amp; b) {
+    for(const auto&amp; id:a) if(b.count(id)) return true;
+    return false;
+}
+// STEP 2
+std::vector&lt;std::string&gt; check(const Protocol&amp; p) {
+    std::vector&lt;std::string&gt; errors;
+    if(p.base.empty()) errors.push_back(&quot;missing_base&quot;);
+    if(p.full_candidates!=p.lora_candidates) errors.push_back(&quot;unequal_search_budget&quot;);
+    if(p.steps&lt;=0 || p.tokens_per_step&lt;=0) errors.push_back(&quot;invalid_training_budget&quot;);
+    if(std::set&lt;int&gt;(p.seeds.begin(),p.seeds.end()).size()!=p.seeds.size() || p.seeds.size()&lt;3) errors.push_back(&quot;invalid_seeds&quot;);
+    if(overlap(p.train,p.valid)||overlap(p.train,p.test)||overlap(p.valid,p.test)) errors.push_back(&quot;group_leakage&quot;);
+    if(!p.test_locked) errors.push_back(&quot;test_already_opened&quot;);
+    return errors;
+}
+int main() {
+    Protocol protocol{&quot;base-v1&quot;,6,6,100,128,{11,22,33},{&quot;g0&quot;,&quot;g1&quot;},{&quot;g2&quot;},{&quot;g3&quot;},true};
+    // STEP 3
+    assert(check(protocol).empty());
+    Protocol bad=protocol; bad.lora_candidates=12; bad.test.insert(&quot;g0&quot;);
+    const auto errors=check(bad);
+    assert((errors==std::vector&lt;std::string&gt;{&quot;unequal_search_budget&quot;,&quot;group_leakage&quot;}));
+    const int search_tokens=12*protocol.steps*protocol.tokens_per_step;
+    const int repeat_tokens=2*int(protocol.seeds.size())*protocol.steps*protocol.tokens_per_step;
+    // STEP 4
+    std::cout&lt;&lt;&quot;PROTOCOL FIXTURE; no experiments performed\n&quot;;
+    std::cout&lt;&lt;&quot;valid_protocol=PASS\nrejected=&quot;;
+    for(std::size_t i=0;i&lt;errors.size();++i) std::cout&lt;&lt;(i?&quot;,&quot;:&quot;&quot;)&lt;&lt;errors[i];
+    std::cout&lt;&lt;&quot;\nsearch_tokens=&quot;&lt;&lt;search_tokens&lt;&lt;&quot; repeat_tokens=&quot;&lt;&lt;repeat_tokens&lt;&lt;&quot; total=&quot;&lt;&lt;search_tokens+repeat_tokens&lt;&lt;&#x27;\n&#x27;;
+}
+</code></pre><h3>逐步解释</h3><h4>协议是有名字的数据</h4><p>Python dict与C++ struct存相同字段；组ID用集合，种子用列表。字段名字明确训练上限与封存状态，避免位置混淆。</p>
+<p>自查：找到基础检查点标识和三个用途组。</p><h4>逐条收集错误</h4><p>check将每种违反条件加入错误列表，不静默修正。set去重用来检查种子唯一性，交集用于检测来源泄漏。</p>
+<p>自查：说明为什么三个相同种子不能算三个不同随机重复。</p><h4>有效与无效两个案例</h4><p>Python deepcopy避免修改坏例时污染原协议，C++值复制同样独立。故意加两个错误并核对完整错误列表，然后计算阶段预算。</p>
+<p>自查：手算230400训练token。</p><h4>输出条件式结论</h4><p>PASS只表示样例协议通过这些检查，没有运行实验或审定真实研究。完整工程还需读真实清单和实际文件，不只验证内存字段。</p>
+<p>自查：列出检查器无法判定的一件事。</p><h3>参考输出</h3><pre>PROTOCOL FIXTURE; no experiments performed
+valid_protocol=PASS
+rejected=unequal_search_budget,group_leakage
+search_tokens=153600 repeat_tokens=76800 total=230400</pre><h2>练习与参考答案</h2><h3>练习1</h3><p>基础：把“我想得到更漂亮的图”改成可检查问题。</p>
+<p>提示：</p><p>固定前缀、长度和评分规则。</p>
+<p>参考：</p><p>例如固定16个开发前缀、相同补全长度和采样预算，比较两种温度下结构无效比例及颜色重复率，并展示全部样本。先定义结构无效判据；主观美观若要评价，需独立评分规则与评审方式，不能只挑最好图。</p>
+<h3>练习2</h3><p>实践：开发阶段12次，每次200步、每步64token；正式重复6次同预算，合计多少？</p>
+<p>提示：</p><p>先分阶段乘，再相加。</p>
+<p>参考：</p><p>开发153600，重复76800，总230400。与正文相同不说明计算量必然相同，因为步数和微批组织不同；仍需实测时间与资源。</p>
+<h3>练习3</h3><p>迁移：测试后发现自己忘了计算旧域遗忘，可以补算吗？</p>
+<p>提示：</p><p>区分补充测量与重新选择。</p>
+<p>参考：</p><p>可保留原方案和全部旧结果，透明补充此前遗漏的描述性测量；不得利用该结果回头选配置并仍称首次独立测试。若据此修改方案，需要新开发版本与新的独立最终数据。</p>
+<h2>自测</h2><h3>1. 哪个问题可被结果反驳？</h3><ol type="A"><li>越高越好</li><li>在固定预算下遗忘差预计小于0</li><li>多读论文</li><li>证明我的方法最好</li></ol><p>参考：B</p><p>它有对象、条件和可观察方向。</p>
+<h3>2. 冻结协议后发现实现错误，应？</h3><ol type="A"><li>继续用错误结果</li><li>只删失败日志</li><li>隐藏修正</li><li>记录新版本并重跑受影响结果</li></ol><p>参考：D</p><p>冻结用于可追溯，而不是保留已知错误。</p>
+<h3>3. 检查器PASS能证明？</h3><ol type="A"><li>已实现的规则在输入字段上通过</li><li>真实模型已训练</li><li>假设一定正确</li><li>所有泄漏已绝对排除</li></ol><p>参考：A</p><p>它不能证明未检查的数据事实或科学有效性。</p>
+<h3>4. 测试结果应该何时参与主配置选择？</h3><ol type="A"><li>不参与</li><li>每次训练后</li><li>只有LoRA时</li><li>只用一次即可参与</li></ol><p>参考：A</p><p>最终测试用于冻结后评估，配置选择在开发阶段。</p>
+<h2>开放讲解题</h2><h3>解释可证伪与只希望结果好看之间的差别。</h3><p>可证伪假设事先说明观察到什么会不支持预测；结果好看是愿望。前者允许负结果并保留原问题，后者容易事后换指标。</p>
+<h3>两页协议给陌生人最重要的价值是什么？</h3><p>减少需要猜测的环节：输入与版本、训练范围、预算、选择规则、评价位置和失败处理均可明确执行，而不只是介绍研究背景。</p>
+<h2>交付物</h2><ul><li>冻结的两页协议与版本记录</li><li>有效和故意无效协议的检查输出</li><li>预算明细、运行ID模板与支持/不支持预测的判定例子</li></ul><h2>验收标准</h2><ul><li>可以明确说出至少一种会反驳预测的结果</li><li>数据、代码、配置、评价和失败记录各有可查字段</li><li>测试尚未打开，协议变更可追溯</li></ul><h2>来源与延伸</h2><ul><li><a href="https://arxiv.org/abs/2405.09673">LoRA Learns Less and Forgets Less（TMLR 2024）</a> — 2026-10-23核对；只借用新域学习与域外保留的比较问题，不把像素实验称为论文复现。</li><li><a href="https://arxiv.org/abs/2405.14782">Lessons from the Trenches on Reproducible Evaluation of Language Models</a> — 首发2024，核对版本为2026年修订v3；迁移其版本、评价设置与可追溯思想，不要求复现语言模型基准。</li></ul></main></body></html>

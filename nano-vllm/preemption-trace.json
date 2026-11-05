@@ -1,0 +1,1915 @@
+{
+  "commit": "bb823b3e06983d71485a8e1f23715ebd87d98ef8",
+  "fixture": {
+    "blockSize": 4,
+    "physicalBlocks": 3,
+    "prefillBudget": 12,
+    "maxScheduledSequences": 3,
+    "A": {
+      "prompt": 8,
+      "maxOutput": 4
+    },
+    "B": {
+      "prompt": 4,
+      "maxOutput": 3
+    }
+  },
+  "events": [
+    {
+      "round": 2,
+      "kind": "preempt",
+      "request": "B",
+      "before": {
+        "sequences": {
+          "A": {
+            "status": "RUNNING",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101
+            ],
+            "length": 9,
+            "promptLength": 8,
+            "generated": 1,
+            "cached": 8,
+            "scheduled": 0,
+            "table": [
+              0,
+              1
+            ]
+          },
+          "B": {
+            "status": "RUNNING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201
+            ],
+            "length": 5,
+            "promptLength": 4,
+            "generated": 1,
+            "cached": 4,
+            "scheduled": 0,
+            "table": [
+              2
+            ]
+          }
+        },
+        "waiting": [],
+        "running": [],
+        "free": [],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 1,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "hash": "0x87884241753df3e",
+            "indexed": true
+          },
+          {
+            "id": 2,
+            "refs": 1,
+            "tokens": [
+              21,
+              22,
+              23,
+              24
+            ],
+            "hash": "0xee3bd2b0a7289421",
+            "indexed": true
+          }
+        ]
+      },
+      "after": {
+        "sequences": {
+          "A": {
+            "status": "RUNNING",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101
+            ],
+            "length": 9,
+            "promptLength": 8,
+            "generated": 1,
+            "cached": 8,
+            "scheduled": 0,
+            "table": [
+              0,
+              1
+            ]
+          },
+          "B": {
+            "status": "WAITING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201
+            ],
+            "length": 5,
+            "promptLength": 4,
+            "generated": 1,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          }
+        },
+        "waiting": [
+          "B"
+        ],
+        "running": [],
+        "free": [
+          2
+        ],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 1,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "hash": "0x87884241753df3e",
+            "indexed": true
+          },
+          {
+            "id": 2,
+            "refs": 0,
+            "tokens": [
+              21,
+              22,
+              23,
+              24
+            ],
+            "hash": "0xee3bd2b0a7289421",
+            "indexed": true
+          }
+        ]
+      }
+    }
+  ],
+  "frames": [
+    {
+      "round": 0,
+      "phase": "ready",
+      "state": {
+        "sequences": {
+          "A": {
+            "status": "WAITING",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "length": 8,
+            "promptLength": 8,
+            "generated": 0,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          },
+          "B": {
+            "status": "WAITING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24
+            ],
+            "length": 4,
+            "promptLength": 4,
+            "generated": 0,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          }
+        },
+        "waiting": [
+          "A",
+          "B"
+        ],
+        "running": [],
+        "free": [
+          0,
+          1,
+          2
+        ],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 0,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          },
+          {
+            "id": 1,
+            "refs": 0,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          },
+          {
+            "id": 2,
+            "refs": 0,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          }
+        ]
+      }
+    },
+    {
+      "round": 1,
+      "phase": "prefill",
+      "before": {
+        "sequences": {
+          "A": {
+            "status": "WAITING",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "length": 8,
+            "promptLength": 8,
+            "generated": 0,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          },
+          "B": {
+            "status": "WAITING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24
+            ],
+            "length": 4,
+            "promptLength": 4,
+            "generated": 0,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          }
+        },
+        "waiting": [
+          "A",
+          "B"
+        ],
+        "running": [],
+        "free": [
+          0,
+          1,
+          2
+        ],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 0,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          },
+          {
+            "id": 1,
+            "refs": 0,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          },
+          {
+            "id": 2,
+            "refs": 0,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          }
+        ]
+      },
+      "scheduled": [
+        {
+          "request": "A",
+          "inputs": 8,
+          "inputTokens": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "generatedBefore": 0
+        },
+        {
+          "request": "B",
+          "inputs": 4,
+          "inputTokens": [
+            21,
+            22,
+            23,
+            24
+          ],
+          "generatedBefore": 0
+        }
+      ],
+      "afterSchedule": {
+        "sequences": {
+          "A": {
+            "status": "RUNNING",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "length": 8,
+            "promptLength": 8,
+            "generated": 0,
+            "cached": 0,
+            "scheduled": 8,
+            "table": [
+              0,
+              1
+            ]
+          },
+          "B": {
+            "status": "RUNNING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24
+            ],
+            "length": 4,
+            "promptLength": 4,
+            "generated": 0,
+            "cached": 0,
+            "scheduled": 4,
+            "table": [
+              2
+            ]
+          }
+        },
+        "waiting": [],
+        "running": [
+          "A",
+          "B"
+        ],
+        "free": [],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 1,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          },
+          {
+            "id": 2,
+            "refs": 1,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          }
+        ]
+      },
+      "sampled": {
+        "A": 101,
+        "B": 201
+      },
+      "state": {
+        "sequences": {
+          "A": {
+            "status": "RUNNING",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101
+            ],
+            "length": 9,
+            "promptLength": 8,
+            "generated": 1,
+            "cached": 8,
+            "scheduled": 0,
+            "table": [
+              0,
+              1
+            ]
+          },
+          "B": {
+            "status": "RUNNING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201
+            ],
+            "length": 5,
+            "promptLength": 4,
+            "generated": 1,
+            "cached": 4,
+            "scheduled": 0,
+            "table": [
+              2
+            ]
+          }
+        },
+        "waiting": [],
+        "running": [
+          "A",
+          "B"
+        ],
+        "free": [],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 1,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "hash": "0x87884241753df3e",
+            "indexed": true
+          },
+          {
+            "id": 2,
+            "refs": 1,
+            "tokens": [
+              21,
+              22,
+              23,
+              24
+            ],
+            "hash": "0xee3bd2b0a7289421",
+            "indexed": true
+          }
+        ]
+      }
+    },
+    {
+      "round": 2,
+      "phase": "decode",
+      "before": {
+        "sequences": {
+          "A": {
+            "status": "RUNNING",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101
+            ],
+            "length": 9,
+            "promptLength": 8,
+            "generated": 1,
+            "cached": 8,
+            "scheduled": 0,
+            "table": [
+              0,
+              1
+            ]
+          },
+          "B": {
+            "status": "RUNNING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201
+            ],
+            "length": 5,
+            "promptLength": 4,
+            "generated": 1,
+            "cached": 4,
+            "scheduled": 0,
+            "table": [
+              2
+            ]
+          }
+        },
+        "waiting": [],
+        "running": [
+          "A",
+          "B"
+        ],
+        "free": [],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 1,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "hash": "0x87884241753df3e",
+            "indexed": true
+          },
+          {
+            "id": 2,
+            "refs": 1,
+            "tokens": [
+              21,
+              22,
+              23,
+              24
+            ],
+            "hash": "0xee3bd2b0a7289421",
+            "indexed": true
+          }
+        ]
+      },
+      "scheduled": [
+        {
+          "request": "A",
+          "inputs": 1,
+          "inputTokens": [
+            101
+          ],
+          "generatedBefore": 1
+        }
+      ],
+      "afterSchedule": {
+        "sequences": {
+          "A": {
+            "status": "RUNNING",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101
+            ],
+            "length": 9,
+            "promptLength": 8,
+            "generated": 1,
+            "cached": 8,
+            "scheduled": 1,
+            "table": [
+              0,
+              1,
+              2
+            ]
+          },
+          "B": {
+            "status": "WAITING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201
+            ],
+            "length": 5,
+            "promptLength": 4,
+            "generated": 1,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          }
+        },
+        "waiting": [
+          "B"
+        ],
+        "running": [
+          "A"
+        ],
+        "free": [],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 1,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "hash": "0x87884241753df3e",
+            "indexed": true
+          },
+          {
+            "id": 2,
+            "refs": 1,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          }
+        ]
+      },
+      "sampled": {
+        "A": 102
+      },
+      "state": {
+        "sequences": {
+          "A": {
+            "status": "RUNNING",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101,
+              102
+            ],
+            "length": 10,
+            "promptLength": 8,
+            "generated": 2,
+            "cached": 9,
+            "scheduled": 0,
+            "table": [
+              0,
+              1,
+              2
+            ]
+          },
+          "B": {
+            "status": "WAITING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201
+            ],
+            "length": 5,
+            "promptLength": 4,
+            "generated": 1,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          }
+        },
+        "waiting": [
+          "B"
+        ],
+        "running": [
+          "A"
+        ],
+        "free": [],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 1,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "hash": "0x87884241753df3e",
+            "indexed": true
+          },
+          {
+            "id": 2,
+            "refs": 1,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          }
+        ]
+      }
+    },
+    {
+      "round": 3,
+      "phase": "decode",
+      "before": {
+        "sequences": {
+          "A": {
+            "status": "RUNNING",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101,
+              102
+            ],
+            "length": 10,
+            "promptLength": 8,
+            "generated": 2,
+            "cached": 9,
+            "scheduled": 0,
+            "table": [
+              0,
+              1,
+              2
+            ]
+          },
+          "B": {
+            "status": "WAITING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201
+            ],
+            "length": 5,
+            "promptLength": 4,
+            "generated": 1,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          }
+        },
+        "waiting": [
+          "B"
+        ],
+        "running": [
+          "A"
+        ],
+        "free": [],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 1,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "hash": "0x87884241753df3e",
+            "indexed": true
+          },
+          {
+            "id": 2,
+            "refs": 1,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          }
+        ]
+      },
+      "scheduled": [
+        {
+          "request": "A",
+          "inputs": 1,
+          "inputTokens": [
+            102
+          ],
+          "generatedBefore": 2
+        }
+      ],
+      "afterSchedule": {
+        "sequences": {
+          "A": {
+            "status": "RUNNING",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101,
+              102
+            ],
+            "length": 10,
+            "promptLength": 8,
+            "generated": 2,
+            "cached": 9,
+            "scheduled": 1,
+            "table": [
+              0,
+              1,
+              2
+            ]
+          },
+          "B": {
+            "status": "WAITING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201
+            ],
+            "length": 5,
+            "promptLength": 4,
+            "generated": 1,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          }
+        },
+        "waiting": [
+          "B"
+        ],
+        "running": [
+          "A"
+        ],
+        "free": [],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 1,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "hash": "0x87884241753df3e",
+            "indexed": true
+          },
+          {
+            "id": 2,
+            "refs": 1,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          }
+        ]
+      },
+      "sampled": {
+        "A": 103
+      },
+      "state": {
+        "sequences": {
+          "A": {
+            "status": "RUNNING",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101,
+              102,
+              103
+            ],
+            "length": 11,
+            "promptLength": 8,
+            "generated": 3,
+            "cached": 10,
+            "scheduled": 0,
+            "table": [
+              0,
+              1,
+              2
+            ]
+          },
+          "B": {
+            "status": "WAITING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201
+            ],
+            "length": 5,
+            "promptLength": 4,
+            "generated": 1,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          }
+        },
+        "waiting": [
+          "B"
+        ],
+        "running": [
+          "A"
+        ],
+        "free": [],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 1,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "hash": "0x87884241753df3e",
+            "indexed": true
+          },
+          {
+            "id": 2,
+            "refs": 1,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          }
+        ]
+      }
+    },
+    {
+      "round": 4,
+      "phase": "decode",
+      "before": {
+        "sequences": {
+          "A": {
+            "status": "RUNNING",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101,
+              102,
+              103
+            ],
+            "length": 11,
+            "promptLength": 8,
+            "generated": 3,
+            "cached": 10,
+            "scheduled": 0,
+            "table": [
+              0,
+              1,
+              2
+            ]
+          },
+          "B": {
+            "status": "WAITING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201
+            ],
+            "length": 5,
+            "promptLength": 4,
+            "generated": 1,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          }
+        },
+        "waiting": [
+          "B"
+        ],
+        "running": [
+          "A"
+        ],
+        "free": [],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 1,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "hash": "0x87884241753df3e",
+            "indexed": true
+          },
+          {
+            "id": 2,
+            "refs": 1,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          }
+        ]
+      },
+      "scheduled": [
+        {
+          "request": "A",
+          "inputs": 1,
+          "inputTokens": [
+            103
+          ],
+          "generatedBefore": 3
+        }
+      ],
+      "afterSchedule": {
+        "sequences": {
+          "A": {
+            "status": "RUNNING",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101,
+              102,
+              103
+            ],
+            "length": 11,
+            "promptLength": 8,
+            "generated": 3,
+            "cached": 10,
+            "scheduled": 1,
+            "table": [
+              0,
+              1,
+              2
+            ]
+          },
+          "B": {
+            "status": "WAITING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201
+            ],
+            "length": 5,
+            "promptLength": 4,
+            "generated": 1,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          }
+        },
+        "waiting": [
+          "B"
+        ],
+        "running": [
+          "A"
+        ],
+        "free": [],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 1,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "hash": "0x87884241753df3e",
+            "indexed": true
+          },
+          {
+            "id": 2,
+            "refs": 1,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          }
+        ]
+      },
+      "sampled": {
+        "A": 104
+      },
+      "state": {
+        "sequences": {
+          "A": {
+            "status": "FINISHED",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101,
+              102,
+              103,
+              104
+            ],
+            "length": 12,
+            "promptLength": 8,
+            "generated": 4,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          },
+          "B": {
+            "status": "WAITING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201
+            ],
+            "length": 5,
+            "promptLength": 4,
+            "generated": 1,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          }
+        },
+        "waiting": [
+          "B"
+        ],
+        "running": [],
+        "free": [
+          2,
+          1,
+          0
+        ],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 0,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 0,
+            "tokens": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "hash": "0x87884241753df3e",
+            "indexed": true
+          },
+          {
+            "id": 2,
+            "refs": 0,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          }
+        ]
+      }
+    },
+    {
+      "round": 5,
+      "phase": "prefill",
+      "before": {
+        "sequences": {
+          "A": {
+            "status": "FINISHED",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101,
+              102,
+              103,
+              104
+            ],
+            "length": 12,
+            "promptLength": 8,
+            "generated": 4,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          },
+          "B": {
+            "status": "WAITING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201
+            ],
+            "length": 5,
+            "promptLength": 4,
+            "generated": 1,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          }
+        },
+        "waiting": [
+          "B"
+        ],
+        "running": [],
+        "free": [
+          2,
+          1,
+          0
+        ],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 0,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 0,
+            "tokens": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "hash": "0x87884241753df3e",
+            "indexed": true
+          },
+          {
+            "id": 2,
+            "refs": 0,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          }
+        ]
+      },
+      "scheduled": [
+        {
+          "request": "B",
+          "inputs": 5,
+          "inputTokens": [
+            21,
+            22,
+            23,
+            24,
+            201
+          ],
+          "generatedBefore": 1
+        }
+      ],
+      "afterSchedule": {
+        "sequences": {
+          "A": {
+            "status": "FINISHED",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101,
+              102,
+              103,
+              104
+            ],
+            "length": 12,
+            "promptLength": 8,
+            "generated": 4,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          },
+          "B": {
+            "status": "RUNNING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201
+            ],
+            "length": 5,
+            "promptLength": 4,
+            "generated": 1,
+            "cached": 0,
+            "scheduled": 5,
+            "table": [
+              2,
+              1
+            ]
+          }
+        },
+        "waiting": [],
+        "running": [
+          "B"
+        ],
+        "free": [
+          0
+        ],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 0,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          },
+          {
+            "id": 2,
+            "refs": 1,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          }
+        ]
+      },
+      "sampled": {
+        "B": 202
+      },
+      "state": {
+        "sequences": {
+          "A": {
+            "status": "FINISHED",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101,
+              102,
+              103,
+              104
+            ],
+            "length": 12,
+            "promptLength": 8,
+            "generated": 4,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          },
+          "B": {
+            "status": "RUNNING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201,
+              202
+            ],
+            "length": 6,
+            "promptLength": 4,
+            "generated": 2,
+            "cached": 5,
+            "scheduled": 0,
+            "table": [
+              2,
+              1
+            ]
+          }
+        },
+        "waiting": [],
+        "running": [
+          "B"
+        ],
+        "free": [
+          0
+        ],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 0,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          },
+          {
+            "id": 2,
+            "refs": 1,
+            "tokens": [
+              21,
+              22,
+              23,
+              24
+            ],
+            "hash": "0xee3bd2b0a7289421",
+            "indexed": true
+          }
+        ]
+      }
+    },
+    {
+      "round": 6,
+      "phase": "decode",
+      "before": {
+        "sequences": {
+          "A": {
+            "status": "FINISHED",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101,
+              102,
+              103,
+              104
+            ],
+            "length": 12,
+            "promptLength": 8,
+            "generated": 4,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          },
+          "B": {
+            "status": "RUNNING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201,
+              202
+            ],
+            "length": 6,
+            "promptLength": 4,
+            "generated": 2,
+            "cached": 5,
+            "scheduled": 0,
+            "table": [
+              2,
+              1
+            ]
+          }
+        },
+        "waiting": [],
+        "running": [
+          "B"
+        ],
+        "free": [
+          0
+        ],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 0,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          },
+          {
+            "id": 2,
+            "refs": 1,
+            "tokens": [
+              21,
+              22,
+              23,
+              24
+            ],
+            "hash": "0xee3bd2b0a7289421",
+            "indexed": true
+          }
+        ]
+      },
+      "scheduled": [
+        {
+          "request": "B",
+          "inputs": 1,
+          "inputTokens": [
+            202
+          ],
+          "generatedBefore": 2
+        }
+      ],
+      "afterSchedule": {
+        "sequences": {
+          "A": {
+            "status": "FINISHED",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101,
+              102,
+              103,
+              104
+            ],
+            "length": 12,
+            "promptLength": 8,
+            "generated": 4,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          },
+          "B": {
+            "status": "RUNNING",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201,
+              202
+            ],
+            "length": 6,
+            "promptLength": 4,
+            "generated": 2,
+            "cached": 5,
+            "scheduled": 1,
+            "table": [
+              2,
+              1
+            ]
+          }
+        },
+        "waiting": [],
+        "running": [
+          "B"
+        ],
+        "free": [
+          0
+        ],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 0,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 1,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          },
+          {
+            "id": 2,
+            "refs": 1,
+            "tokens": [
+              21,
+              22,
+              23,
+              24
+            ],
+            "hash": "0xee3bd2b0a7289421",
+            "indexed": true
+          }
+        ]
+      },
+      "sampled": {
+        "B": 203
+      },
+      "state": {
+        "sequences": {
+          "A": {
+            "status": "FINISHED",
+            "tokens": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              101,
+              102,
+              103,
+              104
+            ],
+            "length": 12,
+            "promptLength": 8,
+            "generated": 4,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          },
+          "B": {
+            "status": "FINISHED",
+            "tokens": [
+              21,
+              22,
+              23,
+              24,
+              201,
+              202,
+              203
+            ],
+            "length": 7,
+            "promptLength": 4,
+            "generated": 3,
+            "cached": 0,
+            "scheduled": 0,
+            "table": []
+          }
+        },
+        "waiting": [],
+        "running": [],
+        "free": [
+          0,
+          1,
+          2
+        ],
+        "blocks": [
+          {
+            "id": 0,
+            "refs": 0,
+            "tokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "hash": "0x73f859a04f669e6d",
+            "indexed": true
+          },
+          {
+            "id": 1,
+            "refs": 0,
+            "tokens": [],
+            "hash": null,
+            "indexed": false
+          },
+          {
+            "id": 2,
+            "refs": 0,
+            "tokens": [
+              21,
+              22,
+              23,
+              24
+            ],
+            "hash": "0xee3bd2b0a7289421",
+            "indexed": true
+          }
+        ]
+      }
+    }
+  ]
+}

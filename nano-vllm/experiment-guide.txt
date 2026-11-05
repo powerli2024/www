@@ -1,0 +1,59 @@
+nano-vLLM 推理引擎实验室 · 可复现实验说明
+核验日期：2026-10-21
+
+一、固定对象
+源码：https://github.com/GeeeekExplorer/nano-vllm/tree/bb823b3e06983d71485a8e1f23715ebd87d98ef8
+模型：Qwen/Qwen3-0.6B
+模型revision：c1899de289a04d12100db370d81485cdf75e47ca
+固定配置：https://huggingface.co/Qwen/Qwen3-0.6B/blob/c1899de289a04d12100db370d81485cdf75e47ca/config.json
+请记录 GPU 型号/数量、驱动、CUDA、PyTorch、FlashAttention、Python、dtype、TP、显存利用率、输入输出长度、batch、是否Graph及全部依赖版本。源码和模型固定，不代表未锁定的依赖环境也完全固定。
+
+二、运行前提
+需要自己的可用CUDA环境及兼容的GPU、PyTorch、FlashAttention。该说明和demo_gpu.py仅做静态API与Python语法核验，未执行GPU、未验证当前机器安装、未测量延迟/吞吐。
+冻结pyproject要求Python >=3.10且<3.13，torch>=2.4.0、triton>=3.0.0、transformers>=4.51.0，另需flash-attn与xxhash；这些是版本下限而非完整兼容锁定。按该冻结版本README安装依赖，不要直接假设所有最新版兼容。
+1. 克隆官方仓库并进入目录：
+   git clone https://github.com/GeeeekExplorer/nano-vllm.git
+   cd nano-vllm
+   git checkout bb823b3e06983d71485a8e1f23715ebd87d98ef8
+2. 使用自己的隔离Python环境，按冻结README安装：
+   pip install -e .
+3. 从官方Qwen模型仓库下载完整固定revision到本地目录。可用已安装的huggingface_hub：
+   python -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='Qwen/Qwen3-0.6B', revision='c1899de289a04d12100db370d81485cdf75e47ca', local_dir='/your/path/Qwen3-0.6B')"
+4. 将demo_gpu.py保存到可运行目录，传入实际模型路径：
+   python demo_gpu.py --model /your/path/Qwen3-0.6B
+   python demo_gpu.py --model /your/path/Qwen3-0.6B --graph
+默认TP=1、eager、temperature=0.6、最多64个输出token。脚本会加载模型并占用GPU资源，不会运行在网页里。
+该冻结SamplingParams要求temperature>1e-10，不支持temperature=0；不要用0作为greedy参数。
+
+三、先做正确性，再谈性能
+先单请求/TP1/eager跑通，确认模型路径、tokenizer、返回结构及结束条件。
+再比较相同输入的Graph/TP路径，必要时在模型层比较logits/概率容差。随机采样的文本不同，不自动意味着计算不正确；反过来文本相同也不证明所有算子相同。
+网页里的手工矩阵只验证教学数学，不是模型权重或真实生成答案。
+
+四、单变量实验矩阵
+batch：1 / 4 / 16 / 32，保持每请求长度与采样参数不变。
+context：128 / 512 / 2048，确保统计实际tokenizer后的长度，而非字符数。
+Graph：enforce_eager=True/False，其他条件相同。
+TP：1/2/4/...，先确认Q heads与KV heads均可整除，且有相应设备。该版本不在KV heads不足时自动复制。
+prefix：冷/热前缀对照，记录完整块命中、末块排除及是否被覆盖。
+每次只改一个变量。先测热身，排除下载、模型初始化和图捕获，重复测量并报告样本数量和分布。
+
+五、指标与边界
+TTFT：请求进入服务到首个输出可用的时间。明确是否包括排队、分词和传输。
+TPOT：首token之后的平均输出间隔。明确是否将不同请求或不同长度混在一起。
+吞吐：观测窗口内完成的输出token数/秒，或者请求数/秒。输入token吞吐需另列。
+P50/P95/P99：须说明测量样本数与统计口径。
+离线LLM.generate只在整批完成时返回；测总墙钟耗时无法拆出TTFT和TPOT。逐token指标需要在调度/输出边界单独埋点。GPU异步操作的计时还需明确同步边界。
+上游bench.py只是另一个特定工作负载，不应与本网页的动画秒数相比。
+
+六、能被推翻的预测
+- batch增大可能摊薄权重读取，但不会让每条请求的历史KV消失，也不保证延迟或吞吐线性改善。
+- 更长上下文通常增加decode attention工作与KV读取，但瓶颈由硬件和实现共同决定。
+- FlashAttention减少中间矩阵IO，不把一般精确密集attention的算术复杂度变成线性。
+- Paged KV管理布局/共享，CUDA Graph改变发射方式，三者可以组合。
+- Graph重放模型工作，不重放旧答案；此commit只捕获self.model，不含compute_logits与sampler。
+
+七、本次验收范围
+已做：JS数学测试、冻结Python调度/缓存差分、CPU抢占元数据trace、生成HTML和合成DOM交互、源码与静态样式检查。
+未做：模型权重加载、CUDA/GPU执行、实测性能、真实浏览器渲染/布局/截图/登录。
+真实浏览器验收按用户最新要求取消。合成DOM及静态CSS不是实际浏览器视觉证据。
