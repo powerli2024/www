@@ -26,3 +26,37 @@ body{font-size:16px}.brand small{font-size:9px}.primary-nav a{font-size:14px}.na
 .code-line.highlighted code{color:#e1ebd6}.code-line.highlighted .syntax-comment{color:#d7e5c8}.code-line.highlighted .syntax-string{color:#d8edbd}.code-line.highlighted .syntax-keyword{color:#f5dcaf}.code-line.highlighted .syntax-number{color:#efd6a6}.code-line.highlighted .line-number{color:#d7e5c8}
 .play-button{background:#4c713a;border-color:#4c713a}.array-item.active>strong{color:#8f5526;border-color:#a96532}.graph-edge.active text,.graph-node.active text{fill:#8f5526}.graph-node.muted text{fill:#5e6b52}
 .graph-edge path{stroke:#7b8e6d}.graph-edge.muted path{stroke:#7b8e6d}.graph-edge.done path{stroke:#68874f}.graph-edge.active path{stroke:#a86b35}.graph-node circle{stroke:#738466}.graph-node.done circle{stroke:#67844d}.graph-node.active circle{stroke:#ad6835}.graph-node.muted circle{stroke:#7c8c6f}.arrow-default,.arrow-muted{fill:#7b8e6d}.arrow-done{fill:#68874f}.arrow-active{fill:#a86b35}
+
+
+/* ===== 优化补丁（可维护区）：对比度 / 触控目标 / 平板 ===== */
+:root { --muted: #5c6760; --quiet: #5f6a64; }
+
+/* 正文 13px 偏小，统一到 15px；行宽限制在约 70 字符 */
+.main-shell p, .main-shell li { font-size: 15px; }
+.main-shell p { max-width: 72ch; }
+img, svg { max-width: 100%; height: auto; }
+
+/* 目录按钮与导航项触控目标 ≥44px */
+.icon-button, .menu-btn { min-width: 44px; min-height: 44px; }
+.primary-nav a, .chapter-nav a { min-height: 44px; display: flex; align-items: center; }
+
+@media (max-width: 1024px) {
+  .sidebar { width: min(86vw, 320px); }
+}
+@media (hover: none) {
+  .icon-button, .menu-btn, .primary-nav a { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { .sidebar { transition: none !important; } }
+
+
+
+/* 触控目标补齐（仅平板/触屏区间，桌面密度不变） */
+@media (max-width: 1100px) {
+  .button, .menu-btn, .button-primary, .topbar-help, .nav-divider button,
+  .zoom-controls button, .stage-controls button { min-height: 44px; }
+  .topbar-help, .nav-divider button { min-width: 44px; }
+}
+
+
+/* 卡片底部 10-12px 区块标签：部分区块色在浅底只有 4.3-4.4:1，按 70% 混合深色，保留色相 */
+.card-bottom{color:color-mix(in srgb, var(--section-color, #315b45) 70%, #0f1a14)}

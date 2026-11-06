@@ -1,6 +1,26 @@
 (function(){
   'use strict';
-  const data=window.ML_COURSE, main=document.getElementById('main');
+  const data=window.ML_COURSE_INDEX, main=document.getElementById('main');
+  /* 周正文按需加载：用 <script> 动态插入而非 fetch，file:// 直开不会被 CORS 拦截 */
+  function loadScript(src,done,fail){const s=document.createElement('script');s.src=src;s.onload=done;s.onerror=fail;document.head.appendChild(s);}
+  function ensureWeek(n,done){
+    if(data.weeks.find(x=>x.week===n&&x.body_html))return done();
+    loadScript('assets/weeks/w'+String(n).padStart(2,'0')+'.js',()=>{
+      const full=window.ML_WEEKS&&window.ML_WEEKS[n];
+      if(!full){toast('第'+n+'周内容加载失败，请检查 assets/weeks 目录。');return;}
+      const i=data.weeks.findIndex(x=>x.week===n);
+      data.weeks[i]=Object.assign({},data.weeks[i],full);
+      done();
+    },()=>toast('第'+n+'周内容加载失败，请检查 assets/weeks 目录。'));
+  }
+  let toolboxLoading=false;
+  function ensureToolbox(done){
+    if(data.toolbox.body_html)return done();
+    if(toolboxLoading)return;
+    toolboxLoading=true;
+    loadScript('assets/weeks/toolbox.js',()=>{toolboxLoading=false;data.toolbox=window.ML_TOOLBOX;done();},
+      ()=>{toolboxLoading=false;toast('编程工具箱加载失败，请检查 assets/weeks 目录。');});
+  }
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const $=s=>document.querySelector(s);
   const key='ml-learning-lab-v2';
@@ -56,10 +76,12 @@
     if(hash!=='toolbox'&&!/^week-\d+$/.test(hash)){const target=document.getElementById(hash);if(target){target.scrollIntoView();return;}else{location.hash='week-1';return;}}
     cleanupLab();cleanupLab=()=>{};
     if(hash==='toolbox'){
+      if(!data.toolbox.body_html){ensureToolbox(render);return;}
       active='toolbox';$('#breadcrumb').textContent='编程工具箱 / 按需补充';
       main.innerHTML='<header class="hero"><div class="eyebrow">Python / C++ 编程工具箱</div><h1>把数学翻译成你能读懂的代码</h1><p>从容器、循环、函数到数组与求导。遇到哪一处困难，就补哪一处；不必先学会所有库。</p><p class="muted">需要逐步高亮的完整示例？回到<a href="#week-1">第一周代码跟读</a>，选择Python或C++。</p></header>'+toc(data.toolbox.toc,false)+data.toolbox.body_html;
     }else{
-      const n=Number(hash.slice(5)),w=data.weeks.find(w=>w.week===n)||data.weeks[0];active=w.week;codeStep=0;
+      const n=Number(hash.slice(5)),w=data.weeks.find(w=>w.week===n)||data.weeks[0];
+      if(w&&!w.body_html){ensureWeek(w.week,render);return;}active=w.week;codeStep=0;
       $('#breadcrumb').textContent='W'+String(w.week).padStart(2,'0')+' / '+w.stage;
       document.title='第'+w.week+'周 '+w.title+' · 学习实验室';
       main.innerHTML='<header class="hero"><div class="eyebrow">WEEK '+String(w.week).padStart(2,'0')+' / '+esc(w.stage)+'</div><h1>'+esc(w.title)+'</h1><ul class="goals">'+w.goals.map(g=>'<li>'+esc(g)+'</li>').join('')+'</ul><div class="hero-meta"><span class="pill">概念 → 手算 → 代码 → 迁移</span><span>'+esc(w.estimated_hours)+'</span><a href="逐周讲义/第'+String(w.week).padStart(2,'0')+'周.html">静态讲义 / 打印</a></div><details class="prerequisites"><summary>开始前，确认这些先修</summary><ul>'+w.prerequisites.map(p=>'<li>'+esc(p)+'</li>').join('')+'</ul></details></header>'+toc(w.toc)+w.body_html+'<section id="interactive"></section>'+workbench(w)+extras(w)+practice(w)+quiz(w)+finish(w);

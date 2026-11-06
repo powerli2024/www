@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<html data-w1-site="security" lang="zh-CN" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,6 +7,7 @@
 <meta name="description" content="基于《系统安全》课程课件与课堂代码整理的中文学习站点，覆盖信息安全概论、程序执行模型、缓冲区溢出、格式化字符串、防御机制、ret2libc、ROP、竞态条件与侧信道。">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="../_shared/base.css"><link rel="stylesheet" href="../_shared/tablet.css">
 </head>
 <body>
 
@@ -52,11 +53,11 @@
   <section class="chapter" id="home">
     <div class="ch-kicker">System Security · 学习站</div>
     <h1>把课件读成一条能走通的技术线</h1>
-    <p class="lead">本站只使用 <code>D:\gpt\系统安全</code> 目录中的 7 份课件 PDF 与课堂共享代码整理而成。目标不是把 PPT 搬上网页，而是把“程序怎么被编译、被装载、被调用”“溢出为什么能改控制流”“防御为什么挡不住 ret2libc”讲成一条因果链。</p>
+    <p class="lead">本站只使用 <code>D:\gpt\系统安全</code> 目录中的 8 份 PDF（7 份课件与 1 份虚拟机镜像手册）与课堂共享代码整理而成。目标不是把 PPT 搬上网页，而是把“程序怎么被编译、被装载、被调用”“溢出为什么能改控制流”“防御为什么挡不住 ret2libc”讲成一条因果链。</p>
 
     <div class="callout">
       <b>先读这一条</b>
-      本课程的主线是<em>控制流劫持</em>：源代码的缺陷 → 编译后的内存布局 → 栈上的返回地址 → 攻击者改写返回地址 → 防御机制（NX / Canary / ASLR）→ 绕过（ret2libc / ROP）。第 4–9 章是这条主线的连续四步，建议按顺序阅读。
+      本课程的主线是<em>控制流劫持</em>：源代码的缺陷 → 编译后的内存布局 → 栈上的返回地址 → 攻击者改写返回地址 → 防御机制（NX / Canary / ASLR）→ 绕过（ret2libc / ROP）。第 4–9 章是这条主线的连续六章，建议按顺序阅读。
     </div>
 
     <h2>怎么用这个站点</h2>
@@ -97,7 +98,7 @@
   <!-- ================= 第 1 章 ================= -->
   <section class="chapter" id="ch1">
     <div class="ch-kicker">第 1 章 · 对应《第0讲 系统安全课程安排》</div>
-    <h1>课程与考核概览</h1>
+    <h2 class="chapter-title">课程与考核概览</h2>
     <p class="lead">先弄清“考什么、讲什么、在哪做实验”。这一章信息全部来自第 0 讲课件与《虚拟机镜像》说明。</p>
 
     <h2>1.1 授课与考核</h2>
@@ -170,7 +171,7 @@
         <div class="q-explain"></div>
       </div>
 
-      <div class="q" data-answer="B" data-multi="true" data-explain="SEED 手册强调：新建虚拟机要选 32 位 Ubuntu；克隆时必须重新初始化 MAC 地址。推荐 VirtualBox 6.0.4。手册并未要求必须用 Host-only，多机互通+上网要用 NAT Network。">
+      <div class="q" data-answer="AB" data-multi="true" data-explain="SEED 手册强调：新建虚拟机要选 32 位 Ubuntu；克隆时必须重新初始化 MAC 地址。推荐 VirtualBox 6.0.4。手册并未要求必须用 Host-only，多机互通+上网要用 NAT Network。">
         <div class="q-stem"><span class="qno">2.</span>关于 SEED 虚拟机环境，下列哪些说法与手册一致？<span class="q-tag">多选</span></div>
         <div class="opts">
           <label class="opt"><input type="checkbox" name="q1-2" value="A"><span>A. 预置镜像是 32 位 Ubuntu，新建虚拟机时应选 32 位而非 64 位</span></label>
@@ -205,7 +206,7 @@
   <!-- ================= 第 2 章 ================= -->
   <section class="chapter" id="ch2">
     <div class="ch-kicker">第 2 章 · 对应《第1讲 信息系统安全概论》</div>
-    <h1>信息系统安全概论</h1>
+    <h2 class="chapter-title">信息系统安全概论</h2>
     <p class="lead">第 1 讲做了三件事：用真实事件说明“为什么必须学”；用一次完整的入侵说明“攻击是怎么串起来的”；用一组定义把“安全”变成可讨论、可设计的东西。</p>
 
     <h2>2.1 安全形势：课件用的真实事件</h2>
@@ -380,7 +381,7 @@
   <!-- ================= 第 3 章 ================= -->
   <section class="chapter" id="ch3">
     <div class="ch-kicker">第 3 章 · 对应《第2讲 软件安全1》</div>
-    <h1>系统模型：从源代码到执行</h1>
+    <h2 class="chapter-title">系统模型：从源代码到执行</h2>
     <p class="lead">这一章是全部溢出攻击的“地形图”。只要记住三件事——代码怎么变成机器指令、进程内存长什么样、函数调用时栈怎么长——后面的偏移计算就都是算术题。</p>
 
     <h2>3.1 程序为什么会有（安全）bug</h2>
@@ -1200,7 +1201,7 @@ int main(){
   <!-- ================= 第 4 章 ================= -->
   <section class="chapter" id="ch4">
     <div class="ch-kicker">第 4 章 · 对应《第2讲 软件安全2-1》</div>
-    <h1>缓冲区溢出</h1>
+    <h2 class="chapter-title">缓冲区溢出</h2>
     <p class="lead">溢出的本质只有一句话：<strong>把长度不受控的数据写进定长缓冲区，多出来的部分覆盖了栈上的控制信息</strong>。本章把这个句子拆成可计算的偏移、可构造的输入、可执行的 shellcode。</p>
 
     <h2>4.1 一个最小的漏洞函数</h2>
@@ -1412,7 +1413,7 @@ int main()
   <!-- ================= 第 5 章 ================= -->
   <section class="chapter" id="ch5">
     <div class="ch-kicker">第 5 章 · 对应《第2讲 软件安全2-1》后半</div>
-    <h1>整数溢出</h1>
+    <h2 class="chapter-title">整数溢出</h2>
     <p class="lead">整数用固定位数表示，超过范围就回绕（wrap around，模 max+1）。溢出本身不直接破坏内存，但它能让<strong>长度检查与真正的拷贝使用不同的数值</strong>，从而绕过检查。</p>
 
     <h2>5.1 回绕：1 == 65537？</h2>
@@ -1571,7 +1572,7 @@ int main(){
   <!-- ================= 第 6 章 ================= -->
   <section class="chapter" id="ch6">
     <div class="ch-kicker">第 6 章 · 对应《第2讲 软件安全2-2》</div>
-    <h1>格式化字符串漏洞</h1>
+    <h2 class="chapter-title">格式化字符串漏洞</h2>
     <p class="lead">一句话概括：<strong>当用户输入被当作格式串传给 printf 家族，%p 会读出栈上的值，%s 会把栈上的值当地址去读内存，%n 甚至会往栈上的地址写数据</strong>。这是本课程里“读”和“写”都最直接的一类漏洞。</p>
 
     <h2>6.1 格式串基础：位置参数与 %n</h2>
@@ -1831,7 +1832,7 @@ sprintf( outbuf, errmsg );</pre>
   <!-- ================= 第 7 章 ================= -->
   <section class="chapter" id="ch7">
     <div class="ch-kicker">第 7 章 · 对应《第2讲 软件安全2-3》与 2-4 第 2、9–10 页</div>
-    <h1>防御机制与绕过</h1>
+    <h2 class="chapter-title">防御机制与绕过</h2>
     <p class="lead">这一章回答一个问题：<strong>既然能改返回地址，操作系统和编译器怎么办？</strong>答案是四类动作——修 bug、让注入代码不能执行、在返回前检查、把地址随机化；而每一种防御都有明确的绕过方式，这正是下一章 ret2libc / ROP 的出场理由。</p>
 
     <h2>7.1 防御的四条路线</h2>
@@ -2078,7 +2079,7 @@ int main(int argc, char** argv) {
   <!-- ================= 第 8 章 ================= -->
   <section class="chapter" id="ch8">
     <div class="ch-kicker">第 8 章 · 对应《第2讲 软件安全2-4》第 3–47 页；代码来自 returntolibc/</div>
-    <h1><span class="term" data-term="g-ret2libc" tabindex="0"><a href="#g-ret2libc">Return-to-libc</a></span></h1>
+    <h2 class="chapter-title"><span class="term" data-term="g-ret2libc" tabindex="0"><a href="#g-ret2libc">Return-to-libc</a></span></h2>
     <p class="lead">NX 让“跳到自己的 shellcode”失效，于是把返回地址改成<strong>已有库函数</strong>的地址：不写新代码，只借 <code>system()</code> 的代码执行 <code>system("/bin/sh")</code>。这一章以 2-4 的讲解页为主线（第 11–47 页），代码取自 <code>returntolibc/</code>。</p>
 
     <div class="callout">
@@ -2300,7 +2301,7 @@ Address: bffffdd8</pre>
   <!-- ================= 第 9 章 ================= -->
   <section class="chapter" id="ch9">
     <div class="ch-kicker">第 9 章 · 对应《第2讲 软件安全2-4》第 49–104 页；代码来自 rop/</div>
-    <h1>ROP 返回导向编程</h1>
+    <h2 class="chapter-title">ROP 返回导向编程</h2>
     <p class="lead">当 libc 里找不到“一个函数直接满足需求”时，就把程序里已有的以 <code>ret</code> 结尾的小指令片段（gadget）串起来，像搭积木一样拼出任意逻辑。ROP 不需要可执行栈，也不需要注入代码——只需要<strong>控制栈</strong>。</p>
 
     <div class="callout">
@@ -2500,7 +2501,7 @@ p += pack('&lt;I', 0x0804f0b3) # inc eax ; ret</pre>
   <!-- ================= 第 10 章 ================= -->
   <section class="chapter" id="ch10">
     <div class="ch-kicker">第 10 章 · 课件大纲列出，正文未展开；代码来自 racecondition/</div>
-    <h1>竞态条件与 Dirty COW</h1>
+    <h2 class="chapter-title">竞态条件与 Dirty COW</h2>
     <p class="lead">前九章改的是内存里的数据，这一章改的是<strong>时间</strong>：检查与使用之间有一个窗口，只要在窗口里把对象换掉，检查的结论就与使用时的事实不符。这类问题叫 TOCTOU（Time-of-Check to Time-of-Use）。</p>
 
     <div class="callout warn">
@@ -2726,7 +2727,7 @@ int main(int argc, char ** argv){
   <!-- ================= 第 11 章 ================= -->
   <section class="chapter" id="ch11">
     <div class="ch-kicker">第 11 章 · 课件未展开；代码来自 Meltdwon_specture/</div>
-    <h1>Meltdown 与 Spectre</h1>
+    <h2 class="chapter-title">Meltdown 与 Spectre</h2>
     <p class="lead">这一章不讲“改内存”，而讲“<strong>偷看内存</strong>”：CPU 会乱序执行、会猜分支，猜错后架构状态会回滚，但<em>缓存状态不会</em>。攻击者用“读缓存要多久”这一条侧信道，把回滚前碰过的机密一位一位地测出来。</p>
 
     <div class="callout warn">
@@ -3012,7 +3013,7 @@ int main() {
   <!-- ================= 附录 ================= -->
   <section class="chapter" id="appendix">
     <div class="ch-kicker">附录 · 素材清单与章节映射</div>
-    <h1>素材清单与章节映射</h1>
+    <h2 class="chapter-title">素材清单与章节映射</h2>
     <p class="lead">这一页回答“每个文件去哪了”。左侧是原始文件，右侧是它在站内的落点；未使用的文件也列出原因，避免让人以为漏读。</p>
 
     <h2>A.1 文件类型与数量</h2>

@@ -1,0 +1,51 @@
+/* 平板上各站的补缺规则（低优先级）：站点自身样式优先，这里只修“空档”。
+   按实测覆盖 768 / 820 / 1024 三档；1280 / 1440 走桌面规则，不再重复声明。 */
+@layer w1-tablet {
+  /* 通用：触控目标与抽屉宽度 */
+  @media (max-width: 1100px) {
+    .nav-toggle, .menu-toggle, .mobile-menu, .icon-button, .icon-btn {
+      min-width: 44px; min-height: 44px;
+    }
+    /* 触屏可点目标 ≥44px：只作用于导航/工具条等控件容器，正文内联链接不受影响。
+       单选/复选保留原生尺寸，其可点区域由外层 <label> 提供。 */
+    :is(#sidebar, aside, nav, .nav-list, .toc, .topbar, .mobilebar, .top-actions, .toolbar) a,
+    :is(.topbar, .mobilebar, .top-actions, .toolbar) button,
+    :is(.topbar, .mobilebar) select,
+    :is(.search input, input[type="search"], input[type="text"], select, textarea) {
+      min-height: 44px;
+    }
+    /* 表单控件与答题选项在平板上统一抬到 44px；单选圆点本身保持原生大小，
+       可点区域由外层 .opt（<label>）提供。 */
+    button, select, textarea,
+    input[type="text"], input[type="search"], input[type="number"], input[type="url"],
+    .opt, .options label, .choice, .q label {
+      min-height: 44px;
+    }
+    .sidebar, #sidebar, aside.sidebar { width: min(86vw, 360px); }
+    .table-wrap, .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+
+  /* 代码块在 768–1024 之间最容易横向溢出，统一给滚动容器 */
+  @media (max-width: 1100px) {
+    pre { max-width: 100%; overflow-x: auto; }
+  }
+
+  /* 结构性可点容器（卡片链接、按钮组、页脚跳转）补齐 44px。
+     正文句子中的内联链接不在本轮处理范围（WCAG 2.5.8 Inline 例外），
+     单选项的可点区域仍由外层 <label> 提供。 */
+  @media (max-width: 1100px) {
+    .hero-actions a, .hero-actions button,
+    .doc-links a, .area-list a, .map-foot a,
+    .hero-meta a, .text-link, .art-link,
+    .code-download, .download-link,
+    .study-end a, :is(footer, .site-footer) a,
+    .lab-controls button, .code-toolbar button,
+    .quiz button, .player-controls button,
+    .source-lens > .deep-source, .evidence-rail .deep-source {
+      min-height: 44px !important;
+      display: inline-flex;
+      align-items: center;
+    }
+    .area-list a, .doc-links a, .download-link { justify-content: center; }
+  }
+}

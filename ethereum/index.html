@@ -1,16 +1,15 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html data-w1-site="ethereum" lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>新版区块链技术及应用 · Ethereum 实验指导手册（网页版）</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<meta name="description" content="以太坊实验指导手册网页版：六个递进实验，从 Ubuntu 22.04 环境、geth 私链、账户与挖矿、转账，到合约编写、部署与 Remix 交互，附常见错误排查。">
 <style>
   :root{
     --bg:#f7f8fa; --panel:#ffffff; --ink:#1f2328; --muted:#6b7280;
     --line:#e5e7eb; --brand:#2563eb; --brand-soft:#eff4ff;
-    --ok:#0f9d58; --ok-bg:#e8f6ee; --err:#d93025; --err-bg:#fdecea;
+    --ok:#0b6e3d; --ok-bg:#e8f6ee; --err:#b3261e; --err-bg:#fdecea;
     --warn:#b45309; --warn-bg:#fef3e2; --code-bg:#f6f8fa;
   }
   *{box-sizing:border-box}
@@ -31,16 +30,16 @@
   nav.sidebar .brand{font-weight:800;font-size:16px;margin-bottom:2px}
   nav.sidebar .sub{color:var(--muted);font-size:12px;margin-bottom:14px}
   nav.sidebar input#navSearch{
-    width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:12px;font-size:13px;
+    width:100%;min-height:44px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:12px;font-size:13px;
   }
   nav.sidebar ol{list-style:none;margin:0;padding:0}
   nav.sidebar ol > li{margin:2px 0}
   nav.sidebar .exp>a{
-    display:block;padding:8px 10px;border-radius:8px;font-weight:700;color:var(--ink);
+    display:flex;align-items:center;min-height:44px;padding:8px 10px;border-radius:8px;font-weight:700;color:var(--ink);
   }
   nav.sidebar .exp>a:hover{background:var(--brand-soft);text-decoration:none}
   nav.sidebar ol.sub{margin:0 0 6px 10px;border-left:2px solid var(--line);padding-left:8px}
-  nav.sidebar ol.sub li a{display:block;padding:4px 8px;border-radius:6px;color:var(--muted);font-size:13px}
+  nav.sidebar ol.sub li a{display:flex;align-items:center;min-height:44px;padding:4px 8px;border-radius:6px;color:var(--muted);font-size:13px}
   nav.sidebar ol.sub li a:hover{background:var(--brand-soft);color:var(--brand);text-decoration:none}
   nav.sidebar ol.sub li a.active{background:var(--brand);color:#fff}
 
@@ -104,18 +103,74 @@
   .toc-grid a:hover{background:var(--brand-soft);text-decoration:none}
 
   .backtop{position:fixed;right:22px;bottom:22px;background:var(--brand);color:#fff;border:none;
-    border-radius:50%;width:42px;height:42px;font-size:18px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2)}
-  @media (max-width:880px){
-    nav.sidebar{position:static;width:100%;height:auto;border-right:none;border-bottom:1px solid var(--line)}
-    .layout{flex-direction:column}
-    main{padding:20px}
+    border-radius:50%;width:44px;height:44px;font-size:18px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+
+  /* 代码块：语言标签与复制按钮放进独立工具栏，触屏也能直接点按 */
+  .codebox{margin:12px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--code-bg)}
+  .codebar{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:#eef1f5;border-bottom:1px solid var(--line);padding:2px 6px 2px 12px}
+  .codebox pre.code{margin:0;border:0;border-radius:0}
+  .code-lang{position:static;background:none;color:var(--muted);font-size:12px;
+    letter-spacing:.5px;padding:0;border-radius:0;font-weight:600}
+  .copy-btn{position:static;background:#fff;border:1px solid var(--line);color:var(--ink);
+    font-size:13px;padding:0 14px;min-height:44px;border-radius:6px;cursor:pointer;opacity:1}
+  .copy-btn:hover{color:var(--brand);border-color:var(--brand)}
+  .copy-btn:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+
+  /* 本地代码着色（无 CDN 依赖，离线可用） */
+  .code .tok-cmt{color:#5f6771}
+  .code .tok-str{color:#0a6b3d}
+  .code .tok-num{color:#8a4b16}
+  .code .tok-kw{color:#6b3ba8}
+
+  .table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+  .table-scroll table.tbl{min-width:min(620px,100%)}
+  .nav-locked{overflow:hidden}
+
+  .mobilebar{display:none}
+  .nav-scrim{display:none}
+
+  /* 平板与窄屏：目录抽屉 + 吸顶工具条，正文不再被整块菜单挤出首屏 */
+  @media (max-width:1024px){
+    .mobilebar{display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:30;
+      background:rgba(255,255,255,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);
+      padding:6px 14px}
+    .nav-toggle{display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;
+      border:1px solid var(--line);background:#fff;border-radius:8px;font-size:14px;color:var(--ink);cursor:pointer}
+    .mobilebar-title{font-weight:700;font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .layout{display:block;min-height:0}
+    nav.sidebar{position:fixed;z-index:41;top:0;left:0;width:min(86vw,330px);height:100dvh;
+      transform:translateX(-100%);transition:transform .18s ease;border-right:1px solid var(--line);
+      border-bottom:none;box-shadow:8px 0 28px rgba(0,0,0,.14)}
+    body.nav-open nav.sidebar{transform:none}
+    body.nav-open .nav-scrim{display:block;position:fixed;inset:0;z-index:40;background:rgba(15,23,42,.36);border:0}
+    body.nav-open{overscroll-behavior:none}
+    main{padding:22px 18px 44px}
+    h1{font-size:clamp(22px,3.2vw,27px)}
+    .toc-grid{grid-template-columns:1fr}
+    table.tbl{font-size:14px}
+  }
+  @media (max-width:560px){
+    pre.code{font-size:13px;padding:12px}
+    main{padding:18px 14px 40px}
+    .step{padding:12px}
+  }
+  @media (hover:none){
+    .copy-btn{min-height:44px}
   }
 </style>
+<link rel="icon" href="../_shared/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../_shared/base.css"><link rel="stylesheet" href="../_shared/tablet.css">
 </head>
 <body>
 <div class="layout">
+  <div id="navScrim" class="nav-scrim"></div>
+  <header class="mobilebar">
+    <button id="navToggle" class="nav-toggle" type="button" aria-expanded="false" aria-controls="toc" aria-label="打开章节目录">目录</button>
+    <span class="mobilebar-title">Ethereum 实验指导手册</span>
+  </header>
   <!-- ============ 侧边目录 ============ -->
-  <nav class="sidebar">
+  <nav class="sidebar" id="toc" aria-label="章节目录">
     <div class="brand">Ethereum 实验指导手册</div>
     <div class="sub">区块链技术与应用 · 网页版 · 含锚点/代码高亮</div>
     <input id="navSearch" placeholder="🔍 搜索章节…" oninput="filterNav(this.value)">
@@ -832,22 +887,66 @@ contract SafeBank is ReentrancyGuard {
 <button class="backtop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">↑</button>
 
 <script>
-  // 语法高亮
-  if (window.hljs) { hljs.highlightAll(); }
+  // 轻量代码着色：只做注释/字符串/数字/关键字，离线可用；不再依赖外部 highlight.js
+  (function(){
+    var KW = /^(if|then|else|fi|for|in|do|done|while|case|esac|function|return|export|source|sudo|apt|curl|geth|personal|eth|admin|net|contract|pragma|solidity|modifier|public|private|external|internal|view|pure|payable|returns|require|emit|event|mapping|address|uint256|uint|string|bool|memory|storage|calldata|constructor|import|is|const|let|var|new|class)$/;
+    var re = /('(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*")|(#[^\n]*|\/\/[^\n]*)|\b(\d+(?:\.\d+)?)\b|([A-Za-z_][A-Za-z0-9_]*)|\s+|./gu;
+    function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    document.querySelectorAll('pre.code > code').forEach(function(code){
+      var src = code.textContent, out = '', m;
+      re.lastIndex = 0;
+      while ((m = re.exec(src))) {
+        if (m[1]) out += '<span class="tok-str">' + esc(m[1]) + '</span>';
+        else if (m[2]) out += '<span class="tok-cmt">' + esc(m[2]) + '</span>';
+        else if (m[3]) out += '<span class="tok-num">' + esc(m[3]) + '</span>';
+        else if (m[4] && KW.test(m[4])) out += '<span class="tok-kw">' + esc(m[4]) + '</span>';
+        else out += esc(m[0]);
+        if (m[0].length === 0) re.lastIndex++;
+      }
+      code.innerHTML = out;
+    });
+  })();
 
-  // 代码块复制按钮
+  // 代码块：工具栏承载语言标签与复制按钮，触屏可点
   document.querySelectorAll('pre.code').forEach(function(pre){
+    var box = document.createElement('div'); box.className = 'codebox';
+    var bar = document.createElement('div'); bar.className = 'codebar';
+    var lang = pre.querySelector('.code-lang');
+    if (lang) bar.appendChild(lang);
     var btn = document.createElement('button');
-    btn.className = 'copy-btn';
-    btn.textContent = '复制';
+    btn.className = 'copy-btn'; btn.type = 'button'; btn.textContent = '复制';
+    btn.setAttribute('aria-label', '复制这段代码');
     btn.onclick = function(){
       var code = pre.querySelector('code').innerText;
       navigator.clipboard.writeText(code).then(function(){
         btn.textContent = '已复制';
-        setTimeout(function(){ btn.textContent='复制'; }, 1500);
-      });
+        setTimeout(function(){ btn.textContent = '复制'; }, 1500);
+      }).catch(function(){ btn.textContent = '请手动选择复制'; });
     };
-    pre.appendChild(btn);
+    bar.appendChild(btn);
+    pre.parentNode.insertBefore(box, pre);
+    box.appendChild(bar); box.appendChild(pre);
+  });
+
+  // 宽表格在窄屏内横向滚动，避免撑破页面
+  document.querySelectorAll('table.tbl').forEach(function(t){
+    var wrap = document.createElement('div'); wrap.className = 'table-scroll';
+    t.parentNode.insertBefore(wrap, t); wrap.appendChild(t);
+  });
+
+  // 平板/窄屏目录抽屉
+  var toggle = document.getElementById('navToggle');
+  var scrim = document.getElementById('navScrim');
+  function setNav(open){
+    document.body.classList.toggle('nav-open', open);
+    if (toggle) toggle.setAttribute('aria-expanded', String(open));
+    document.documentElement.classList.toggle('nav-locked', open);
+  }
+  if (toggle) toggle.addEventListener('click', function(){ setNav(!document.body.classList.contains('nav-open')); });
+  if (scrim) scrim.addEventListener('click', function(){ setNav(false); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') setNav(false); });
+  document.querySelectorAll('nav.sidebar a[href^="#"]').forEach(function(a){
+    a.addEventListener('click', function(){ setNav(false); });
   });
 
   // 侧边目录：滚动高亮当前章节

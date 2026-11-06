@@ -49,7 +49,7 @@
   /* 为章节内 h2/h3 生成锚点 */
   var chapters = Array.prototype.slice.call(document.querySelectorAll('.chapter'));
   chapters.forEach(function (ch, ci) {
-    var hs = ch.querySelectorAll('h2, h3');
+    var hs = ch.querySelectorAll('h2:not(.chapter-title), h3');
     Array.prototype.forEach.call(hs, function (h, hi) {
       if (!h.id) h.id = ch.id + '-s' + (hi + 1);
     });
@@ -195,21 +195,23 @@
   /* ---------------- 全站搜索 ---------------- */
   var index = [];
   chapters.forEach(function (ch) {
-    var chTitle = (ch.querySelector('h1') || {}).textContent || '';
+    var chTitleNode = ch.querySelector('h1, h2.chapter-title');
+    var chTitle = (chTitleNode || {}).textContent || '';
     var heading = chTitle;
     var buf = [];
-    var headingNode = ch.querySelector('h1');
+    var headingNode = chTitleNode;
     function flush() {
       if (!buf.length) return;
       index.push({
         ch: chTitle,
-        id: headingNode ? headingNode.id : ch.id,
+        id: (headingNode && headingNode.id) || ch.id,
         heading: heading,
         text: buf.join(' ').replace(/\s+/g, ' ').trim()
       });
       buf = [];
     }
     Array.prototype.forEach.call(ch.children, function (node) {
+      if (node.tagName === 'H2' && node.classList.contains('chapter-title')) return;
       if (node.tagName === 'H2' || node.tagName === 'H3') {
         flush();
         heading = node.textContent.replace(/^\d+(\.\d+)*\s*/, '').trim();

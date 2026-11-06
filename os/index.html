@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html data-w1-site="os" lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="操作系统原理第 1–2 章离线交互讲义：操作系统概述、定义与功能、发展演变、逻辑结构、CPU 的态、中断机制、BIOS、启动过程与系统生成。含关键概念链、流程示意与即时判分自测。">
+<title>操作系统原理 · 第 1–2 章交互讲义</title>
+<link rel="stylesheet" href="assets/app.css">
+<link rel="icon" href="../_shared/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../_shared/base.css"><link rel="stylesheet" href="../_shared/tablet.css">
+</head>
+<body>
+<a class="skip" href="#main">跳到正文</a>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <h1 id="site-title">操作系统原理 · 第 1–2 章交互讲义</h1>
+      <p class="sub" id="site-sub">依据课程讲义整理：操作系统概述 · 硬件基础 | 可离线打开</p>
+    </div>
+
+    <div class="search">
+      <label for="q">检索正文、术语与表格</label>
+      <input id="q" type="search" placeholder="例如：核态、中断向量、时间片、微内核" autocomplete="off"
+             aria-expanded="false" aria-controls="results" aria-describedby="search-count">
+      <span id="search-count" class="sr-only" aria-live="polite"></span>
+      <div id="results" class="search-results" hidden></div>
+    </div>
+
+    <div class="tools">
+      <button id="menu" class="menu-btn" type="button" aria-expanded="false" aria-controls="side">目录</button>
+      <button id="theme" type="button" aria-pressed="false">深色模式</button>
+      <button id="print" type="button">打印 / 存 PDF</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="side" id="side">
+    <p class="toc-h">目录</p>
+    <nav class="toc" id="toc" aria-label="章节目录"></nav>
+  </aside>
+
+  <main id="main" tabindex="-1">
+    <noscript>
+      <div class="note k-missing">
+        <h4>脚本已禁用</h4>
+        <p>本页正文由 <code>content/course.js</code> 渲染。脚本关闭时请打开 <a href="backup.html">纯文本 / 打印备份</a>，其中含全部正文、答案与解析。</p>
+      </div>
+    </noscript>
+
+    <section id="lede" class="lede" data-search aria-label="阅读说明与阅读路径"></section>
+    <section id="scope" class="lede" data-search aria-label="内容边界与素材说明"></section>
+
+    <div id="chapters"></div>
+
+    <section id="glossary" class="glossary" data-search aria-labelledby="glossary-title">
+      <h2 id="glossary-title">术语表</h2>
+      <p>下表只收录本讲义出现过的术语：英文名、中文名、一句话作用，以及最容易与相邻概念混淆的边界。检索框可直接搜中文或英文。</p>
+      <div id="glossary-body"></div>
+    </section>
+
+    <footer id="sources" class="sources" data-search aria-label="素材、版本与维护"></footer>
+  </main>
+</div>
+
+<button id="top-btn" class="to-top" type="button" aria-label="回到顶部">↑ 顶部</button>
+
+<script src="content/course.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

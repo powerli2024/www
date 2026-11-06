@@ -48,3 +48,30 @@
 .rope-legend{display:flex;flex-direction:column;gap:5px;padding:0 12px 12px;font-size:12px;line-height:1.8}.rope-legend span:first-child{color:#9fe9c6}.rope-legend span:last-child{color:#ffbd92}
 .parameter-hint{font-size:12px;line-height:1.85;color:#b7d0d4;margin:-4px 0 20px;padding:0 2px}
 .range-control .control-value{color:var(--mint);font-family:var(--mono)}.tp-ranks .tp-error span{font-size:14px;line-height:1.85}
+
+
+/* ===== 优化补丁（可维护区）：对比度 / 行宽 ===== */
+:root { --muted: #59696c; }
+
+/* 正文行宽收敛（原 115 字符/行） */
+.detail-body p, .detail-body li, .explanation p { max-width: 74ch; }
+
+/* 浅底说明文字加深到 4.5:1 以上（深色面板内的 .lab-footnote/.source-license 保持原浅色） */
+.hero-note, .hero-meta, .code-node p, .code-note, footer { color: #55686a; }
+
+
+
+/* 序号标签原 9px/11px 且 3.71:1，调大并加深 */
+.takeaway-index { font-size: 11px !important; }
+.takeaway-index span { color: #9c4826 !important; font-size: 11px !important; }
+/* 浅底说明文字加深（同一规则只作用于亮色表面） */
+.hero-note, .hero-meta, .code-node p, .code-note, footer { color: #55686a; font-size: 12.5px; }
+/* 图标按钮与文字按钮的触控高度 */
+.source-link, .text-button, .boundary-button { min-height: 44px; display: inline-flex; align-items: center; }
+@media (hover: none) { .source-link, .text-button, .boundary-button { min-height: 44px; } }
+
+
+
+/* 页眉品牌链接：触控高度补到 44px */
+.brand { display: inline-flex; align-items: center; min-height: 44px; }
+

@@ -1,0 +1,41 @@
+/* 全站共享基础层（低优先级补缺）：只在各站样式没有覆盖到的地方生效。
+   放在 @layer 中，确保任何站内样式都能覆盖它，不会把原有设计带偏。 */
+@layer w1-base {
+  /* 统一阅读行宽：中文 30–40 字/行，对应约 68–74ch */
+  :where(main, article, .prose, .read, .content) p,
+  :where(main, article, .prose, .read, .content) li {
+    max-width: 74ch;
+  }
+  /* 图片永不撑破容器；同时保留原有宽高比 */
+  img, video { max-width: 100%; height: auto; }
+  /* 触屏滚动更跟手 */
+  pre, table, .table-scroll, .code-viewport { overscroll-behavior-x: contain; }
+  /* 锚点跳转不被吸顶栏挡住 */
+  html { scroll-padding-top: 72px; }
+  /* 打印时不输出交互控件 */
+  @media print {
+    .nav-toggle, .menu-toggle, .mobile-menu, .copy-btn, .backtop { display: none !important; }
+  }
+}
+
+/* 死链占位：不能只靠 title 提示（触屏无 hover），需要可见的形态与说明 */
+@layer w1-base {
+  .link-missing {
+    text-decoration: underline dashed;
+    text-underline-offset: 3px;
+    cursor: help;
+  }
+  .link-note { font-size: 13px; color: #5b6470; }
+  .evidence-rail .link-note { color: #b9c6c4; }
+}
+
+/* 焦点可见性与减少动效属于可访问性兜底，不受站点样式影响 */
+:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

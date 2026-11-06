@@ -204,7 +204,7 @@ main {
   color: var(--accent);
   margin-bottom: 8px;
 }
-.chapter h1 {
+.chapter h1, .chapter h2.chapter-title {
   font-size: 30px;
   line-height: 1.35;
   margin: 0 0 10px;
@@ -403,7 +403,7 @@ footer.site-foot {
   }
   .sidebar.open { transform: translateX(0); }
   main { padding: 22px 18px 80px; }
-  .chapter h1 { font-size: 24px; }
+  .chapter h1, .chapter h2.chapter-title { font-size: 24px; }
   .chapter h2 { font-size: 19px; }
   .mem-row { grid-template-columns: 96px 1fr; }
   .mem-stack { font-size: 11.5px; }
@@ -496,3 +496,48 @@ footer.site-foot {
   td code, th code { font-size: 12.5px; word-break: normal; }
   .checklist .badge { white-space: normal; }
 }
+
+
+/* ===== 优化补丁（可维护区，勿删）：对比度 / 触控目标 / 平板 ===== */
+:root { --muted: #6f675c; --cmt: #6f6960; }
+html[data-theme="dark"] { --muted: #b0a99c; --cmt: #9b9488; }
+
+/* 触控目标：目录项至少 44px 高，按钮同理 */
+.nav-list a { min-height: 44px; align-items: center; }
+.btn { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; }
+img, video, svg { max-width: 100%; height: auto; }
+
+/* 平板与窄屏：目录抽屉宽度收敛，宽表格自身滚动 */
+@media (max-width: 860px) {
+  .sidebar { inset: 0 auto 0 0; width: min(86vw, 360px); height: 100dvh; overflow-y: auto; }
+  .nav-toggle { min-height: 44px; min-width: 44px; }
+  table, table.wide { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.wide { min-width: 0; }
+}
+@media (hover: none) { .btn { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) { .sidebar { transition: none !important; } }
+
+
+
+/* ===== 触控目标二次补丁：控件高度 >=44px（仅为控件，不影响正文排版） ===== */
+.nav-toggle, .btn, .progress-reset { min-height: 44px; }
+.search input, .search { min-height: 44px; }
+.nav-list a { min-height: 44px; }
+@media (hover: none) { .btn, .nav-toggle { min-height: 44px; min-width: 44px; } }
+
+
+
+/* 深色模式：正文链接原先回退到浏览器默认蓝（#0000ee，1.90:1），改为高对比蓝 */
+html[data-theme="dark"] .content a,
+html[data-theme="dark"] .chapter a,
+html[data-theme="dark"] .term a,
+html[data-theme="dark"] .q a { color: #7fb2ff; }
+html[data-theme="dark"] .content a:hover,
+html[data-theme="dark"] .chapter a:hover { color: #a9c9ff; }
+
+
+
+/* 答题选项行：可点区域覆盖整行，触屏与触控笔在桌面宽度下也能稳定点按。
+   单选圆点本身保持原生尺寸，label 提供 44px 高的命中区。 */
+.opt { min-height: 44px; }
+

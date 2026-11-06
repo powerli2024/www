@@ -1,4 +1,6 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>项目A环境说明</title><link rel="stylesheet" href="assets/reader.css"></head><body class="static-reader"><main><p><a href="index.html#week-4">返回第4周课程</a></p><h1>项目A：可直接使用的独立环境</h1>
+<!doctype html><html data-w1-site="ml" lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>项目A环境说明</title><link rel="stylesheet" href="assets/reader.css"><link rel="icon" href="../_shared/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../_shared/base.css"><link rel="stylesheet" href="../_shared/tablet.css">
+</head><body class="static-reader"><main><p><a href="index.html#week-4">返回第4周课程</a></p><h1>项目A：可直接使用的独立环境</h1>
 <p>2026年10月23日已在 <code>D:\gpt\machine_learning\.venv-project-a</code> 新建并验证独立Python环境。它提供第4–8周digits、传统模型、交叉验证和绘图的运行入口，原来的 <code>D:\Download\python</code> 包环境保持原样。</p>
 <p>本次处理的是旧环境导入scikit-learn时触发的pandas/NumPy二进制不兼容：<code>ValueError: numpy.dtype size changed... Expected 96... got 88</code>。新环境没有继承旧环境的第三方包，也没有安装pandas或PyTorch。已有的纯Python小程序和NumPy程序可以在这里运行；第10周需要PyTorch的示例仍应使用课程原来已验证的PyTorch解释器。本环境目前不承担MLP/CNN的PyTorch安装。</p>
 <h2>1. 直接运行，不需要激活环境</h2>
@@ -48,7 +50,7 @@
 </tr>
 </tbody>
 </table></div>
-<p>这些版本由pip在官方PyPI上解析可用的兼容二进制包后安装，不是从旧环境混拷文件。全部直接和间接运行依赖已记录在 <a href="../course/requirements-project-a.txt">requirements-project-a.txt</a>。这是本次Windows/Python 3.12环境的版本锁定记录，不声称任意系统都可原样复现。</p>
+<p>这些版本由pip在官方PyPI上解析可用的兼容二进制包后安装，不是从旧环境混拷文件。全部直接和间接运行依赖已记录在 <span class="link-missing" title="该素材未随学习包提供" >requirements-project-a.txt</span><span class="link-note">（素材未随学习包提供）</span>。这是本次Windows/Python 3.12环境的版本锁定记录，不声称任意系统都可原样复现。</p>
 <p>安装遵循 <a href="https://scikit-learn.org/stable/install.html">scikit-learn官方安装说明</a>、<a href="https://docs.python.org/3/library/venv.html">Python venv说明</a>及<a href="https://matplotlib.org/stable/install/index.html">Matplotlib安装说明</a>。本次先确认目标目录不存在，再创建；没有覆盖既有用户环境。</p>
 <h2>3. 一条命令复核环境入口</h2>
 <pre><code class="language-powershell">&amp; 'D:\gpt\machine_learning\.venv-project-a\Scripts\python.exe' -I 'D:\gpt\machine_learning\学习包\course\verification_project_a_20261023\smoke_project_a.py'
@@ -142,12 +144,12 @@ No broken requirements found.
 </table></div>
 <p>配置为 <code>StandardScaler()</code> 与 <code>LogisticRegression(C=1, max_iter=2000, solver='lbfgs')</code> 的Pipeline，固定种子42，分层5折，单进程运行。正式项目若出现重复图像，应先按图像分组，再保持组不跨训练和评估；本次原始digits不存在完全重复图像，因此使用分层划分。</p>
 <p>这些数字是<strong>环境与调用流程烟测</strong>，用于证明库能加载、拟合、评估和绘图。它们不是你已经完成的项目A交付，也不是模型搜索后的最终成绩。没有测试集指标、神经网络对照、完整误差分析或你的独立讲解证据，不能直接把本表复制成结课报告。</p>
-<p>原始证据位于 <a href="../course/verification_project_a_20261023/">verification_project_a_20261023</a>：</p>
+<p>原始证据位于 <span class="link-missing" title="该素材未随学习包提供" >verification_project_a_20261023</span><span class="link-note">（素材未随学习包提供）</span>：</p>
 <ul>
-<li><a href="../course/verification_project_a_20261023/pip-install.log">安装日志</a>、<a href="../course/verification_project_a_20261023/pip-install-report.json">pip下载版本与哈希报告</a>。</li>
-<li><a href="../course/verification_project_a_20261023/smoke.log">运行输出</a>、<a href="../course/verification_project_a_20261023/results.json">结构化结果</a>、<a href="../course/verification_project_a_20261023/environment.json">环境版本</a>。</li>
-<li><a href="../course/verification_project_a_20261023/split_indices.json">固定划分与各折索引</a>、<a href="../course/verification_project_a_20261023/warnings.log">警告记录</a>、<a href="../course/verification_project_a_20261023/pip-check.log">依赖检查</a>。</li>
-<li><a href="../course/verification_project_a_20261023/development_cv_smoke.png">绘图烟测</a>。</li>
+<li><span class="link-missing" title="该素材未随学习包提供" >安装日志</span><span class="link-note">（素材未随学习包提供）</span>、<span class="link-missing" title="该素材未随学习包提供" >pip下载版本与哈希报告</span><span class="link-note">（素材未随学习包提供）</span>。</li>
+<li><span class="link-missing" title="该素材未随学习包提供" >运行输出</span><span class="link-note">（素材未随学习包提供）</span>、<span class="link-missing" title="该素材未随学习包提供" >结构化结果</span><span class="link-note">（素材未随学习包提供）</span>、<span class="link-missing" title="该素材未随学习包提供" >环境版本</span><span class="link-note">（素材未随学习包提供）</span>。</li>
+<li><span class="link-missing" title="该素材未随学习包提供" >固定划分与各折索引</span><span class="link-note">（素材未随学习包提供）</span>、<span class="link-missing" title="该素材未随学习包提供" >警告记录</span><span class="link-note">（素材未随学习包提供）</span>、<span class="link-missing" title="该素材未随学习包提供" >依赖检查</span><span class="link-note">（素材未随学习包提供）</span>。</li>
+<li><span class="link-missing" title="该素材未随学习包提供" >绘图烟测</span><span class="link-note">（素材未随学习包提供）</span>。</li>
 </ul>
 <h2>5. 常见问题</h2>
 <p><strong>仍出现原来的dtype size错误。</strong> 先打印<code>sys.executable</code>，检查是否确实是<code>.venv-project-a\Scripts\python.exe</code>。只修改命令行提示符或文件名不会切换解释器；编辑器中也要选择同一路径。不要把旧环境的site-packages或DLL复制进来。</p>

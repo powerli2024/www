@@ -1,90 +1,183 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html data-w1-site="portal" lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<meta name="description" content="离线可用的中文交互式学习站点合集：系统安全、编译原理、机器学习、算法设计与分析、nano-vLLM、缓存友好算法、语音合成与以太坊实验。全部为纯静态页面，无需后端。">
+<meta name="theme-color" content="#f7f7f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111315" media="(prefers-color-scheme: dark)">
 <title>学习笔记 · 门户</title>
 <style>
-  :root { color-scheme: light dark; }
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f5;
+    --surface: #ffffff;
+    --ink: #1b1f24;
+    --ink-soft: #4a5563;
+    --muted: #5f6b7a;
+    --line: #dfe2e6;
+    --accent: #135ea8;
+    --accent-ink: #0f4c87;
+    --focus: #135ea8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111315;
+      --surface: #191c20;
+      --ink: #eef0f2;
+      --ink-soft: #c6ccd4;
+      --muted: #a6b0bc;
+      --line: #2c3238;
+      --accent: #8ab8ee;
+      --accent-ink: #9cc4f2;
+      --focus: #9cc4f2;
+    }
+  }
   * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
-         line-height:1.6; background:#f6f7f9; color:#1b1f24; padding: clamp(16px,4vw,48px); }
-  @media (prefers-color-scheme: dark) { body { background:#0f1115; color:#e6e8eb; } .card { background:#171a21; border-color:#2a2f3a; } a { color:#7ab4ff; } }
-  header { max-width:980px; margin:0 auto 28px; }
-  h1 { font-size: clamp(22px,4vw,30px); margin:0 0 6px; }
-  .lede { color:#5b6675; margin:0; }
-  @media (prefers-color-scheme: dark) { .lede { color:#9aa4b2; } }
-  main { max-width:980px; margin:0 auto; display:grid; gap:16px; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
-  .card { background:#fff; border:1px solid #e3e6ea; border-radius:14px; padding:18px 20px; transition:transform .12s ease, box-shadow .12s ease; }
-  .card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,.08); }
-  .card h2 { margin:0 0 8px; font-size:18px; }
-  .card a { text-decoration:none; color:inherit; }
-  .card h2 a { color:#1f6feb; }
-  .card p { margin:0 0 8px; font-size:14px; color:#3b424d; }
-  @media (prefers-color-scheme: dark) { .card p { color:#c2c8d0; } .card h2 a { color:#7ab4ff; } }
-  .url { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; color:#8a93a0 !important; }
-  .sub { margin:6px 0 0; padding-left:18px; font-size:13px; }
-  footer { max-width:980px; margin:32px auto 0; font-size:12px; color:#8a93a0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    padding: clamp(16px, 4vw, 48px);
+  }
+  .skip-link {
+    position: absolute; left: 8px; top: -60px; z-index: 10;
+    background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 14px; text-decoration: none;
+  }
+  .skip-link:focus { top: 8px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+
+  header, main, footer { max-width: 1080px; margin-inline: auto; }
+  header { margin-bottom: clamp(20px, 3vw, 32px); }
+  h1 { font-size: clamp(22px, 2.4vw, 30px); line-height: 1.35; margin: 0 0 8px; letter-spacing: .01em; }
+  .lede { margin: 0; max-width: 68ch; color: var(--ink-soft); }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 16px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: 14px; }
+  .facts li { display: flex; align-items: center; gap: 6px; }
+  .facts li::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--line); }
+
+  main { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+  .card {
+    display: flex; flex-direction: column; gap: 6px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 20px 16px;
+  }
+  .card h2 { margin: 0; font-size: 18px; line-height: 1.4; }
+  .card h2 a { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent-ink); text-decoration: none; }
+  .card h2 a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .card p { margin: 0; font-size: 14.5px; line-height: 1.65; color: var(--ink-soft); }
+  .meta { font-size: 13px; color: var(--muted); }
+  .enter {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: auto; padding: 11px 2px 2px; min-height: 44px;
+    font-size: 14px; color: var(--accent-ink); text-decoration: none;
+  }
+  .enter:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .enter svg { width: 14px; height: 14px; }
+  .extra { margin: 2px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .extra a { display: inline-flex; align-items: center; min-height: 44px; font-size: 13.5px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+  .extra a:hover { color: var(--accent-ink); }
+  footer { margin-top: 30px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  footer p { margin: 0 0 4px; max-width: 72ch; }
+  @media (max-width: 620px) {
+    body { padding: 18px 16px 28px; }
+    main { grid-template-columns: 1fr; gap: 12px; }
+    .card { padding: 16px 16px 12px; }
+    .card p { font-size: 15px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
+<link rel="icon" href="_shared/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="_shared/base.css"><link rel="stylesheet" href="_shared/tablet.css">
 </head>
 <body>
+<a class="skip-link" href="#sites">跳到站点列表</a>
+
 <header>
   <h1>学习笔记 · 门户</h1>
-  <p class="lede">自包含、可离线的交互式学习网页合集。以下每个站点均为静态页面，无需后端。</p>
+  <p class="lede">九个中文学习站点：讲义、公式推导、可回放的算法轨迹与自测都放在页面里。全部为静态资源，可离线打开，不依赖后端与第三方脚本。</p>
+  <ul class="facts">
+    <li>9 个站点</li>
+    <li>纯静态 · 无需登录</li>
+    <li>键盘可操作</li>
+  </ul>
 </header>
-<main>
-    <article class="card">
-      <h2><a href="security/">系统安全 · 交互讲义</a></h2>
-      <p>缓冲区溢出、格式化字符串、栈保护、ASLR/PIE 等，含自测与内存图。</p>
-      <p class="url">/security/</p>
-      <ul class="sub"><li><a href="security/format-string.html">格式化字符串图解 v1</a></li><li><a href="security/format-string-v2.html">格式化字符串图解 v2</a></li></ul>
-    </article>
-    <article class="card">
-      <h2><a href="compiler/">编译原理 · 第 1–3 章</a></h2>
-      <p>编译概述、文法与语言、词法分析与有穷自动机，含 DFA 模拟与即时判分。</p>
-      <p class="url">/compiler/</p>
-      
-    </article>
-    <article class="card">
-      <h2><a href="ml/">机器学习 · 24 周学习包</a></h2>
-      <p>逐周讲义、公式目录与练习，自包含阅读版。</p>
-      <p class="url">/ml/</p>
-      
-    </article>
-    <article class="card">
-      <h2><a href="algo/">算法设计与分析 · 学习包</a></h2>
-      <p>分章节交互讲解与练习。</p>
-      <p class="url">/algo/</p>
-      
-    </article>
-    <article class="card">
-      <h2><a href="nano-vllm/">nano-vllm · 源码研习室</a></h2>
-      <p>从推理引擎视角拆解 vLLM 微型实现。</p>
-      <p class="url">/nano-vllm/</p>
-      
-    </article>
-    <article class="card">
-      <h2><a href="cf-atlas/">缓存友好算法图谱</a></h2>
-      <p>基础 / 序列 / DP 图三类算法的可视化讲解。</p>
-      <p class="url">/cf-atlas/</p>
-      
-    </article>
-    <article class="card">
-      <h2><a href="yovoice/">YoVoice · 语音合成学习包</a></h2>
-      <p>语音合成原理、课程与优化。</p>
-      <p class="url">/yovoice/</p>
-      
-    </article>
-    <article class="card">
-      <h2><a href="ethereum/">区块链 / 以太坊 · 实验指导手册</a></h2>
-      <p>实验步骤与环境配置。</p>
-      <p class="url">/ethereum/</p>
-      
-    </article>
+
+<main id="sites">
+  <article class="card">
+    <h2><a href="security/">系统安全 · 交互讲义</a></h2>
+    <p>缓冲区溢出、格式化字符串、栈保护、ASLR/PIE 与 ROP，含自测与内存图。</p>
+    <p class="meta">课程整理 · 含 3 个示例 C 源码</p>
+    <a class="enter" href="security/">进入站点 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 3.5 13 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
+    <ul class="extra">
+      <li><a href="security/format-string.html">格式化字符串图解 v1</a></li>
+      <li><a href="security/format-string-v2.html">图解 2.0（深度版）</a></li>
+    </ul>
+  </article>
+
+  <article class="card">
+    <h2><a href="compiler/">编译原理 · 第 1–3 章</a></h2>
+    <p>编译概述、文法与语言、词法分析与有穷自动机；含语法树、DFA 模拟与即时判分自测。</p>
+    <p class="meta">交互讲义 · 可打印备份</p>
+    <a class="enter" href="compiler/">进入站点 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 3.5 13 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
+  </article>
+
+  <article class="card">
+    <h2><a href="os/">操作系统原理 · 第 1–2 章</a></h2>
+    <p>操作系统的定义、功能与发展演变、内核结构；CPU 的态、中断机制、BIOS 与启动链、系统生成，含流程示意与即时判分自测。</p>
+    <p class="meta">交互讲义 · 47 道自测题 · 可打印备份</p>
+    <a class="enter" href="os/">进入站点 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 3.5 13 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
+  </article>
+
+  <article class="card">
+    <h2><a href="ml/">机器学习 · 24 周学习包</a></h2>
+    <p>逐周讲义、双语代码跟读、公式目录与练习。每周可单独打开静态讲义，也可在交互阅读器里跟读。</p>
+    <p class="meta">24 周 · 从线性回归到 Transformer</p>
+    <a class="enter" href="ml/">进入站点 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 3.5 13 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
+  </article>
+
+  <article class="card">
+    <h2><a href="algo/">算法设计与分析 · 学习包</a></h2>
+    <p>15 课全文讲义，每课配一个可单步播放的核心实验，共 32 组预设；公式、推导与练习均可离线查阅。</p>
+    <p class="meta">交互实验 · 支持导出笔记</p>
+    <a class="enter" href="algo/">进入站点 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 3.5 13 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
+  </article>
+
+  <article class="card">
+    <h2><a href="nano-vllm/">nano-vllm · 源码研习室</a></h2>
+    <p>从 token 与 attention 数学讲到 KV 缓存、调度抢占、FlashAttention 与 CUDA Graph，逐段对照真实源码。</p>
+    <p class="meta">源码地图 · 固定提交版本</p>
+    <a class="enter" href="nano-vllm/">进入站点 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 3.5 13 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
+  </article>
+
+  <article class="card">
+    <h2><a href="cf-atlas/">缓存友好算法图谱</a></h2>
+    <p>基础、序列与 DP/图三类算法的可视化讲解：从朴素推导、不变量与证明，到完整 C++17 与练习。</p>
+    <p class="meta">32 个可回放实验</p>
+    <a class="enter" href="cf-atlas/">进入站点 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 3.5 13 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
+  </article>
+
+  <article class="card">
+    <h2><a href="yovoice/">YoVoice · 语音合成学习包</a></h2>
+    <p>沿真实源码理解语音合成：学习路线、生成链路、音色参考原理与可验证的工程优化。</p>
+    <p class="meta">源码研习 · 含优化对照</p>
+    <a class="enter" href="yovoice/">进入站点 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 3.5 13 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
+  </article>
+
+  <article class="card">
+    <h2><a href="ethereum/">区块链 / 以太坊 · 实验手册</a></h2>
+    <p>六个递进实验：装环境、建链、管账户与挖矿、转账、写合约、部署与交互，附常见错误排查。</p>
+    <p class="meta">Ubuntu 22.04 / geth 1.10.x</p>
+    <a class="enter" href="ethereum/">进入站点 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 3.5 13 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
+  </article>
 </main>
+
 <footer>
-  <p>部署：Cloudflare Pages（GitHub 关联，构建命令留空，输出目录为仓库根）。本页与各子站点均为纯静态资源。</p>
+  <p>所有站点均为静态页面，可直接双击 HTML 打开；无统计、无账户、无远程脚本。</p>
+  <p>每个站点也可单独部署，内部资源全部使用相对路径。</p>
 </footer>
 </body>
 </html>
